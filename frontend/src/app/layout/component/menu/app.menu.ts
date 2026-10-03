@@ -14,6 +14,7 @@ interface RoleMenuItem extends MenuItem {
 
 const ALL_ROLES: Role[] = ['admin', 'manager', 'agent', 'citizen'];
 const STAFF_ROLES: Role[] = ['admin', 'manager'];
+const TERRA_NOVA_ROLES: Role[] = ['admin', 'manager', 'agent'];
 
 const MENU_MODEL: RoleMenuItem[] = [
     {
@@ -31,10 +32,10 @@ const MENU_MODEL: RoleMenuItem[] = [
     {
         label: 'Terra Nova',
         items: [
-            { label: 'Tableau de bord', icon: 'pi pi-fw pi-chart-line', routerLink: ['/home/terra-nova'], routerLinkActiveOptions: { exact: true } },
-            { label: 'Demandes API', icon: 'pi pi-fw pi-list', routerLink: ['/home/terra-nova/demandes'] },
-            { label: 'Notifications', icon: 'pi pi-fw pi-bell', routerLink: ['/home/terra-nova/notifications'] },
-            { label: 'Pipeline', icon: 'pi pi-fw pi-objects-column', routerLink: ['/home/terra-nova/pipeline'] }
+            { label: 'Tableau de bord', icon: 'pi pi-fw pi-chart-line', routerLink: ['/home/terra-nova'], routerLinkActiveOptions: { exact: true }, roles: TERRA_NOVA_ROLES },
+            { label: 'Demandes API', icon: 'pi pi-fw pi-list', routerLink: ['/home/terra-nova/demandes'], roles: TERRA_NOVA_ROLES },
+            { label: 'Notifications', icon: 'pi pi-fw pi-bell', routerLink: ['/home/terra-nova/notifications'], roles: TERRA_NOVA_ROLES },
+            { label: 'Pipeline', icon: 'pi pi-fw pi-objects-column', routerLink: ['/home/terra-nova/pipeline'], roles: TERRA_NOVA_ROLES }
         ]
     },
     {

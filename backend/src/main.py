@@ -18,6 +18,7 @@ from src.features.municipal_content.router import router as municipal_content_ro
 from src.features.notification.router import router as notification_router
 from src.features.priority.router import router as priority_router
 from src.features.search.router import router as search_router
+from src.features.terra_request.router import router as terra_request_router
 from src.features.user.router import router as user_router
 from src.infrastructure.config import configure_logging, get_settings
 from src.shared.errors import register_exception_handlers

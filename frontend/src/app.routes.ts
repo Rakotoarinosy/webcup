@@ -20,7 +20,12 @@ export const appRoutes: Routes = [
             { path: 'municipal/services', loadComponent: () => import('./app/municipal/municipal-services').then((m) => m.MunicipalServices), canActivate: [roleGuard], data: { roles: ['admin', 'manager', 'agent', 'citizen'] } },
             { path: 'municipal/publications', loadComponent: () => import('./app/municipal/municipal-publications').then((m) => m.MunicipalPublications), canActivate: [roleGuard], data: { roles: ['admin', 'manager', 'agent', 'citizen'] } },
             { path: 'municipal/contact', loadComponent: () => import('./app/municipal/municipal-contact').then((m) => m.MunicipalContact), canActivate: [roleGuard], data: { roles: ['admin', 'manager', 'agent', 'citizen'] } },
-            { path: 'terra-nova', loadChildren: () => import('./app/terra-nova/terra-nova.routes') },
+            {
+                path: 'terra-nova',
+                loadChildren: () => import('./app/terra-nova/terra-nova.routes'),
+                canActivate: [roleGuard],
+                data: { roles: ['admin', 'manager', 'agent'] }
+            },
             // Démos du template (composants PrimeNG, pages CRUD / vide / documentation).
             { path: 'uikit', loadChildren: () => import('./app/pages/uikit/uikit.routes') },
             { path: 'pages', loadChildren: () => import('./app/pages/pages.routes') }
