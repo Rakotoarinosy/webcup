@@ -70,7 +70,9 @@ class Settings(BaseSettings):
         if self.environment == "production" and (
             self.secret_key == DEFAULT_SECRET or len(self.secret_key) < 32
         ):
-            raise ValueError("SECRET_KEY must be a random string of at least 32 characters in production")
+            raise ValueError(
+                "SECRET_KEY must be a random string of at least 32 characters in production"
+            )
         if self.environment == "production" and "*" in self.cors_origins:
             raise ValueError("CORS_ORIGINS must not contain '*' (credentials are enabled)")
         return self

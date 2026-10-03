@@ -1,7 +1,7 @@
 """create terra_requests, terra_sessions and terra_request_reads tables
 
 Revision ID: a7d3e91b4c20
-Revises: 5c1f7e9a2d63
+Revises: 6f4a2b9d1e70
 Create Date: 2026-10-03 12:00:00.000000
 
 """
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = 'a7d3e91b4c20'
-down_revision: Union[str, Sequence[str], None] = '5c1f7e9a2d63'
+down_revision: Union[str, Sequence[str], None] = '6f4a2b9d1e70'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
