@@ -8,6 +8,7 @@ from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
+from src.domain.user import Role
 from src.shared.validation import Email, Name, Password
 
 # 6 chiffres exactement ; les espaces autour (copier-coller depuis l'email) sont retirés.
@@ -80,7 +81,7 @@ class ProfileOut(BaseModel):
     id: str
     email: str
     name: str
-    role: str
+    role: Role
     agent_id: str | None = None
     institut_id: str | None = None
     created_at: datetime

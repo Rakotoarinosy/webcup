@@ -1,5 +1,6 @@
 /** Miroirs de GET /requests/activity et GET /audit (F47 : traçabilité). */
 import { RequestEvent, RequestEventType, RequestStatus } from '@/app/requests/request.model';
+import { AuditAction, AuditTarget, Role } from '@/app/shared/api-enums';
 
 export interface RequestActivity {
     event: RequestEvent;
@@ -7,35 +8,18 @@ export interface RequestActivity {
     request_status: RequestStatus;
 }
 
-export type AuditAction =
-    | 'account_created'
-    | 'account_updated'
-    | 'account_role_changed'
-    | 'account_password_reset'
-    | 'account_deactivated'
-    | 'account_reactivated'
-    | 'account_deleted'
-    | 'institut_created'
-    | 'institut_updated'
-    | 'institut_manager_changed'
-    | 'agent_created'
-    | 'agent_moved'
-    | 'agent_activated'
-    | 'agent_deactivated'
-    | 'agent_status_changed'
-    | 'data_concern_reviewed'
-    | 'data_concern_answered';
+export type { AuditAction };
 
 export interface AuditEntry {
     id: string;
     action: AuditAction;
     occurred_at: string;
-    target_type: 'account' | 'institut' | 'agent' | 'data_concern';
+    target_type: AuditTarget;
     target_id: string;
     target_label: string;
     actor_id: string | null;
     actor_name: string;
-    actor_role: string;
+    actor_role: Role;
     institut_id: string | null;
     details: Record<string, unknown>;
 }

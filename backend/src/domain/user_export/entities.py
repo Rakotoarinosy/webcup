@@ -4,6 +4,10 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
 
+from src.domain.citizen_request.entities import RequestCategory, RequestPriority, RequestStatus
+from src.domain.preferences.entities import FontFamily, FontSize, Theme
+from src.domain.user.entities import Role
+
 
 class ExportFormat(StrEnum):
     PDF = "pdf"
@@ -18,9 +22,9 @@ class ExportedRequest:
 
     title: str
     description: str
-    category: str
-    status: str
-    priority: str
+    category: RequestCategory
+    status: RequestStatus
+    priority: RequestPriority
     location: str
     created_at: datetime
     updated_at: datetime
@@ -32,11 +36,11 @@ class PersonalData:
 
     name: str
     email: str
-    role: str
+    role: Role
     created_at: datetime
-    theme: str
-    font_size: str
-    font_family: str
+    theme: Theme
+    font_size: FontSize
+    font_family: FontFamily
     requests: tuple[ExportedRequest, ...]
 
 

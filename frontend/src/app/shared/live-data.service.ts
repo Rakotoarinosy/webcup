@@ -3,7 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subject, debounceTime, filter, fromEvent, merge, timer } from 'rxjs';
 
 export const LIVE_REFRESH_MS = 30_000;
-export const DATA_CHANGE_KEY = 'kotrana-data-change';
+export const DATA_CHANGE_KEY = 'terranova-data-change';
 
 @Injectable({ providedIn: 'root' })
 export class LiveDataService {

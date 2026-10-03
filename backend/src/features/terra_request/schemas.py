@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
 
-from src.domain.terra_request import PipelineStatus
+from src.domain.terra_request import PipelineStatus, TerraNotificationKind
 
 
 class TerraRequestOut(BaseModel):
@@ -76,7 +76,7 @@ class TerraNotificationOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     key: str
-    kind: str
+    kind: TerraNotificationKind
     title: str
     message: str
     request_code: str | None

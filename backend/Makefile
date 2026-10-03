@@ -10,7 +10,7 @@ endif
 COMPOSE := docker compose
 PORT ?= 8000
 
-.PHONY: help install dev test lint format migrate seed revision requirements docker-up docker-down clean
+.PHONY: help install dev test lint format migrate seed revision enums requirements docker-up docker-down clean
 
 help: ## Liste les commandes
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "} {printf "  make %-14s %s\n", $$1, $$2}'
@@ -43,6 +43,9 @@ seed: ## Remplit la base locale avec des données fictives (rejouable)
 revision: ## Génère une migration : make revision m="add products table"
 	@test -n "$(m)" || (echo 'Usage : make revision m="description"' && exit 1)
 	$(RUN) alembic revision --autogenerate -m "$(m)"
+
+enums: ## Régénère frontend/src/app/shared/api-enums.ts depuis les Enum du backend
+	$(RUN) python scripts/generate_frontend_enums.py
 
 requirements: ## Régénère requirements.txt (prod, Passenger) et requirements-dev.txt depuis uv.lock
 	uv lock

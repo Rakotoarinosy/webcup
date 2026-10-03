@@ -5,6 +5,9 @@ from datetime import UTC, datetime
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from src.domain.citizen_request import RequestCategory, RequestPriority, RequestStatus
+from src.domain.preferences import FontFamily, FontSize, Theme
+from src.domain.user import Role
 from src.domain.user_export import ExportedRequest, PersonalData, UserExportRepository
 from src.infrastructure.persistence.models import (
     CitizenRequestModel,
@@ -34,18 +37,18 @@ class SqlAlchemyUserExportRepository(UserExportRepository):
         return PersonalData(
             name=user.name,
             email=user.email,
-            role=user.role,
+            role=Role(user.role),
             created_at=_aware(user.created_at),
-            theme=preferences.theme if preferences else "system",
-            font_size=preferences.font_size if preferences else "medium",
-            font_family=preferences.font_family if preferences else "system",
+            theme=Theme(preferences.theme) if preferences else Theme.SYSTEM,
+            font_size=FontSize(preferences.font_size) if preferences else FontSize.MEDIUM,
+            font_family=(FontFamily(preferences.font_family) if preferences else FontFamily.SYSTEM),
             requests=tuple(
                 ExportedRequest(
                     title=row.title,
                     description=row.description,
-                    category=row.category,
-                    status=row.status,
-                    priority=row.priority,
+                    category=RequestCategory(row.category),
+                    status=RequestStatus(row.status),
+                    priority=RequestPriority(row.priority),
                     location=row.location,
                     created_at=_aware(row.created_at),
                     updated_at=_aware(row.updated_at),

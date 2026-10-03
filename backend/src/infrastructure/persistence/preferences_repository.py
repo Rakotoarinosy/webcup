@@ -1,6 +1,12 @@
 from sqlalchemy.orm import Session
 
-from src.domain.preferences import PreferencesRepository, UserPreferences
+from src.domain.preferences import (
+    FontFamily,
+    FontSize,
+    PreferencesRepository,
+    Theme,
+    UserPreferences,
+)
 from src.infrastructure.persistence.models import UserPreferenceModel
 
 
@@ -27,4 +33,6 @@ class SqlAlchemyPreferencesRepository(PreferencesRepository):
 
     @staticmethod
     def _entity(row: UserPreferenceModel) -> UserPreferences:
-        return UserPreferences(row.user_id, row.theme, row.font_size, row.font_family)  # type: ignore[arg-type]
+        return UserPreferences(
+            row.user_id, Theme(row.theme), FontSize(row.font_size), FontFamily(row.font_family)
+        )

@@ -58,8 +58,11 @@ from src.infrastructure.security.email_verification import get_email_verifier, g
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
+
 @router.get("/config")
-def auth_config(response: Response, settings: Settings = Depends(get_settings)) -> dict[str, str | None]:
+def auth_config(
+    response: Response, settings: Settings = Depends(get_settings)
+) -> dict[str, str | None]:
     """Configuration publique uniquement : aucun secret SMTP ou OAuth."""
     response.headers["Cache-Control"] = "no-store"
     return {"google_client_id": settings.google_client_id}
@@ -142,9 +145,7 @@ def register_endpoint(
     settings: Settings = Depends(get_settings),
     resolve: ActorResolver = Depends(get_actor_resolver),
 ) -> ProfileOut | ChallengeOut:
-    result = register(
-        payload, users, hasher, verifier
-    )
+    result = register(payload, users, hasher, verifier)
     if isinstance(result, VerificationChallenge):
         return _challenge_out(result, response)
     response.headers["Cache-Control"] = "no-store"
@@ -155,7 +156,10 @@ def register_endpoint(
     "/login",
     response_model=TokenOut | ChallengeOut,
     responses={
-        202: {"model": ChallengeOut, "description": "Double authentification : un code a été envoyé"}
+        202: {
+            "model": ChallengeOut,
+            "description": "Double authentification : un code a été envoyé",
+        }
     },
 )
 def login_endpoint(

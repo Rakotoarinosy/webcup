@@ -4,8 +4,10 @@ import { Observable } from 'rxjs';
 
 import { environment } from '@/environments/environment';
 
-export const EXPORT_FORMATS = ['pdf', 'csv', 'excel', 'word'] as const;
-export type UserExportFormat = (typeof EXPORT_FORMATS)[number];
+import { EXPORT_FORMAT_VALUES, ExportFormat } from '@/app/shared/api-enums';
+
+export const EXPORT_FORMATS = EXPORT_FORMAT_VALUES;
+export type UserExportFormat = ExportFormat;
 
 @Injectable({ providedIn: 'root' })
 export class ProfileExportService {

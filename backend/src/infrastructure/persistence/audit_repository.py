@@ -4,6 +4,7 @@ from sqlalchemy import ColumnElement, func, or_, select
 from sqlalchemy.orm import Session
 
 from src.domain.audit import AuditAction, AuditEntry, AuditLog, AuditQuery, AuditTarget
+from src.domain.user import Role
 from src.infrastructure.persistence.citizen_request_repository import as_utc
 from src.infrastructure.persistence.models import AuditEntryModel
 
@@ -23,7 +24,7 @@ class SqlAlchemyAuditLog(AuditLog):
                 target_label=entry.target_label,
                 actor_id=entry.actor_id,
                 actor_name=entry.actor_name,
-                actor_role=entry.actor_role,
+                actor_role=entry.actor_role.value,
                 institut_id=entry.institut_id,
                 details=entry.details,
             )
@@ -79,7 +80,7 @@ def _to_entity(model: AuditEntryModel) -> AuditEntry:
         target_label=model.target_label,
         actor_id=model.actor_id,
         actor_name=model.actor_name,
-        actor_role=model.actor_role,
+        actor_role=Role(model.actor_role),
         institut_id=model.institut_id,
         details=dict(model.details or {}),
     )

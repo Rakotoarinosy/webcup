@@ -11,7 +11,7 @@ from src.domain.user.ports import EmailSender
 
 logger = logging.getLogger(__name__)
 
-APP_NAME = "Kotrana"
+APP_NAME = "Terra Nova"
 
 
 def _render(name: str, code: str, ttl_minutes: int) -> tuple[str, str]:

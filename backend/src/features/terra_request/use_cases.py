@@ -15,6 +15,7 @@ from src.domain.terra_request import (
     TerraFeed,
     TerraFeedUnavailableError,
     TerraNotification,
+    TerraNotificationKind,
     TerraRequest,
     TerraRequestNotFoundError,
     TerraRequestRepository,
@@ -133,7 +134,7 @@ def _notifications(requests: list[TerraRequest]) -> list[TerraNotification]:
         items.append(
             TerraNotification(
                 key=request.request_code,
-                kind="new_request",
+                kind=TerraNotificationKind.NEW_REQUEST,
                 title=f"Nouvelle demande {request.request_code}",
                 message=(
                     f"{origin} · {request.difficulty or 'Difficulté inconnue'} · "
@@ -153,7 +154,7 @@ def _notifications(requests: list[TerraRequest]) -> list[TerraNotification]:
         items.append(
             TerraNotification(
                 key=_WAVE_KEY.format(wave=wave),
-                kind="new_wave",
+                kind=TerraNotificationKind.NEW_WAVE,
                 title=f"Vague {wave} diffusée",
                 message=f"{count_by_wave[wave]} demande(s) dans cette vague.",
                 request_code=None,
@@ -161,7 +162,10 @@ def _notifications(requests: list[TerraRequest]) -> list[TerraNotification]:
             )
         )
 
-    items.sort(key=lambda item: (item.created_at, item.kind == "new_wave"), reverse=True)
+    items.sort(
+        key=lambda item: (item.created_at, item.kind is TerraNotificationKind.NEW_WAVE),
+        reverse=True,
+    )
     return items
 
 

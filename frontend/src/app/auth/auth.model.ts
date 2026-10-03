@@ -1,4 +1,6 @@
-export type Role = 'admin' | 'manager' | 'agent' | 'citizen';
+import { Role } from '@/app/shared/api-enums';
+
+export type { Role };
 
 export const ROLE_LABELS: Record<Role, string> = {
     admin: 'Administrateur',

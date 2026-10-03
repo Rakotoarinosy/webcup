@@ -1,7 +1,10 @@
 import { Injectable, computed, effect, signal, untracked } from '@angular/core';
 
 /** Préférence de thème choisie par l'utilisateur ; `system` suit le réglage de l'OS. */
-export type ThemeMode = 'light' | 'dark' | 'system';
+import { Theme } from '@/app/shared/api-enums';
+
+/** Mêmes valeurs que les préférences enregistrées côté backend (Theme). */
+export type ThemeMode = Theme;
 
 // Même clé que le script inline de index.html, qui applique le thème avant le démarrage d'Angular.
 export const THEME_STORAGE_KEY = 'theme-mode';

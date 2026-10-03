@@ -1,7 +1,9 @@
 // Types alignés sur l'API backend /api/v1/terra-requests (snake_case comme l'API).
 
-export const PIPELINE_STATUSES = ['todo', 'in_progress', 'validation', 'done'] as const;
-export type PipelineStatus = (typeof PIPELINE_STATUSES)[number];
+import { PIPELINE_STATUS_VALUES, PipelineStatus, TerraNotificationKind } from '@/app/shared/api-enums';
+
+export const PIPELINE_STATUSES = PIPELINE_STATUS_VALUES;
+export type { PipelineStatus };
 
 export interface TerraRequest {
     request_code: string;
@@ -62,7 +64,7 @@ export interface TerraSyncReport {
 
 export interface TerraNotification {
     key: string;
-    kind: 'new_request' | 'new_wave' | string;
+    kind: TerraNotificationKind;
     title: string;
     message: string;
     request_code: string | null;

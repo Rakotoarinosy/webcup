@@ -5,8 +5,9 @@ import { Observable, tap } from 'rxjs';
 import { LayoutService, ThemeMode } from '@/app/layout/service/layout.service';
 import { environment } from '@/environments/environment';
 
-export type FontSize = 'small' | 'medium' | 'large';
-export type FontFamily = 'system' | 'inter' | 'poppins' | 'manrope' | 'source' | 'serif' | 'mono';
+import { FontFamily, FontSize } from '@/app/shared/api-enums';
+
+export type { FontFamily, FontSize };
 export interface UserPreferences { theme: ThemeMode; font_size: FontSize; font_family: FontFamily; }
 
 @Injectable({ providedIn: 'root' })

@@ -190,7 +190,8 @@ async def test_google_pending_signup_discards_untrusted_password_and_confirms_ci
 
 
 async def test_registration_cannot_skip_verification_with_legacy_setting(
-    client: httpx.AsyncClient, verification: CapturingSender,
+    client: httpx.AsyncClient,
+    verification: CapturingSender,
 ) -> None:
     settings = get_settings().model_copy(update={"email_verification_required": False})
     app.dependency_overrides[get_settings] = lambda: settings
@@ -200,7 +201,9 @@ async def test_registration_cannot_skip_verification_with_legacy_setting(
 
 
 async def test_email_delivery_failure_does_not_open_session(
-    client: httpx.AsyncClient, db_session: Session, verification: CapturingSender,
+    client: httpx.AsyncClient,
+    db_session: Session,
+    verification: CapturingSender,
 ) -> None:
     from src.domain.user.exceptions import EmailDeliveryUnavailableError
 
@@ -216,7 +219,9 @@ async def test_email_delivery_failure_does_not_open_session(
 
 
 async def test_public_config_exposes_only_google_client_id(client: httpx.AsyncClient) -> None:
-    settings = get_settings().model_copy(update={"google_client_id": "example.apps.googleusercontent.com"})
+    settings = get_settings().model_copy(
+        update={"google_client_id": "example.apps.googleusercontent.com"}
+    )
     app.dependency_overrides[get_settings] = lambda: settings
     response = await client.get(f"{AUTH}/config")
     assert response.status_code == 200

@@ -2,12 +2,14 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
 
+from src.domain.notification import NotificationKind
+
 
 class NotificationOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     key: str
-    kind: str  # created / status_changed / rejected / assigned / resolved / late
+    kind: NotificationKind
     title: str
     message: str
     request_id: str

@@ -105,10 +105,10 @@ def _word(data: PersonalData, generated_at: datetime) -> bytes:
         for section, field, value in _rows(data, generated_at)
     )
     return (
-        '<!doctype html><html><head><meta charset="utf-8"><title>Mes données Kotrana</title>'
+        '<!doctype html><html><head><meta charset="utf-8"><title>Mes données Terra Nova</title>'
         "<style>body{font-family:Arial,sans-serif;color:#1f2937}table{border-collapse:collapse;width:100%}"
         "th,td{border:1px solid #d1d5db;padding:8px;text-align:left}th{background:#e5f8f0}</style>"
-        "</head><body><h1>Mes données Kotrana</h1><table><thead><tr><th>Rubrique</th><th>Champ</th>"
+        "</head><body><h1>Mes données Terra Nova</h1><table><thead><tr><th>Rubrique</th><th>Champ</th>"
         f"<th>Valeur</th></tr></thead><tbody>{body}</tbody></table></body></html>"
     ).encode()
 
@@ -124,22 +124,33 @@ def _pdf(data: PersonalData, generated_at: datetime) -> bytes:
     def color(rgb: tuple[float, float, float]) -> str:
         return " ".join(f"{component:.3f}" for component in rgb)
 
-    def draw_text(x: float, baseline: float, value: str, font: str, size: float, rgb: tuple[float, float, float]) -> None:
+    def draw_text(
+        x: float,
+        baseline: float,
+        value: str,
+        font: str,
+        size: float,
+        rgb: tuple[float, float, float],
+    ) -> None:
         encoded = value.encode("cp1252", "replace").decode("latin-1")
         escaped = encoded.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
         commands.append(
             f"BT {color(rgb)} rg /{font} {size:g} Tf 1 0 0 1 {x:g} {baseline:g} Tm ({escaped}) Tj ET"
         )
 
-    def rect(x: float, bottom: float, width: float, height: float, rgb: tuple[float, float, float]) -> None:
+    def rect(
+        x: float, bottom: float, width: float, height: float, rgb: tuple[float, float, float]
+    ) -> None:
         commands.append(f"{color(rgb)} rg {x:g} {bottom:g} {width:g} {height:g} re f")
 
     rect(0, page_height - 12, page_width, 12, (0.16, 0.80, 0.60))
-    draw_text(left, page_height - 46, "KOTRANA  /  MES DONNÉES", "F2", 9, (0.20, 0.48, 0.41))
+    draw_text(left, page_height - 46, "TERRA NOVA  /  MES DONNÉES", "F2", 9, (0.20, 0.48, 0.41))
     y = page_height - 78
     draw_text(left, y, "Mes données personnelles", "F2", 23, (0.10, 0.13, 0.18))
     y -= 23
-    draw_text(left, y, "Votre compte, vos préférences et vos demandes", "F1", 10, (0.38, 0.43, 0.49))
+    draw_text(
+        left, y, "Votre compte, vos préférences et vos demandes", "F1", 10, (0.38, 0.43, 0.49)
+    )
     y -= 34
 
     rows = _rows(data, generated_at)
@@ -171,7 +182,9 @@ def _pdf(data: PersonalData, generated_at: datetime) -> bytes:
             for line_index, line in enumerate(value_lines):
                 draw_text(230, y - line_index * 12, line, "F2", 10, (0.10, 0.13, 0.18))
             y -= row_height
-            commands.append(f"0.86 0.89 0.91 RG 0.5 w {left + 13:g} {y + 4:g} m {right:g} {y + 4:g} l S")
+            commands.append(
+                f"0.86 0.89 0.91 RG 0.5 w {left + 13:g} {y + 4:g} m {right:g} {y + 4:g} l S"
+            )
             y -= 5
         y -= 12
 
@@ -185,7 +198,7 @@ def _pdf(data: PersonalData, generated_at: datetime) -> bytes:
         + "\n".join(commands)
         + "\nQ\n0.78 0.82 0.85 RG 0.6 w 48 38 m 547 38 l S"
     )
-    draw_text(right - 64, 24, "Kotrana  ·  1/1", "F1", 8, (0.48, 0.53, 0.58))
+    draw_text(right - 64, 24, "Terra Nova  ·  1/1", "F1", 8, (0.48, 0.53, 0.58))
     stream += "\n" + commands[-1]
 
     objects = [
@@ -194,10 +207,12 @@ def _pdf(data: PersonalData, generated_at: datetime) -> bytes:
         "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
         "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>",
     ]
-    objects.extend([
-        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 6 0 R >>",
-        f"<< /Length {len(stream.encode('latin-1'))} >>\nstream\n{stream}\nendstream",
-    ])
+    objects.extend(
+        [
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 6 0 R >>",
+            f"<< /Length {len(stream.encode('latin-1'))} >>\nstream\n{stream}\nendstream",
+        ]
+    )
     objects[1] = "<< /Type /Pages /Kids [5 0 R] /Count 1 >>"
     result = b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n"
     offsets = [0]
