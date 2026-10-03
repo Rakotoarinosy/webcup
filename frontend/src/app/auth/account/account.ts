@@ -7,6 +7,7 @@ import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
 import { TagModule } from 'primeng/tag';
 import { ToastModule } from 'primeng/toast';
+import { TooltipModule } from 'primeng/tooltip';
 import { catchError, forkJoin, of } from 'rxjs';
 
 import { Agent, AGENT_STATUS_LABELS, AGENT_STATUSES, AgentStatus } from '@/app/agents/agent.model';
@@ -38,7 +39,7 @@ const RECENT_COUNT = 5;
  */
 @Component({
     selector: 'app-account',
-    imports: [DatePipe, FormsModule, RouterLink, ButtonModule, SelectModule, TagModule, ToastModule, Stats, TrendChart, CategoryChart],
+    imports: [DatePipe, FormsModule, RouterLink, ButtonModule, SelectModule, TagModule, ToastModule, TooltipModule, Stats, TrendChart, CategoryChart],
     templateUrl: './account.html',
     providers: [MessageService]
 })
@@ -65,6 +66,10 @@ export class Account implements OnInit {
     readonly statusOptions = AGENT_STATUSES.map((status) => ({ label: AGENT_STATUS_LABELS[status], value: status }));
     readonly statusSeverity = requestStatusSeverity;
     readonly prioritySeverity = requestPrioritySeverity;
+    readonly statLinks = computed(() => {
+        const target = this.auth.hasRole('citizen') ? '/home/my-requests' : this.auth.hasRole('agent') ? '/home/agent' : '/home/requests';
+        return [target, target, target, target];
+    });
 
     /** Agent sans profil actif, ou manager sans institut actif : rien à afficher, on l'explique. */
     readonly unattached = computed(() => {

@@ -1,7 +1,7 @@
 <div class="flex gap-4 top-8 right-8" [ngClass]="{ fixed: float() }">
     <!-- Theme configurator -->
-    <div class="relative">
-        <p-button ariaLabel="Affichage et taille du texte" icon="pi pi-palette" pStyleClass="@next" enterFromClass="hidden" enterActiveClass="animate-scalein" leaveToClass="hidden" leaveActiveClass="animate-fadeout" [hideOnOutsideClick]="true" type="button" rounded />
-        <app-configurator />
+    <div #configMenu class="relative">
+        <p-button ariaLabel="Affichage et taille du texte" icon="pi pi-palette" type="button" rounded [ariaExpanded]="visible()" (onClick)="toggle($event)" />
+        <app-configurator [visible]="visible()" />
     </div>
 </div>

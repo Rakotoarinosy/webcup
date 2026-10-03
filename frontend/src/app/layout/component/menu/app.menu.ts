@@ -4,6 +4,8 @@ import { RouterModule } from '@angular/router';
 import { MenuItem } from 'primeng/api';
 
 import { AuthService } from '@/app/auth/auth.service';
+import { NotificationService } from '@/app/notifications/notification.service';
+import { PublicationReadService } from '@/app/municipal/publication-read.service';
 import { AppMenuitem } from '../menuitem/app.menuitem';
 
 @Component({
@@ -14,14 +16,14 @@ import { AppMenuitem } from '../menuitem/app.menuitem';
 })
 export class AppMenu {
     private readonly auth = inject(AuthService);
+    private readonly notifications = inject(NotificationService);
+    private readonly publications = inject(PublicationReadService);
 
     readonly model = computed<MenuItem[]>(() => {
         const items: MenuItem[] = [{ label: 'Mon espace', icon: 'pi pi-fw pi-user', routerLink: ['/home/account'] }];
 
-        items.push(
-            { label: 'Mon profil', icon: 'pi pi-fw pi-id-card', routerLink: ['/home/profile'] },
-            { label: 'Mes données', icon: 'pi pi-fw pi-lock', routerLink: ['/home/my-data'] }
-        );
+        // « Mon profil » est dans le menu du compte (barre du haut) ; « Mes données » reste visible ici (F51).
+        items.push({ label: 'Mes données', icon: 'pi pi-fw pi-lock', routerLink: ['/home/my-data'] });
 
         if (this.auth.hasRole('agent')) {
             items.push(
@@ -30,12 +32,12 @@ export class AppMenu {
             );
         }
         if (this.auth.hasRole('citizen')) {
-            items.push({ label: 'Mes demandes', icon: 'pi pi-fw pi-list', routerLink: ['/home/my-requests'] });
+            items.push({ label: 'Mes demandes', icon: 'pi pi-fw pi-list', routerLink: ['/home/my-requests'], badge: this.notificationBadge() });
         }
         if (this.auth.hasRole('manager', 'admin')) {
             items.push(
                 { label: 'Tableau de bord', icon: 'pi pi-fw pi-home', routerLink: ['/home/dashboard'] },
-                { label: 'Demandes citoyennes', icon: 'pi pi-fw pi-inbox', routerLink: ['/home/requests'] }
+                { label: 'Demandes citoyennes', icon: 'pi pi-fw pi-inbox', routerLink: ['/home/requests'], badge: this.notificationBadge() }
             );
         }
         if (this.auth.hasRole('admin')) {
@@ -70,7 +72,7 @@ export class AppMenu {
             items: [
                 { label: 'Accueil municipal', icon: 'pi pi-fw pi-building', routerLink: ['/home/municipal'], routerLinkActiveOptions: { exact: true } },
                 { label: 'Services municipaux', icon: 'pi pi-fw pi-map-marker', routerLink: ['/home/municipal/services'] },
-                { label: 'Publications', icon: 'pi pi-fw pi-megaphone', routerLink: ['/home/municipal/publications'] },
+                { label: 'Publications', icon: 'pi pi-fw pi-megaphone', routerLink: ['/home/municipal/publications'], badge: this.publicationBadge() },
                 { label: 'Contacter la mairie', icon: 'pi pi-fw pi-envelope', routerLink: ['/home/municipal/contact'] }
             ]
         });
@@ -88,4 +90,14 @@ export class AppMenu {
         }
         return groups;
     });
+
+    private notificationBadge(): string | undefined {
+        const count = this.notifications.unreadCount();
+        return count ? (count > 99 ? '99+' : String(count)) : undefined;
+    }
+
+    private publicationBadge(): string | undefined {
+        const count = this.publications.unreadCount();
+        return count ? (count > 99 ? '99+' : String(count)) : undefined;
+    }
 }
