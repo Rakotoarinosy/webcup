@@ -10,6 +10,7 @@ from sqlalchemy.pool import StaticPool
 
 from src.infrastructure.persistence import models  # noqa: F401  (enregistre les tables)
 from src.infrastructure.persistence.database import Base, get_db
+from src.infrastructure.security.email_verification import get_email_verifier
 from src.main import app
 
 
@@ -49,6 +50,10 @@ async def client(engine: Engine) -> AsyncIterator[httpx.AsyncClient]:
             db.close()
 
     app.dependency_overrides[get_db] = override_get_db
+    # Sans vérificateur, inscription et connexion ouvrent directement la session : les tests
+    # qui ne portent pas sur la double authentification n'ont pas à saisir de code par email.
+    # La fixture `verification` (test_email_verification_api) rebranche le vrai vérificateur.
+    app.dependency_overrides[get_email_verifier] = lambda: None
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as http_client:
         yield http_client

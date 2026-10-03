@@ -7,7 +7,7 @@ import { Router, provideRouter } from '@angular/router';
 import { AUTH_URL, AuthService } from './auth.service';
 import { AuthUser, TokenResponse } from './auth.model';
 
-const USER: AuthUser = { id: 'id', name: 'Rina', email: 'rina@test.mg', role: 'citizen', agent_id: null, institut_id: null, created_at: '' };
+const USER: AuthUser = { id: 'id', name: 'Rina', email: 'rina@test.mg', role: 'citizen', agent_id: null, institut_id: null, created_at: '', email_verified: true, avatar_url: null };
 const SESSION: TokenResponse = { access_token: 'access-token', token_type: 'bearer', expires_in: 900, user: USER };
 
 describe('AuthService session lifecycle', () => {
@@ -19,17 +19,35 @@ describe('AuthService session lifecycle', () => {
         http = TestBed.inject(HttpTestingController);
     });
     afterEach(() => http.verify());
-    it('registers then logs in without logging out', () => {
-        const user = jasmine.createSpy('user');
-        auth.register('Rina', USER.email, 'Motdepasse123').subscribe(user);
-        const register = http.expectOne(`${AUTH_URL}/register`);
-        expect(register.request.withCredentials).toBeTrue();
-        register.flush(USER);
-        http.expectOne(`${AUTH_URL}/login`).flush(SESSION);
-        expect(user).toHaveBeenCalledWith(USER);
-        expect(auth.accessToken()).toBe(SESSION.access_token);
+    it('rejects a registration response without a verification challenge', () => {
+        const failed = jasmine.createSpy('failed');
+        auth.register('Rina', USER.email, 'Motdepasse123').subscribe({ error: failed });
+        http.expectOne(AUTH_URL + '/register').flush(USER);
+        expect(failed).toHaveBeenCalled();
+        expect(auth.isAuthenticated()).toBeFalse();
+        http.expectNone(AUTH_URL + '/login');
+    });
+    it('keeps a registration challenge outside the session and does not login prematurely', () => {
+        const pending = { challenge_id: 'pending-code', email: USER.email, expires_in: 600, resend_after: 60 };
+        const result = jasmine.createSpy('result');
+        auth.register('Rina', USER.email, 'Motdepasse123').subscribe(result);
+        http.expectOne(`${AUTH_URL}/register`).flush(pending);
+        expect(result).toHaveBeenCalledWith('verification-required');
+        expect(auth.isAuthenticated()).toBeFalse();
+        http.expectNone(`${AUTH_URL}/login`);
+    });
+    it('accepts a 202 challenge then creates the session only after code verification', () => {
+        const pending = { challenge_id: 'pending-code', email: USER.email, expires_in: 600, resend_after: 60 };
+        auth.login(USER.email, 'Motdepasse123').subscribe();
+        http.expectOne(`${AUTH_URL}/login`).flush(pending, { status: 202, statusText: 'Accepted' });
+        expect(auth.user()).toBeNull();
+        expect(auth.accessToken()).toBeNull();
+        auth.verifyCode(pending.challenge_id, '123456').subscribe();
+        const verify = http.expectOne(`${AUTH_URL}/verify-code`);
+        expect(verify.request.body).toEqual({ challenge_id: pending.challenge_id, code: '123456' });
+        expect(verify.request.withCredentials).toBeTrue();
+        verify.flush(SESSION);
         expect(auth.isAuthenticated()).toBeTrue();
-        http.expectNone(`${AUTH_URL}/logout`);
     });
     it('shares one refresh across concurrent restorations', () => {
         const restored = jasmine.createSpy('restored');

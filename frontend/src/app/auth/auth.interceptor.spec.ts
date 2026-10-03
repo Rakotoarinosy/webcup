@@ -8,7 +8,7 @@ import { environment } from '@/environments/environment';
 import { authInterceptor } from './auth.interceptor';
 import { AUTH_URL, AuthService } from './auth.service';
 
-const session = { access_token: 'old-token', token_type: 'bearer', expires_in: 900, user: { id: 'id', name: 'Rina', email: 'r@test.mg', role: 'citizen', agent_id: null, created_at: '' } };
+const session = { access_token: 'old-token', token_type: 'bearer', expires_in: 900, user: { id: 'id', name: 'Rina', email: 'r@test.mg', role: 'citizen', agent_id: null, created_at: '', email_verified: true, avatar_url: null } };
 const URL = `${environment.apiUrl}/demandes`;
 describe('Auth interceptor', () => {
     let http: HttpTestingController;

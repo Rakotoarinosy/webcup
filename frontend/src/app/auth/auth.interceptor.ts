@@ -6,7 +6,9 @@ import { catchError, switchMap, throwError } from 'rxjs';
 import { environment } from '@/environments/environment';
 import { AuthService } from './auth.service';
 
-const PUBLIC_AUTH_PATHS = ['login', 'refresh', 'logout', 'register'];
+// Endpoints appelés sans session : jamais de Bearer, et un 401 n'y déclenche ni refresh ni redirection.
+// `google` en particulier : un ID token invalide répond 401 (InvalidGoogleTokenError).
+const PUBLIC_AUTH_PATHS = ['config', 'login', 'refresh', 'logout', 'register', 'google', 'verify-code', 'resend-code'];
 function withToken(request: HttpRequest<unknown>, token: string | null): HttpRequest<unknown> {
     return token ? request.clone({ setHeaders: { Authorization: `Bearer ${token}` } }) : request;
 }

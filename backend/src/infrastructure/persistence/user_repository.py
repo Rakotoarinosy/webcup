@@ -1,5 +1,6 @@
 """Implémentation SQLAlchemy de UserRepository. Le mapping Model ↔ Entity reste privé à ce fichier."""
 
+import builtins
 from datetime import UTC, datetime
 
 from sqlalchemy import delete, func, or_, select, update
@@ -18,6 +19,7 @@ from src.infrastructure.persistence.models import (
     TerraRequestReadModel,
     UserModel,
     UserPreferenceModel,
+    VerificationCodeModel,
 )
 
 
@@ -38,6 +40,10 @@ class SqlAlchemyUserRepository(UserRepository):
     def get_by_email(self, email: str) -> User | None:
         model = self.db.scalar(select(UserModel).where(UserModel.email == email))
 
+        return self._to_entity(model) if model else None
+
+    def get_by_google_id(self, google_id: str) -> User | None:
+        model = self.db.scalar(select(UserModel).where(UserModel.google_id == google_id))
         return self._to_entity(model) if model else None
 
     def count_active_by_role(self, role: Role) -> int:
@@ -64,7 +70,8 @@ class SqlAlchemyUserRepository(UserRepository):
 
     def delete(self, user_id: str) -> None:
         # Nettoyage explicite : SQLite n'applique pas ON DELETE CASCADE par défaut.
-        self.db.execute(delete(RefreshTokenModel).where(RefreshTokenModel.user_id == user_id))
+        for table in (RefreshTokenModel, VerificationCodeModel):
+            self.db.execute(delete(table).where(table.user_id == user_id))
         model = self.db.get(UserModel, user_id)
         if model:
             self.db.delete(model)
@@ -103,9 +110,11 @@ class SqlAlchemyUserRepository(UserRepository):
             )
             for session_table in (
                 RefreshTokenModel,
+                VerificationCodeModel,
                 NotificationReadModel,
                 TerraRequestReadModel,
                 UserPreferenceModel,
+                VerificationCodeModel,
             ):
                 self.db.execute(delete(session_table).where(session_table.user_id == user_id))
             self.db.delete(model)
@@ -119,7 +128,7 @@ class SqlAlchemyUserRepository(UserRepository):
 
         return [self._to_entity(model) for model in models]
 
-    def list_citizens(self, search: str | None = None) -> "list[User]":
+    def list_citizens(self, search: str | None = None) -> builtins.list[User]:
         stmt = select(UserModel).where(UserModel.role == Role.CITIZEN.value)
         if search:
             pattern = f"%{search}%"
@@ -147,6 +156,9 @@ class SqlAlchemyUserRepository(UserRepository):
             is_active=model.is_active,
             failed_login_attempts=model.failed_login_attempts,
             locked_until=_aware(model.locked_until),
+            email_verified=model.email_verified,
+            google_id=model.google_id,
+            avatar_url=model.avatar_url,
         )
 
     def _to_model(self, user: User) -> UserModel:
@@ -160,4 +172,7 @@ class SqlAlchemyUserRepository(UserRepository):
             failed_login_attempts=user.failed_login_attempts,
             locked_until=user.locked_until,
             created_at=user.created_at,
+            email_verified=user.email_verified,
+            google_id=user.google_id,
+            avatar_url=user.avatar_url,
         )

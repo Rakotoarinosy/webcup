@@ -1,0 +1,44 @@
+<app-floating-configurator [float]="false" class="auth-display-settings" />
+<main class="grid min-h-dvh place-items-center bg-white px-5 py-8 font-sans text-emerald-950 dark:bg-emerald-950 dark:text-emerald-50">
+    <section class="w-full max-w-[27.5rem]" aria-labelledby="verify-title">
+        <a class="mb-8 inline-flex w-fit items-center gap-3 text-[1.4rem] font-bold tracking-[-.04em]" routerLink="/" aria-label="Kotrana, accueil"
+            ><span class="grid size-8 place-items-center rounded-[.62rem] bg-emerald-500 text-xl font-black leading-none text-white -skew-y-6">K</span><span>Kotrana</span></a
+        >
+        <header class="mb-6">
+            <h1 id="verify-title" class="mb-2 text-[2rem] font-bold leading-tight tracking-[-.045em]">Vérifiez votre email</h1>
+            <p class="m-0 leading-6 text-emerald-950/60 dark:text-emerald-50/65">
+                Nous avons envoyé un code à 6 chiffres à <strong class="break-words">{{ challenge()?.email }}</strong
+                >. Il expire dans {{ expiresInMinutes() }} minutes.
+            </p>
+        </header>
+
+        @if (errorMessage()) {
+            <p-message severity="error" [text]="errorMessage()!" icon="pi pi-exclamation-circle" styleClass="mb-4 block" role="alert" />
+        }
+        @if (notice()) {
+            <p-message severity="success" [text]="notice()!" icon="pi pi-check-circle" styleClass="mb-4 block" role="status" />
+        }
+
+        <form (ngSubmit)="submit()" novalidate class="space-y-4">
+            <p-inputotp style="flex-wrap: wrap" [formControl]="code" [length]="6" [integerOnly]="true" size="large" [autofocus]="true" />
+            <p-button
+                type="submit"
+                label="Valider"
+                icon="pi pi-arrow-right"
+                iconPos="right"
+                styleClass="w-full rounded-xl border-0 bg-emerald-600 py-3 font-bold hover:bg-emerald-700"
+                [loading]="loading()"
+                [disabled]="code.invalid || loading() || resending()"
+            />
+        </form>
+
+        <div class="mt-6 flex flex-wrap items-center justify-between gap-3 text-sm text-emerald-950/60 dark:text-emerald-50/65">
+            @if (secondsBeforeResend() > 0) {
+                <span aria-live="polite">Renvoyer le code dans {{ secondsBeforeResend() }} s</span>
+            } @else {
+                <button type="button" class="font-bold text-emerald-600 hover:underline disabled:opacity-60" [disabled]="resending() || loading()" (click)="resend()">Renvoyer le code</button>
+            }
+            <a routerLink="/auth/login" class="font-bold text-emerald-600 hover:underline">Retour à la connexion</a>
+        </div>
+    </section>
+</main>

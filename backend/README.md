@@ -91,7 +91,23 @@ disponibles sans elles. Ne partagez et ne commitez jamais un vrai fichier `.env`
 ## Authentification et gestion des comptes
 
 `POST /api/v1/auth/register` accepte `name`, `email`, `password` et renvoie un
-profil citoyen. Angular enchaîne avec `POST /api/v1/auth/login` pour ouvrir la session.
+challenge de vérification, sans session. Angular ouvre la page de saisie du code.
+La vérification est obligatoire pour toute inscription et connexion, y compris Google.
+L'ancien paramètre EMAIL_VERIFICATION_REQUIRED ne permet plus de la désactiver.
+Le code à 6 chiffres est envoyé à l'adresse du propriétaire du compte.
+POST /api/v1/auth/verify-code valide le challenge et le code avant de délivrer la session.
+Les codes expirent, sont limités en tentatives et utilisables une seule fois.
+
+Renseignez SMTP_HOST, SMTP_PORT, SMTP_USERNAME, SMTP_PASSWORD et SMTP_FROM dans
+backend/.env. Sans SMTP, l'API répond 503 : aucun code n'est présenté comme envoyé.
+Pour Google, renseignez GOOGLE_CLIENT_ID dans backend/.env et autorisez l'origine
+du frontend dans votre client OAuth Web. Le frontend lit cet identifiant public via
+GET /api/v1/auth/config ; aucune duplication dans le frontend n'est nécessaire.
+Redémarrez le backend après une modification de ces variables.
+
+Avant le démarrage, appliquer les migrations Alembic; la révision `af323a8bae9b`
+ajoute les champs d'identité et les challenges, sans modifier les instituts.
+
 Le mot de passe doit contenir 10 à 128 caractères, une majuscule, une minuscule et un chiffre.
 `GET /api/v1/auth/me` retrouve le profil courant avec le token Bearer.
 

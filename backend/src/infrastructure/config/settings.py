@@ -33,6 +33,26 @@ class Settings(BaseSettings):
     # Cookie du refresh token. "none" uniquement si front et API sont sur des sites différents.
     cookie_samesite: Literal["lax", "strict", "none"] = "lax"
 
+    # ─── Confirmation par email (code à 6 chiffres) ───
+    email_verification_required: bool = True
+    verification_code_ttl_minutes: int = 10
+    verification_max_attempts: int = 5
+    verification_resend_cooldown_seconds: int = 60
+
+    # SMTP obligatoire : sans SMTP_HOST, l’envoi échoue (503).
+    # Port 587 = STARTTLS ; port 465 = SMTP_USE_SSL=true.
+    smtp_host: str | None = None
+    smtp_port: int = 587
+    smtp_username: str | None = None
+    smtp_password: str | None = None
+    smtp_from: str = "CivicFlow <no-reply@example.com>"
+    smtp_use_ssl: bool = False
+    smtp_timeout_seconds: float = 10.0
+
+    # ─── Connexion Google ───
+    # « Client ID » OAuth 2.0 (type Web) de Google Cloud Console. Sans lui, POST /auth/google répond 503.
+    google_client_id: str | None = None
+
     # Premier administrateur, créé au démarrage s'il n'existe aucun admin actif.
     bootstrap_admin_email: str | None = None
     bootstrap_admin_password: str | None = None

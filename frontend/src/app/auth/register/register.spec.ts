@@ -12,18 +12,30 @@ describe('Registration flow', () => {
     beforeEach(() => {
         auth = jasmine.createSpyObj<AuthService>('AuthService', ['register', 'logout', 'homeUrl']);
         auth.homeUrl.and.returnValue('/home/account');
-        auth.register.and.returnValue(of({ id: 'id', email: 'r@test.mg', name: 'Rina', role: 'citizen', agent_id: null, institut_id: null, created_at: '' }));
+        auth.register.and.returnValue(of('verification-required'));
         TestBed.configureTestingModule({ imports: [Register], providers: [provideRouter([]), { provide: AuthService, useValue: auth }] });
         TestBed.overrideComponent(Register, { set: { template: '' } });
         component = TestBed.createComponent(Register).componentInstance;
     });
-    it('keeps the created session and opens the personal space', () => {
-        const navigate = spyOn(TestBed.inject(Router), 'navigateByUrl').and.resolveTo(true);
+    it('opens code verification after registration', () => {
+        const navigate = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
         component.registerForm.setValue({ name: 'Rina', email: 'r@test.mg', password: 'Motdepasse123', confirmPassword: 'Motdepasse123' });
         component.submit();
         expect(auth.register).toHaveBeenCalled();
         expect(auth.logout).not.toHaveBeenCalled();
-        expect(navigate).toHaveBeenCalledWith('/home/account');
+        expect(navigate).toHaveBeenCalledWith(['/auth/verify-code'], { queryParamsHandling: 'preserve' });
+    });
+    it('shows pending email verification, clears passwords and delays navigation', () => {
+        const navigate = spyOn(TestBed.inject(Router), 'navigateByUrl').and.resolveTo(true);
+        const verify = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+        auth.register.and.returnValue(of('verification-required'));
+        component.registerForm.setValue({ name: 'Rina', email: 'r@test.mg', password: 'Motdepasse123', confirmPassword: 'Motdepasse123' });
+        component.submit();
+        expect(component.loading()).toBeTrue();
+        expect(component.registerForm.getRawValue().password).toBe('');
+        expect(component.registerForm.getRawValue().confirmPassword).toBe('');
+        expect(navigate).not.toHaveBeenCalled();
+        expect(verify).toHaveBeenCalledWith(['/auth/verify-code'], { queryParamsHandling: 'preserve' });
     });
     it('rejects passwords that do not meet the API policy', () => {
         component.registerForm.setValue({ name: 'Rina', email: 'r@test.mg', password: 'short', confirmPassword: 'short' });

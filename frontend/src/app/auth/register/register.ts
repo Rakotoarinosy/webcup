@@ -9,7 +9,8 @@ import { AppFloatingConfigurator } from '../../layout/component/floatingconfigur
 
 import { NAME_VALIDATORS, PASSWORD_VALIDATORS } from '../auth.validators';
 import { AuthService } from '@/app/auth/auth.service';
-import { apiErrorMessage } from '@/app/users/user.service';
+import { authErrorMessage } from '../auth-errors';
+import { GoogleButton } from '../google-button/google-button';
 
 function passwordMatchValidator(control: AbstractControl): ValidationErrors | null {
     const password = control.get('password');
@@ -22,7 +23,7 @@ function passwordMatchValidator(control: AbstractControl): ValidationErrors | nu
 
 @Component({
     selector: 'app-register',
-    imports: [ButtonModule, InputTextModule, MessageModule, ReactiveFormsModule, RouterModule, AppFloatingConfigurator],
+    imports: [ButtonModule, InputTextModule, MessageModule, ReactiveFormsModule, RouterModule, AppFloatingConfigurator, GoogleButton],
     templateUrl: './register.html'
 })
 export class Register implements AfterViewInit {
@@ -71,7 +72,11 @@ export class Register implements AfterViewInit {
         this.registerForm.disable();
 
         this.auth.register(name.trim(), email.trim(), password).subscribe({
-            next: () => this.router.navigateByUrl(this.auth.homeUrl()),
+            // Compte créé mais non confirmé : un code vient d'être envoyé, la session s'ouvre après sa saisie.
+            next: () => {
+                this.registerForm.patchValue({ password: '', confirmPassword: '' });
+                this.router.navigate(['/auth/verify-code'], { queryParamsHandling: 'preserve' });
+            },
             error: (error: unknown) => {
                 this.loading.set(false);
                 this.registerForm.enable();
@@ -127,6 +132,7 @@ function registerErrorMessage(error: unknown): string {
         case 422:
             return 'Vérifiez les informations saisies.';
         default:
-            return apiErrorMessage(error);
+            // 429 (un code vient d'être envoyé à cette adresse), 503 (SMTP indisponible), etc.
+            return authErrorMessage(error);
     }
 }

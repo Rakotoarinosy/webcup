@@ -8,7 +8,7 @@ import { AuthUser } from '../auth.model';
 import { Profile } from './profile';
 import { ProfileExportService } from './profile-export.service';
 
-const USER: AuthUser = { id: 'me', name: 'Ada Lovelace', email: 'ada@test.mg', role: 'citizen', agent_id: null, institut_id: null, created_at: '2026-10-03T10:00:00Z' };
+const USER: AuthUser = { id: 'me', name: 'Ada Lovelace', email: 'ada@test.mg', role: 'citizen', agent_id: null, institut_id: null, created_at: '2026-10-03T10:00:00Z', email_verified: true, avatar_url: null };
 
 describe('Profile', () => {
     let fixture: ComponentFixture<Profile>;
