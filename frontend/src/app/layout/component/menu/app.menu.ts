@@ -14,15 +14,40 @@ import { AppMenuitem } from '../menuitem/app.menuitem';
 })
 export class AppMenu {
     private readonly auth = inject(AuthService);
+
     readonly model = computed<MenuItem[]>(() => {
         const items: MenuItem[] = [{ label: 'Mon espace', icon: 'pi pi-fw pi-user', routerLink: ['/home/account'] }];
+
+        if (this.auth.hasRole('agent')) {
+            items.push({ label: 'Mes interventions', icon: 'pi pi-fw pi-inbox', routerLink: ['/home/agent'] });
+        }
         if (this.auth.hasRole('manager', 'admin')) {
-            items.push({ label: 'Tableau de bord', icon: 'pi pi-fw pi-home', routerLink: ['/home/dashboard'] }, { label: 'Agents', icon: 'pi pi-fw pi-id-card', routerLink: ['/home/agents'] });
+            items.push(
+                { label: 'Tableau de bord', icon: 'pi pi-fw pi-home', routerLink: ['/home/dashboard'] },
+                { label: 'Agents', icon: 'pi pi-fw pi-id-card', routerLink: ['/home/agents'] }
+            );
         }
         if (this.auth.hasRole('admin')) {
-            items.push({ label: 'Demandes historiques', icon: 'pi pi-fw pi-inbox', routerLink: ['/home/requests'] }, { label: 'Utilisateurs', icon: 'pi pi-fw pi-users', routerLink: ['/home/users'] });
+            items.push(
+                { label: 'Demandes historiques', icon: 'pi pi-fw pi-inbox', routerLink: ['/home/requests'] },
+                { label: 'Utilisateurs', icon: 'pi pi-fw pi-users', routerLink: ['/home/users'] }
+            );
         }
         items.push({ label: 'Accueil', icon: 'pi pi-fw pi-globe', routerLink: ['/'] });
-        return [{ label: 'Kotrana', items }];
+
+        const groups: MenuItem[] = [{ label: 'Kotrana', items }];
+
+        if (this.auth.hasRole('manager', 'admin')) {
+            groups.push({
+                label: 'Terra Nova',
+                items: [
+                    { label: 'Tableau de bord', icon: 'pi pi-fw pi-chart-line', routerLink: ['/home/terra-nova'], routerLinkActiveOptions: { exact: true } },
+                    { label: 'Demandes API', icon: 'pi pi-fw pi-list', routerLink: ['/home/terra-nova/demandes'] },
+                    { label: 'Notifications', icon: 'pi pi-fw pi-bell', routerLink: ['/home/terra-nova/notifications'] },
+                    { label: 'Pipeline', icon: 'pi pi-fw pi-objects-column', routerLink: ['/home/terra-nova/pipeline'] }
+                ]
+            });
+        }
+        return groups;
     });
 }

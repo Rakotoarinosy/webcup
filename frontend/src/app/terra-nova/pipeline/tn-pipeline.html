@@ -1,0 +1,61 @@
+<p class="mt-0 mb-4 flex items-center gap-2 text-sm text-muted-color">
+    <i class="pi pi-arrows-h"></i>
+    Glissez-déposez une carte pour changer son statut, ou utilisez les flèches. Les cartes sont triées par XP.
+</p>
+
+<div class="grid grid-cols-1 items-start gap-4 md:grid-cols-2 xl:grid-cols-4" cdkDropListGroup>
+    @for (col of columns(); track col.value) {
+        <section class="card mb-0! flex min-h-56 flex-col border-t-4 p-0!" [class]="borders[col.value]">
+            <header class="flex items-center justify-between px-4 pt-4 pb-2">
+                <span class="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide">
+                    <i [class]="col.icon"></i>
+                    {{ col.label }}
+                    <span class="rounded-full bg-emphasis px-2 text-xs text-muted-color">{{ col.requests.length }}</span>
+                </span>
+                <span class="text-xs text-muted-color">{{ col.xp | xp }}</span>
+            </header>
+
+            <div class="flex min-h-32 flex-1 flex-col gap-2.5 rounded-b-xl px-3 pt-2 pb-4" cdkDropList [cdkDropListData]="col.value" (cdkDropListDropped)="drop($event)" [cdkDropListSortingDisabled]="true">
+                @if (!store.loaded()) {
+                    <p-skeleton height="7rem" />
+                }
+                @for (r of col.requests; track r.request_code) {
+                    <article
+                        class="flex cursor-grab flex-col gap-2 rounded-lg border border-surface bg-surface-0 p-3 shadow-sm hover:border-primary dark:bg-surface-900"
+                        [class.border-l-4]="store.newCodes().has(r.request_code)"
+                        [class.border-l-primary]="store.newCodes().has(r.request_code)"
+                        cdkDrag
+                        [cdkDragData]="r"
+                        tabindex="0"
+                        (click)="store.openDetail(r.request_code)"
+                        (keydown.enter)="store.openDetail(r.request_code)"
+                    >
+                        <div class="flex items-center justify-between">
+                            <span class="inline-flex items-center gap-1.5 font-mono font-bold">
+                                @if (store.newCodes().has(r.request_code)) {
+                                    <span class="inline-block h-2 w-2 rounded-full bg-primary" pTooltip="Nouvelle demande"></span>
+                                }
+                                {{ r.request_code }}
+                            </span>
+                            <span class="text-sm font-bold text-primary">{{ r.xp_total | xp: true }}</span>
+                        </div>
+                        <p class="m-0 line-clamp-3 text-sm leading-snug text-muted-color">{{ r.message_public }}</p>
+                        <div class="flex items-center gap-2">
+                            <p-tag [value]="difficultyLabel(r.difficulty_level, r.difficulty)" [severity]="difficultySeverity(r.difficulty_level)" />
+                            <span class="text-xs text-muted-color">{{ waveLabel(r) }}</span>
+                            <span class="ml-auto flex">
+                                <p-button icon="pi pi-chevron-left" [text]="true" [rounded]="true" size="small" severity="secondary" [disabled]="isFirst(r.status)" (onClick)="move($event, r, -1)" [ariaLabel]="'Reculer ' + r.request_code" />
+                                <p-button icon="pi pi-chevron-right" [text]="true" [rounded]="true" size="small" severity="secondary" [disabled]="isLast(r.status)" (onClick)="move($event, r, 1)" [ariaLabel]="'Avancer ' + r.request_code" />
+                            </span>
+                        </div>
+                        <div *cdkDragPlaceholder class="min-h-24 rounded-lg border-2 border-dashed border-surface"></div>
+                    </article>
+                } @empty {
+                    @if (store.loaded()) {
+                        <div class="rounded-lg border border-dashed border-surface py-6 text-center text-sm text-muted-color">Aucune demande</div>
+                    }
+                }
+            </div>
+        </section>
+    }
+</div>

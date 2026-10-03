@@ -179,3 +179,74 @@ class NotificationReadModel(Base):
     )
     key: Mapped[str] = mapped_column(String(80), primary_key=True)
     read_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+# ─── terra_request (demandes du concours, API Terra Nova) ────────────
+
+
+class TerraRequestModel(Base):
+    __tablename__ = "terra_requests"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    # Identifiant métier stable fourni par l'API : garantit l'absence de doublon.
+    request_code: Mapped[str] = mapped_column(String(40), unique=True, index=True)
+    api_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    requester_name: Mapped[str] = mapped_column(String(255), default="")
+    requester_type: Mapped[str] = mapped_column(String(100), default="")
+    message_public: Mapped[str] = mapped_column(Text, default="")
+    difficulty: Mapped[str] = mapped_column(String(40), default="")
+    difficulty_level: Mapped[int] = mapped_column(Integer, default=0)
+    xp_base: Mapped[int] = mapped_column(Integer, default=0)
+    xp_time_bonus: Mapped[int] = mapped_column(Integer, default=0)
+    xp_total: Mapped[int] = mapped_column(Integer, default=0)
+    xp_available: Mapped[int] = mapped_column(Integer, default=0)
+    is_initial: Mapped[bool] = mapped_column(Boolean, default=False)
+    visible_since_wave: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    arrival_type: Mapped[str] = mapped_column(String(40), default="")
+    wave_number: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    arrival_time: Mapped[str] = mapped_column(String(20), default="")
+    is_ai_related: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_ai_request: Mapped[bool] = mapped_column(Boolean, default=False)
+    group_name: Mapped[str] = mapped_column(String(100), default="")
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    raw: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    status: Mapped[str] = mapped_column(String(20), default="todo", index=True)
+    first_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class TerraSessionModel(Base):
+    """Dernier état connu de la session du concours (une seule ligne, id = 1)."""
+
+    __tablename__ = "terra_sessions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    status: Mapped[str] = mapped_column(String(40), default="none")
+    is_running: Mapped[bool] = mapped_column(Boolean, default=False)
+    current_wave: Mapped[int] = mapped_column(Integer, default=0)
+    elapsed_minutes: Mapped[int] = mapped_column(Integer, default=0)
+    visible_requests_count: Mapped[int] = mapped_column(Integer, default=0)
+    initial_requests_count: Mapped[int] = mapped_column(Integer, default=0)
+    wave_requests_count: Mapped[int] = mapped_column(Integer, default=0)
+    next_wave_number: Mapped[int] = mapped_column(Integer, default=0)
+    minutes_until_next_wave: Mapped[int] = mapped_column(Integer, default=0)
+    next_wave_eta: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_sync_attempt_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    last_sync_success_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    last_sync_error: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
+
+class TerraRequestReadModel(Base):
+    """Notifications Terra Nova déjà lues, par utilisateur (clé = request_code ou « wave:<n> »)."""
+
+    __tablename__ = "terra_request_reads"
+
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    key: Mapped[str] = mapped_column(String(80), primary_key=True)
+    read_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)

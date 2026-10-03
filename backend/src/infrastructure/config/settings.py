@@ -43,6 +43,16 @@ class Settings(BaseSettings):
     gemini_api_key: str | None = None
     gemini_model: str = "gemini-2.5-flash"
 
+    # ─── API Terra Nova (demandes du concours) ───
+    # Sans clé, la synchronisation échoue proprement (état « erreur » affiché dans le suivi).
+    terra_nova_api_url: str = "https://24h.webcup.fr/wp-json/webcup/v1/requests"
+    terra_nova_api_key: str | None = None
+    # Intervalle fixe d'interrogation, indépendant du compte à rebours de la prochaine vague.
+    terra_nova_sync_seconds: int = 30
+    terra_nova_timeout_seconds: float = 15.0
+    # Boucle de synchronisation en tâche de fond (désactivable, ex. plusieurs workers).
+    terra_nova_background_sync: bool = True
+
     @field_validator("cors_origins", mode="before")
     @classmethod
     def split_cors_origins(cls, value: object) -> object:
