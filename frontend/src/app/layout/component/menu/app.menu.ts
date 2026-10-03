@@ -26,6 +26,7 @@ const MENU_MODEL: RoleMenuItem[] = [
             { label: 'Services municipaux', icon: 'pi pi-fw pi-map-marker', routerLink: ['/home/municipal/services'], roles: ALL_ROLES },
             { label: 'Publications', icon: 'pi pi-fw pi-megaphone', routerLink: ['/home/municipal/publications'], roles: ALL_ROLES },
             { label: 'Contacter la mairie', icon: 'pi pi-fw pi-envelope', routerLink: ['/home/municipal/contact'], roles: ALL_ROLES },
+            { label: 'Mes interventions', icon: 'pi pi-fw pi-briefcase', routerLink: ['/home/agent'], roles: ['agent'] },
             { label: 'Agents', icon: 'pi pi-fw pi-id-card', routerLink: ['/home/agents'], roles: STAFF_ROLES }
         ]
     },

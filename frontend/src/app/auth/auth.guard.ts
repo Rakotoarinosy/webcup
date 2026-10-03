@@ -1,6 +1,6 @@
 import { inject } from '@angular/core';
 import { ActivatedRouteSnapshot, CanActivateFn, Router } from '@angular/router';
-import { catchError, map, of, switchMap } from 'rxjs';
+import { map } from 'rxjs';
 
 import { Role } from './auth.model';
 import { AuthService } from './auth.service';
