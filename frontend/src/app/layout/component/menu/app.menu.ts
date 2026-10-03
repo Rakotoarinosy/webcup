@@ -57,7 +57,6 @@ export class AppMenu {
         if (this.auth.hasRole('agent', 'manager', 'admin')) {
             items.push({ label: 'Journal', icon: 'pi pi-fw pi-history', routerLink: ['/home/journal'] });
         }
-        items.push({ label: 'Accueil', icon: 'pi pi-fw pi-globe', routerLink: ['/'] });
 
         const groups: MenuItem[] = [{ label: 'Kotrana', items }];
 
