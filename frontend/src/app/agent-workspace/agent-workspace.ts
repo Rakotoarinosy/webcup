@@ -3,7 +3,7 @@ import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { catchError, finalize, forkJoin, of } from 'rxjs';
 
-import { CitizenRequest, DashboardStats, RequestEvent, RequestStatus, STATUS_TRANSITIONS, eventLabel } from '@/app/requests/request.model';
+import { CitizenRequest, RequestEvent, RequestStatus, STATUS_TRANSITIONS, eventLabel } from '@/app/requests/request.model';
 import { CitizenRequestService } from '@/app/requests/request.service';
 import { RequestActivity } from '@/app/journal/journal.model';
 import { JournalService } from '@/app/journal/journal.service';
@@ -33,7 +33,6 @@ export class AgentWorkspace {
     private readonly destroyRef = inject(DestroyRef);
 
     protected readonly items = signal<CitizenRequest[]>([]);
-    protected readonly stats = signal<DashboardStats | null>(null);
     protected readonly page = signal(1);
     protected readonly pages = signal(1);
     protected readonly loading = signal(true);
@@ -46,9 +45,6 @@ export class AgentWorkspace {
     protected readonly recentActivity = signal<RequestActivity[]>([]);
 
     protected readonly actionRequired = computed(() => this.items().filter((item) => item.status === 'En cours'));
-    protected readonly count = (status: RequestStatus) => this.stats()?.by_status[status] ?? 0;
-    /** Demandes encore ouvertes qui attendent une action de l'agent. */
-    protected readonly pendingCount = computed(() => this.count('En cours') + this.count('En attente'));
 
     constructor() {
         // Rafraîchit la liste quand la mairie la modifie ailleurs (autre onglet, autre poste).
@@ -61,18 +57,16 @@ export class AgentWorkspace {
         this.error.set(null);
         forkJoin({
             page: this.api.list({ page: this.page(), page_size: PAGE_SIZE, sort_by: 'created_at', sort_order: 'desc' }),
-            stats: this.api.dashboard(),
             // Le journal est un complément : son indisponibilité ne bloque pas la liste.
             activity: this.journal.activity({ type: null, since: null, until: null, search: '', page: 1 }, 5).pipe(catchError(() => of(null)))
         })
             .pipe(finalize(() => this.loading.set(false)))
             .subscribe({
-                next: ({ page, stats, activity }) => {
+                next: ({ page, activity }) => {
                     this.recentActivity.set(activity?.items ?? []);
                     this.items.set(page.items);
                     this.page.set(page.page);
                     this.pages.set(Math.max(1, page.total_pages));
-                    this.stats.set(stats);
                 },
                 error: () => this.error.set('Impossible de charger vos demandes. Réessayez dans quelques instants.')
             });

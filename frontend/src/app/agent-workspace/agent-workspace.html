@@ -12,20 +12,6 @@
         <p class="error-message" role="alert">{{ message }}</p>
     }
 
-    @if (stats(); as s) {
-        <section class="summary" aria-label="Résumé de mes demandes">
-            <article aria-live="polite">
-                <span>Demandes à traiter</span>
-                <strong>{{ pendingCount() }}</strong>
-                @if (pendingCount() === 0) { <span class="description">Aucune demande ne nécessite une prise en charge.</span> }
-            </article>
-            <article><span>Total attribué</span><strong>{{ s.total }}</strong></article>
-            <article class="needs-action"><span>En cours</span><strong>{{ count('En cours') }}</strong></article>
-            <article><span>En attente</span><strong>{{ count('En attente') }}</strong></article>
-            <article><span>Résolues</span><strong>{{ count('Résolu') }}</strong></article>
-        </section>
-    }
-
     <section class="recent-activity" aria-labelledby="activity-heading">
         <div class="section-heading">
             <div>
