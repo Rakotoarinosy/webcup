@@ -1,69 +1,115 @@
-import { CommonModule } from '@angular/common';
-import { Component, HostListener } from '@angular/core';
-import { ButtonModule } from 'primeng/button';
+import { CommonModule, DatePipe } from '@angular/common';
+import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { BadgeModule } from 'primeng/badge';
-interface AppNotification {
-    id: number;
-    title: string;
-    type: 'new' | 'assigned' | 'completed' | 'delayed';
-    icon: string;
-    time: string;
-    read: boolean;
-}
+import { EMPTY, catchError, switchMap, timer } from 'rxjs';
+
+import { AuthService } from '@/app/auth/auth.service';
+import { apiErrorMessage } from '@/app/users/user.service';
+import { TerraNotification } from '@/app/terra-nova/terra-nova.model';
+import { TerraNovaService } from '@/app/terra-nova/terra-nova.service';
+
+const REFRESH_MS = 10_000;
+const STAFF_ROLES = ['admin', 'manager', 'agent'] as const;
 
 @Component({
     selector: 'app-notifications',
-    imports: [CommonModule, ButtonModule, BadgeModule],
+    imports: [CommonModule, DatePipe, BadgeModule],
     templateUrl: './notifications.html',
     styleUrl: './notifications.scss'
 })
 export class Notifications {
-    showPanel = false;
+    private readonly auth = inject(AuthService);
+    private readonly api = inject(TerraNovaService);
+    private readonly router = inject(Router);
 
-    notifications: AppNotification[] = [
-        { id: 1, title: 'Nouvelle demande #124', type: 'new', icon: 'pi-folder-open text-blue-500', time: 'Il y a 5 min', read: false },
-        { id: 2, title: 'Demande #98 assignée', type: 'assigned', icon: 'pi-user-plus text-orange-500', time: 'Il y a 1 heure', read: false },
-        { id: 3, title: 'Intervention #45 terminée', type: 'completed', icon: 'pi-check-circle text-green-500', time: 'Il y a 3 heures', read: false },
-        { id: 4, title: 'Demande #76 en retard', type: 'delayed', icon: 'pi-exclamation-triangle text-red-500', time: 'Il y a 1 jour', read: true }
-    ];
+    readonly showPanel = signal(false);
+    readonly notifications = signal<TerraNotification[]>([]);
+    readonly error = signal<string | null>(null);
+    readonly canView = computed(() => {
+        const role = this.auth.user()?.role;
+        return role !== undefined && STAFF_ROLES.some((staffRole) => staffRole === role);
+    });
+    readonly unreadCount = computed(() => this.notifications().filter((notification) => !notification.is_read).length);
+    readonly recentNotifications = computed(() => this.notifications().slice(0, 8));
 
-    get unreadCount(): number {
-        return this.notifications.filter((n) => !n.read).length;
+    constructor() {
+        effect((onCleanup) => {
+            if (!this.canView()) {
+                this.notifications.set([]);
+                this.showPanel.set(false);
+                this.error.set(null);
+                return;
+            }
+
+            const subscription = timer(0, REFRESH_MS)
+                .pipe(
+                    switchMap(() =>
+                        this.api.notifications().pipe(
+                            catchError((error: unknown) => {
+                                this.error.set(apiErrorMessage(error));
+                                return EMPTY;
+                            })
+                        )
+                    )
+                )
+                .subscribe((response) => {
+                    this.notifications.set(response.items);
+                    this.error.set(null);
+                });
+
+            onCleanup(() => subscription.unsubscribe());
+        });
     }
 
-    togglePanel(event: Event) {
+    togglePanel(event: Event): void {
         event.stopPropagation();
-        this.showPanel = !this.showPanel;
+        this.showPanel.update((show) => !show);
     }
 
-    markAsRead(notification: AppNotification) {
-        if (!notification.read) {
-            notification.read = true;
+    open(notification: TerraNotification): void {
+        this.showPanel.set(false);
+        if (!notification.is_read) {
+            this.setRead((item) => item.key === notification.key);
+            this.api.markRead(notification.key).subscribe({
+                error: (error: unknown) => {
+                    this.error.set(apiErrorMessage(error));
+                    this.refresh();
+                }
+            });
         }
+        void this.router.navigate(['/home/terra-nova/notifications']);
     }
 
-    markAllAsRead() {
-        this.notifications.forEach((n) => (n.read = true));
+    markAllAsRead(event: Event): void {
+        event.stopPropagation();
+        if (!this.unreadCount()) return;
+
+        this.setRead(() => true);
+        this.api.markAllRead().subscribe({
+            error: (error: unknown) => {
+                this.error.set(apiErrorMessage(error));
+                this.refresh();
+            }
+        });
     }
 
-    getIconStyle(type: string): string {
-        switch (type) {
-            case 'new':
-                return 'bg-blue-100 dark:bg-blue-400/10';
-            case 'assigned':
-                return 'bg-orange-100 dark:bg-orange-400/10';
-            case 'completed':
-                return 'bg-green-100 dark:bg-green-400/10';
-            case 'delayed':
-                return 'bg-red-100 dark:bg-red-400/10';
-            default:
-                return 'bg-gray-100 dark:bg-gray-400/10';
-        }
+    openAll(): void {
+        this.showPanel.set(false);
+        void this.router.navigate(['/home/terra-nova/notifications']);
     }
 
-    // Fermer le panneau si on clique en dehors
-    @HostListener('document:click', ['$event'])
-    onDocumentClick(event: Event) {
-        this.showPanel = false;
+    private setRead(matches: (notification: TerraNotification) => boolean): void {
+        this.notifications.update((items) => items.map((item) => (matches(item) ? { ...item, is_read: true } : item)));
+    }
+
+    private refresh(): void {
+        this.api.notifications().subscribe({
+            next: (response) => {
+                this.notifications.set(response.items);
+                this.error.set(null);
+            },
+            error: (error: unknown) => this.error.set(apiErrorMessage(error))
+        });
     }
 }
