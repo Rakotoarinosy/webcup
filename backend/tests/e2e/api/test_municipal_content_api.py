@@ -4,9 +4,14 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from src.infrastructure.persistence.models import MunicipalPublicationModel, MunicipalServiceModel
+from src.infrastructure.persistence.models import (
+    ContactMessageModel,
+    MunicipalPublicationModel,
+    MunicipalServiceModel,
+)
 
 pytestmark = pytest.mark.anyio
 
@@ -280,6 +285,16 @@ async def test_contact_returns_receipt_and_persists_message(
     body = response.json()
     assert body["receipt_number"].startswith("MC-")
     assert "bien été envoyé" in body["message"]
+    stored = db_session.scalar(
+        select(ContactMessageModel).where(
+            ContactMessageModel.receipt_number == body["receipt_number"]
+        )
+    )
+    assert stored is not None
+    assert stored.sender_email == "ada@example.com"
+    assert stored.subject == "Question voirie"
+    assert stored.service_id is None
+    assert datetime.fromisoformat(body["created_at"]).tzinfo is not None
 
 
 async def test_unknown_publication_is_not_exposed(client: AsyncClient) -> None:
@@ -292,18 +307,25 @@ async def test_future_and_unpublished_publications_are_hidden(
     client: AsyncClient, db_session: Session
 ) -> None:
     now = datetime.now(UTC)
-    db_session.add_all([
-        MunicipalPublicationModel(
-            id=identifier, title=identifier, summary="Summary", content="Content",
-            category="Information", published_at=published_at, is_published=published,
-        )
-        for identifier, published_at, published in [
-            ("published-old", now - timedelta(days=2), True),
-            ("published-new", now - timedelta(days=1), True),
-            ("future", now + timedelta(days=1), True),
-            ("draft", now - timedelta(days=1), False),
+    db_session.add_all(
+        [
+            MunicipalPublicationModel(
+                id=identifier,
+                title=identifier,
+                summary="Summary",
+                content="Content",
+                category="Information",
+                published_at=published_at,
+                is_published=published,
+            )
+            for identifier, published_at, published in [
+                ("published-old", now - timedelta(days=2), True),
+                ("published-new", now - timedelta(days=1), True),
+                ("future", now + timedelta(days=1), True),
+                ("draft", now - timedelta(days=1), False),
+            ]
         ]
-    ])
+    )
     db_session.commit()
 
     listed = await client.get("/api/v1/municipal/publications")
@@ -312,3 +334,100 @@ async def test_future_and_unpublished_publications_are_hidden(
     for identifier in ["future", "draft"]:
         assert (await client.get(f"/api/v1/municipal/publications/{identifier}")).status_code == 404
     assert (await client.get("/api/v1/municipal/publications/published-new")).status_code == 200
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("sender_name", "  "),
+        ("subject", "   "),
+        ("message", "          "),
+        ("sender_email", "not-an-email"),
+    ],
+)
+async def test_invalid_contact_is_not_saved(
+    client: AsyncClient, db_session: Session, field: str, value: str
+) -> None:
+    payload = {
+        "sender_name": "Ada Lovelace",
+        "sender_email": "ada@example.com",
+        "subject": "Question mairie",
+        "message": "Une question pour la mairie.",
+    }
+    payload[field] = value
+    response = await client.post("/api/v1/municipal/contact", json=payload)
+    assert response.status_code == 422
+    assert db_session.scalar(select(func.count()).select_from(ContactMessageModel)) == 0
+
+
+async def test_contact_rejects_unknown_or_inactive_service_without_losing_message(
+    client: AsyncClient, db_session: Session
+) -> None:
+    db_session.add(
+        MunicipalServiceModel(
+            id="inactive",
+            name="Old service",
+            description="Description",
+            contact_details="Mairie",
+            opening_hours="8h-16h",
+            icon="pi-building",
+            display_order=1,
+            is_active=False,
+        )
+    )
+    db_session.commit()
+    payload = {
+        "sender_name": "  Ada Lovelace  ",
+        "sender_email": "ada@example.com",
+        "subject": "  Question mairie  ",
+        "message": "  Une question pour la mairie.  ",
+    }
+    for identifier in ["missing", "inactive"]:
+        response = await client.post(
+            "/api/v1/municipal/contact", json={**payload, "service_id": identifier}
+        )
+        assert response.status_code == 404
+    assert db_session.scalar(select(func.count()).select_from(ContactMessageModel)) == 0
+    sent = await client.post("/api/v1/municipal/contact", json=payload)
+    assert sent.status_code == 201
+    stored = db_session.scalar(select(ContactMessageModel))
+    assert stored is not None
+    assert stored.sender_name == "Ada Lovelace"
+    assert stored.subject == "Question mairie"
+    assert stored.message == "Une question pour la mairie."
+
+
+async def test_contact_preserves_selected_service_and_receipt_matches_persistence(
+    client: AsyncClient, db_session: Session
+) -> None:
+    db_session.add(
+        MunicipalServiceModel(
+            id="roads",
+            name="Voirie",
+            description="Description",
+            contact_details="Mairie",
+            opening_hours="8h-16h",
+            icon="pi-building",
+            display_order=1,
+            is_active=True,
+        )
+    )
+    db_session.commit()
+    sent = await client.post(
+        "/api/v1/municipal/contact",
+        json={
+            "service_id": "roads",
+            "sender_name": "Ada Lovelace",
+            "sender_email": "ada@example.com",
+            "subject": "Question voirie",
+            "message": "Une question pour la mairie.",
+        },
+    )
+    assert sent.status_code == 201
+    stored = db_session.scalar(
+        select(ContactMessageModel).where(
+            ContactMessageModel.receipt_number == sent.json()["receipt_number"]
+        )
+    )
+    assert stored is not None
+    assert stored.service_id == "roads"

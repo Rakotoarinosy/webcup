@@ -22,6 +22,7 @@ export class AuthService {
 
     private readonly token = signal<string | null>(null);
     private readonly sessionEnded = new Subject<void>();
+    private readonly sessionReplaced = new Subject<void>();
     private sessionChecked = false;
     private sessionVersion = 0;
     private profileInFlight: Observable<AuthUser> | null = null;
@@ -46,6 +47,7 @@ export class AuthService {
             takeUntil(this.sessionEnded),
             tap((response) => {
                 this.sessionVersion++;
+                this.sessionReplaced.next();
                 this.setSession(response);
             }),
             map((response) => response.user)
@@ -60,6 +62,8 @@ export class AuthService {
         if (!this.profileInFlight) {
             const version = this.sessionVersion;
             this.profileInFlight = this.http.get<AuthUser>(`${AUTH_URL}/me`).pipe(
+                takeUntil(this.sessionEnded),
+                takeUntil(this.sessionReplaced),
                 tap((user) => {
                     if (version !== this.sessionVersion) throw new HttpErrorResponse({ status: 401, statusText: 'Session changed' });
                     this.user.set(user);
@@ -76,6 +80,7 @@ export class AuthService {
         if (!this.refreshInFlight) {
             this.refreshInFlight = this.http.post<TokenResponse>(`${AUTH_URL}/refresh`, {}, { withCredentials: true }).pipe(
                 takeUntil(this.sessionEnded),
+                takeUntil(this.sessionReplaced),
                 tap((response) => this.setSession(response)),
                 catchError((error: unknown) => {
                     this.clearSession();
@@ -113,6 +118,39 @@ export class AuthService {
                     this.clearSession();
                 }
                 return of(null);
+            })
+        );
+    }
+
+    updateProfile(name: string, email: string, current_password: string): Observable<AuthUser> {
+        return this.http.patch<TokenResponse>(`${AUTH_URL}/me`, { name, email, current_password }, { withCredentials: true }).pipe(
+            takeUntil(this.sessionEnded),
+            tap((response) => {
+                this.sessionVersion++;
+                this.sessionReplaced.next();
+                this.setSession(response);
+            }),
+            map((response) => response.user)
+        );
+    }
+
+    changePassword(current_password: string, new_password: string): Observable<AuthUser> {
+        return this.http.post<TokenResponse>(`${AUTH_URL}/change-password`, { current_password, new_password }, { withCredentials: true }).pipe(
+            takeUntil(this.sessionEnded),
+            tap((response) => {
+                this.sessionVersion++;
+                this.sessionReplaced.next();
+                this.setSession(response);
+            }),
+            map((response) => response.user)
+        );
+    }
+
+    deleteAccount(current_password: string): Observable<void> {
+        return this.http.delete<void>(`${AUTH_URL}/me`, { body: { current_password }, withCredentials: true }).pipe(
+            tap(() => {
+                this.sessionEnded.next();
+                this.clearSession();
             })
         );
     }

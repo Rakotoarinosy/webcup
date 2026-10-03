@@ -1,3 +1,4 @@
+import { MunicipalNavigation } from './municipal-navigation.service';
 import { LiveDataService } from '@/app/shared/live-data.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize } from 'rxjs';
@@ -16,6 +17,8 @@ export class MunicipalServices implements OnInit {
     private readonly content = inject(MunicipalContentService);
     private readonly router = inject(Router);
     protected readonly auth = inject(AuthService);
+    readonly navigation = inject(MunicipalNavigation);
+    readonly openingService = signal<string | null>(null);
     readonly loading = signal(false);
     readonly services = signal<MunicipalService[]>([]);
     readonly search = signal('');
@@ -79,10 +82,18 @@ export class MunicipalServices implements OnInit {
     }
 
     startService(service: MunicipalService): void {
+        if (this.openingService()) return;
+        this.openingService.set(service.id);
         this.error.set(null);
-        this.content.startService(service.id).subscribe({
-            next: () => void this.router.navigate(['/home/municipal/contact'], { queryParams: { service: service.id } }),
-            error: () => this.error.set('Impossible d’ouvrir cette démarche. Réessayez dans quelques instants.')
-        });
+        this.content
+            .startService(service.id)
+            .pipe(
+                takeUntilDestroyed(this.destroyRef),
+                finalize(() => this.openingService.set(null))
+            )
+            .subscribe({
+                next: () => void this.router.navigate([this.navigation.path('contact')], { queryParams: { service: service.id } }),
+                error: () => this.error.set('Impossible d’ouvrir cette démarche. Réessayez dans quelques instants.')
+            });
     }
 }

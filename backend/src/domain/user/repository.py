@@ -25,6 +25,10 @@ class UserRepository(ABC):
     @abstractmethod
     def delete(self, user_id: str) -> None: ...
 
+    @abstractmethod
+    def delete_personal_account(self, user_id: str, archive: User) -> None:
+        """Atomically erase the account and archive its municipal records without its identity."""
+
     # Déclaré en dernier : le nom `list` masque le builtin dans le corps de la classe.
     @abstractmethod
     def list(self) -> list[User]: ...

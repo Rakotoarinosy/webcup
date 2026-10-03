@@ -16,19 +16,23 @@ from src.domain.user import (
 )
 from src.features.auth.schemas import (
     ChangePasswordIn,
+    DeleteAccountIn,
     LoginIn,
     ProfileOut,
     RegisterIn,
     TokenOut,
+    UpdateProfileIn,
 )
 from src.features.auth.use_cases import (
     AuthSession,
     change_password,
+    delete_account,
     login,
     logout,
     logout_all,
     refresh,
     register,
+    update_profile,
 )
 from src.infrastructure.config.settings import Settings, get_settings
 from src.infrastructure.security.deps import (
@@ -142,7 +146,8 @@ def logout_all_endpoint(
 
 
 @router.get("/me", response_model=ProfileOut)
-def me_endpoint(user: User = Depends(get_current_user)) -> User:
+def me_endpoint(response: Response, user: User = Depends(get_current_user)) -> User:
+    response.headers["Cache-Control"] = "no-store"
     return user
 
 
@@ -161,3 +166,34 @@ def change_password_endpoint(
     session = change_password(user, payload, users, refresh_repo, hasher, tokens, policy)
 
     return _respond(session, response, settings)
+
+
+@router.patch("/me", response_model=TokenOut)
+def update_profile_endpoint(
+    payload: UpdateProfileIn,
+    response: Response,
+    user: User = Depends(get_current_user),
+    users: UserRepository = Depends(get_user_repo),
+    refresh_repo: RefreshTokenRepository = Depends(get_refresh_token_repo),
+    hasher: PasswordHasher = Depends(get_password_hasher),
+    tokens: AccessTokenService = Depends(get_token_service),
+    policy: AuthPolicy = Depends(get_auth_policy),
+    settings: Settings = Depends(get_settings),
+) -> TokenOut:
+    session = update_profile(user, payload, users, refresh_repo, hasher, tokens, policy)
+    return _respond(session, response, settings)
+
+
+@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
+def delete_account_endpoint(
+    payload: DeleteAccountIn,
+    response: Response,
+    user: User = Depends(get_current_user),
+    users: UserRepository = Depends(get_user_repo),
+    hasher: PasswordHasher = Depends(get_password_hasher),
+    policy: AuthPolicy = Depends(get_auth_policy),
+    settings: Settings = Depends(get_settings),
+) -> None:
+    delete_account(user, payload.current_password, users, hasher, policy)
+    _clear_refresh_cookie(response, settings)
+    response.headers["Cache-Control"] = "no-store"

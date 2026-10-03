@@ -30,6 +30,7 @@ export class Login implements AfterViewInit {
 
     readonly loading = signal(false);
     readonly errorMessage = signal<string | null>(null);
+    readonly accountDeleted = this.route.snapshot.queryParamMap.get('accountDeleted') === '1';
 
     ngAfterViewInit(): void {
         this.emailInput()?.nativeElement.focus();

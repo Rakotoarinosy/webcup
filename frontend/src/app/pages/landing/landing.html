@@ -53,15 +53,17 @@
     <section class="mx-auto max-w-7xl px-6 pb-20 lg:px-10" aria-labelledby="public-news-title">
         <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
             <h2 id="public-news-title" class="m-0 !text-3xl font-bold">Les informations de votre mairie</h2>
-            <a routerLink="/home/municipal/publications" class="font-semibold text-emerald-700 dark:text-emerald-300">Toutes les publications</a>
+            <a routerLink="/municipal/publications" class="font-semibold text-emerald-700 dark:text-emerald-300">Toutes les publications</a>
         </div>
         <div class="grid gap-6 md:grid-cols-3">
             @for (publication of publications(); track publication.id) {
-                <article class="rounded-2xl border border-emerald-100 p-6 dark:border-emerald-800">
-                    <p class="text-sm text-emerald-700 dark:text-emerald-300">{{ publication.category }} · {{ publication.published_at | date: 'dd/MM/yyyy' }}</p>
-                    <h3 class="!text-xl font-semibold">{{ publication.title }}</h3>
-                    <p>{{ publication.summary }}</p>
-                </article>
+                <a class="block" routerLink="/municipal/publications" [queryParams]="{ publication: publication.id }" [attr.aria-label]="'Lire la publication : ' + publication.title"
+                    ><article class="rounded-2xl border border-emerald-100 p-6 dark:border-emerald-800">
+                        <p class="text-sm text-emerald-700 dark:text-emerald-300">{{ publication.category }} · {{ publication.published_at | date: 'dd/MM/yyyy' }}</p>
+                        <h3 class="!text-xl font-semibold">{{ publication.title }}</h3>
+                        <p>{{ publication.summary }}</p>
+                    </article></a
+                >
             } @empty {
                 @if (!loading() && !error()) {
                     <p>Aucune publication pour le moment.</p>
@@ -116,7 +118,7 @@
     </section>
     <footer class="border-t border-emerald-100 px-6 py-8 dark:border-emerald-900">
         <div class="mx-auto flex max-w-7xl flex-col justify-between gap-4 text-sm text-emerald-950/55 dark:text-emerald-50/55 sm:flex-row">
-            <b class="text-emerald-950 dark:text-white">Kotrana</b><span>© {{ year }} Kotrana · Une gestion publique plus proche.</span><a routerLink="/home/municipal/contact">Contacter la mairie</a>
+            <b class="text-emerald-950 dark:text-white">Kotrana</b><span>© {{ year }} Kotrana · Une gestion publique plus proche.</span><a routerLink="/municipal/contact">Contacter la mairie</a>
         </div>
     </footer>
 </main>

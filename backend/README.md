@@ -177,3 +177,22 @@ backend/
 ├── Dockerfile · docker-compose.yml · Makefile
 └── pyproject.toml
 ```
+
+## Profil personnel
+
+Les endpoints utilisent exclusivement l’identité authentifiée par le bearer JWT :
+
+- `GET /api/v1/auth/me` : lire son profil existant (`ProfileOut`).
+- `PATCH /api/v1/auth/me` : modifier `name` et `email`, avec `current_password`.
+  Retourne `TokenOut`, renouvelle le cookie HttpOnly et révoque les anciens refresh tokens.
+- `POST /api/v1/auth/change-password` : changer le mot de passe avec la politique existante.
+- `DELETE /api/v1/auth/me` : supprimer son compte citoyen avec `current_password`.
+  Retourne 204 et efface le cookie. Les identifiants de cible et champs de privilèges
+  sont refusés ; les comptes professionnels restent gérés par l’administration.
+
+La suppression est atomique : le compte, ses refresh tokens et ses marqueurs de lecture
+sont retirés ; les demandes des deux flux sont conservées sous une identité inactive
+« Compte supprimé », sans nom personnel, email personnel ni mot de passe. Les acteurs
+de l’historique associés au compte sont également retirés. Le contenu libre des demandes
+reste conservé. La relecture du compte à chaque requête refuse immédiatement ses anciens JWT.
+Ces opérations ne modifient pas le schéma et ne nécessitent aucune nouvelle migration.

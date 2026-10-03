@@ -3,6 +3,7 @@
     <h1 id="account-title" class="mb-3 text-3xl font-bold">Bonjour {{ auth.user()?.name }}</h1>
     <p>{{ auth.user()?.email }} · {{ auth.roleLabel() }}</p>
     <p class="text-muted-color">Vous êtes connecté à votre compte Kotrana.</p>
+    <a routerLink="/home/profile" class="my-3 inline-flex items-center gap-2 rounded-lg border border-surface px-4 py-2 font-semibold text-primary"><i class="pi pi-id-card" aria-hidden="true"></i> Gérer mon profil</a>
     @if (auth.hasRole('citizen')) {
         <a routerLink="/home/my-requests" class="mt-3 inline-block font-semibold text-primary">Envoyer une demande et consulter mon historique</a>
     }

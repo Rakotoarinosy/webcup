@@ -11,7 +11,7 @@
         <p>Accédez aux services utiles, consultez les informations de la ville ou contactez directement la bonne équipe.</p>
         <div class="hero-actions">
             <a pButton routerLink="/home/my-requests" label="Signaler un problème" icon="pi pi-send"></a>
-            <a pButton routerLink="/home/municipal/contact" label="Contacter la mairie" icon="pi pi-envelope" severity="secondary" [outlined]="true"></a>
+            <a pButton [routerLink]="navigation.path('contact')" label="Contacter la mairie" icon="pi pi-envelope" severity="secondary" [outlined]="true"></a>
         </div>
     </div>
 
@@ -21,15 +21,18 @@
                 <p class="eyebrow">Services</p>
                 <h2>Les accès essentiels</h2>
             </div>
-            <a routerLink="/home/municipal/services">Voir tous les services</a>
+            <a [routerLink]="navigation.path('services')">Voir tous les services</a>
         </div>
         <div class="cards">
             @for (service of services(); track service.id) {
-                <p-card
-                    ><ng-template #title><i [class]="'pi ' + service.icon"></i> {{ service.name }}</ng-template>
-                    <p>{{ service.description }}</p>
-                    <small>{{ service.opening_hours }}</small></p-card
-                >
+                <button type="button" class="card-link" [attr.aria-label]="'Contacter le service ' + service.name" [disabled]="openingService() !== null" (click)="startService(service)">
+                    <p-card
+                        ><ng-template #title><i [class]="'pi ' + service.icon" aria-hidden="true"></i> {{ service.name }}</ng-template>
+                        <p>{{ service.description }}</p>
+                        <small>{{ service.opening_hours }}</small>
+                        <span class="card-cta">Contacter ce service <i class="pi pi-arrow-right" aria-hidden="true"></i></span>
+                    </p-card>
+                </button>
             } @empty {
                 <p>Les informations sur les services seront disponibles prochainement.</p>
             }
@@ -42,19 +45,20 @@
                 <p class="eyebrow">À la une</p>
                 <h2>Services mis en avant</h2>
             </div>
-            <a routerLink="/home/municipal/services">Tous les services</a>
+            <a [routerLink]="navigation.path('services')">Tous les services</a>
         </div>
         @if (startError(); as message) {
             <p role="alert">{{ message }}</p>
         }
         <div class="cards">
             @for (service of featuredServices(); track service.id) {
-                <button type="button" class="cursor-pointer border-0 bg-transparent p-0 text-left text-color focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" (click)="startService(service)">
+                <button type="button" class="card-link" [attr.aria-label]="'Contacter le service ' + service.name" [disabled]="openingService() !== null" (click)="startService(service)">
                     <p-card
                         ><ng-template #title><i [class]="'pi ' + service.icon" aria-hidden="true"></i> {{ service.name }}</ng-template>
                         <p>{{ service.description }}</p>
-                        <small>{{ service.opening_hours }}</small></p-card
-                    >
+                        <small>{{ service.opening_hours }}</small
+                        ><span class="card-cta">Contacter ce service <i class="pi pi-arrow-right" aria-hidden="true"></i></span
+                    ></p-card>
                 </button>
             } @empty {
                 <p>Aucun service mis en avant pour le moment.</p>
@@ -68,15 +72,18 @@
                 <p class="eyebrow">Actualités</p>
                 <h2>Informations municipales</h2>
             </div>
-            <a routerLink="/home/municipal/publications">Toutes les publications</a>
+            <a [routerLink]="navigation.path('publications')">Toutes les publications</a>
         </div>
         <div class="cards publications">
             @for (publication of publications(); track publication.id) {
-                <p-card
-                    ><ng-template #title>{{ publication.title }}</ng-template>
-                    <p>{{ publication.summary }}</p>
-                    <small>{{ publication.category }} · {{ publication.published_at | date: 'longDate' }}</small></p-card
-                >
+                <a class="card-link" [routerLink]="navigation.path('publications')" [queryParams]="{ publication: publication.id }" [attr.aria-label]="'Lire la publication : ' + publication.title">
+                    <p-card
+                        ><ng-template #title>{{ publication.title }}</ng-template>
+                        <p>{{ publication.summary }}</p>
+                        <small>{{ publication.category }} · {{ publication.published_at | date: 'longDate' }}</small>
+                        <span class="card-cta">Lire la publication <i class="pi pi-arrow-right" aria-hidden="true"></i></span>
+                    </p-card>
+                </a>
             } @empty {
                 <p>Aucune publication pour le moment.</p>
             }

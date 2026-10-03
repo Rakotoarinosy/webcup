@@ -27,6 +27,20 @@ class ChangePasswordIn(BaseModel):
     new_password: Password
 
 
+class UpdateProfileIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: Name
+    email: Email
+    current_password: str = Field(min_length=1, max_length=128)
+
+
+class DeleteAccountIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    current_password: str = Field(min_length=1, max_length=128)
+
+
 class ProfileOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

@@ -18,6 +18,8 @@ export class AppMenu {
     readonly model = computed<MenuItem[]>(() => {
         const items: MenuItem[] = [{ label: 'Mon espace', icon: 'pi pi-fw pi-user', routerLink: ['/home/account'] }];
 
+        items.push({ label: 'Mon profil', icon: 'pi pi-fw pi-id-card', routerLink: ['/home/profile'] });
+
         if (this.auth.hasRole('agent')) {
             items.push({ label: 'Mes interventions', icon: 'pi pi-fw pi-inbox', routerLink: ['/home/agent'] });
         }

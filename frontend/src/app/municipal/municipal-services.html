@@ -18,33 +18,37 @@
 
     <div class="service-grid">
         @for (service of visibleServices(); track service.id) {
-            <p-card>
-                <ng-template #title><i [class]="'pi ' + service.icon" aria-hidden="true"></i> {{ service.name }}</ng-template>
-                <p>{{ service.description }}</p>
-                <dl>
-                    <dt>Contact</dt>
-                    <dd>{{ service.contact_details }}</dd>
-                    <dt>Horaires</dt>
-                    <dd>{{ service.opening_hours }}</dd>
-                </dl>
-                <button type="button" class="inline-flex rounded-lg border border-surface px-3 py-2 text-primary underline focus-visible:outline-2 focus-visible:outline-offset-2" (click)="startService(service)">
-                    Commencer une démarche auprès de ce service
-                </button>
+            <article class="service-card">
+                <p-card>
+                    <ng-template #title><i [class]="'pi ' + service.icon" aria-hidden="true"></i> {{ service.name }}</ng-template>
+                    <p>{{ service.description }}</p>
+                    <dl>
+                        <dt>Contact</dt>
+                        <dd>{{ service.contact_details }}</dd>
+                        <dt>Horaires</dt>
+                        <dd>{{ service.opening_hours }}</dd>
+                    </dl>
+                    <button type="button" class="card-action" [attr.aria-label]="'Contacter le service ' + service.name" [disabled]="openingService() !== null" (click)="startService(service)">
+                        Contacter ce service <i class="pi pi-arrow-right" aria-hidden="true"></i>
+                    </button>
 
-                @if (auth.hasRole('manager', 'admin')) {
-                    <div class="mt-4 flex flex-wrap items-end gap-3 border-t border-surface pt-3">
-                        <label class="flex items-center gap-2">
-                            <input type="checkbox" [checked]="service.is_featured" [disabled]="saving() === service.id" (change)="onFeaturedChange(service, $event)" />
-                            <span>Mettre en avant</span>
-                        </label>
-                        <label class="flex items-center gap-2">
-                            <span>Ordre</span>
-                            <input #orderInput type="number" min="0" class="w-20 rounded border border-surface bg-transparent p-2" [value]="service.display_order" [disabled]="saving() === service.id" />
-                        </label>
-                        <button type="button" class="rounded border border-surface px-3 py-2 focus-visible:outline-2" [disabled]="saving() === service.id" (click)="updateFeatured(service, service.is_featured, +orderInput.value)">Enregistrer</button>
-                    </div>
-                }
-            </p-card>
+                    @if (auth.hasRole('manager', 'admin')) {
+                        <div class="service-admin mt-4 flex flex-wrap items-end gap-3 border-t border-surface pt-3">
+                            <label class="flex items-center gap-2">
+                                <input type="checkbox" [checked]="service.is_featured" [disabled]="saving() === service.id" (change)="onFeaturedChange(service, $event)" />
+                                <span>Mettre en avant</span>
+                            </label>
+                            <label class="flex items-center gap-2">
+                                <span>Ordre</span>
+                                <input #orderInput type="number" min="0" class="w-20 rounded border border-surface bg-transparent p-2" [value]="service.display_order" [disabled]="saving() === service.id" />
+                            </label>
+                            <button type="button" class="rounded border border-surface px-3 py-2 focus-visible:outline-2" [disabled]="saving() === service.id" (click)="updateFeatured(service, service.is_featured, +orderInput.value)">
+                                Enregistrer
+                            </button>
+                        </div>
+                    }
+                </p-card>
+            </article>
         } @empty {
             <p>Aucun service ne correspond à votre recherche.</p>
         }

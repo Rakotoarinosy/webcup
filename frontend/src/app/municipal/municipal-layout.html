@@ -1,0 +1,18 @@
+<header>
+    <div class="header-row">
+        <a class="brand" routerLink="/" aria-label="Kotrana, accueil">Kotrana</a>
+        <nav aria-label="Services municipaux">
+            <a routerLink="/municipal" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" ariaCurrentWhenActive="page">Accueil municipal</a>
+            <a routerLink="/municipal/services" routerLinkActive="active" ariaCurrentWhenActive="page">Services</a>
+            <a routerLink="/municipal/publications" routerLinkActive="active" ariaCurrentWhenActive="page">Publications</a>
+            <a routerLink="/municipal/contact" routerLinkActive="active" ariaCurrentWhenActive="page">Contacter la mairie</a>
+        </nav>
+        @if (auth.user(); as user) {
+            <a class="account" [routerLink]="auth.homeUrl()">{{ user.name }} · Mon espace</a>
+        } @else {
+            <a class="account" routerLink="/auth/login">Se connecter</a>
+        }
+    </div>
+    <div class="header-row" style="justify-content: flex-end; margin-top: 0.5rem"><app-font-size /></div>
+</header>
+<main><router-outlet /></main>

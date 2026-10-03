@@ -14,6 +14,7 @@ from src.domain.user import (
     UserNotFoundError,
     UserRepository,
 )
+from src.features.auth.schemas import UpdateProfileIn
 from src.features.user.schemas import CreateUserIn, UpdateUserIn
 
 
@@ -99,3 +100,16 @@ def _ensure_admin_remains(
     )
     if loses_admin and repo.count_active_by_role(Role.ADMIN) <= 1:
         raise LastAdminError()
+
+
+def update_own_profile(user: User, dto: UpdateProfileIn, repo: UserRepository) -> User:
+    """The authenticated identity is the only target; role and agent link stay server-owned."""
+    other = repo.get_by_email(dto.email)
+    if other is not None and other.id != user.id:
+        raise UserAlreadyExistsError(dto.email)
+    return repo.update(replace(user, name=dto.name, email=dto.email))
+
+
+def delete_own_account(user: User, repo: UserRepository) -> None:
+    user.require_personal_account_deletion()
+    repo.delete_personal_account(user.id, user.archived_identity(str(uuid.uuid4())))

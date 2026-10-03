@@ -10,6 +10,7 @@ from src.domain.citizen_request import (
     AnalysisUnavailableError,
     CitizenRequest,
     CitizenRequestRepository,
+    DashboardSummary,
     RequestAnalysis,
     RequestAnalyzer,
     RequestCategory,
@@ -132,7 +133,7 @@ def list_requests_endpoint(
     )
 
     return CitizenRequestPageOut(
-        items=items,
+        items=[CitizenRequestOut.model_validate(item) for item in items],
         total=total,
         page=page,
         page_size=page_size,
@@ -194,7 +195,7 @@ def delete_request_endpoint(
 @dashboard_router.get("", response_model=DashboardOut)
 def get_dashboard_endpoint(
     repo: CitizenRequestRepository = Depends(get_request_repo),
-) -> DashboardOut:
+) -> DashboardSummary:
     return get_dashboard_summary(repo, timezone=resolve_timezone(get_settings().app_timezone))
 
 

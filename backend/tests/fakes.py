@@ -33,6 +33,9 @@ class FakeUserRepository(UserRepository):
     def delete(self, user_id: str) -> None:
         self.users.pop(user_id, None)
 
+    def delete_personal_account(self, user_id: str, archive: User) -> None:
+        self.users.pop(user_id, None)
+
 
 class FakePasswordHasher(PasswordHasher):
     def hash(self, password: str) -> str:

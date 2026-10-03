@@ -2,14 +2,22 @@
 
 from datetime import UTC, datetime
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from src.domain.user.entities import Role, User
-from src.domain.user.exceptions import UserConflictError
+from src.domain.user.exceptions import ForbiddenError, UserConflictError, UserNotFoundError
 from src.domain.user.repository import UserRepository
-from src.infrastructure.persistence.models import RefreshTokenModel, UserModel
+from src.infrastructure.persistence.models import (
+    CitizenRequestModel,
+    DemandeEventModel,
+    DemandeModel,
+    NotificationReadModel,
+    RefreshTokenModel,
+    TerraRequestReadModel,
+    UserModel,
+)
 
 
 def _aware(value: datetime | None) -> datetime | None:
@@ -60,6 +68,42 @@ class SqlAlchemyUserRepository(UserRepository):
         if model:
             self.db.delete(model)
         self.db.commit()
+
+    def delete_personal_account(self, user_id: str, archive: User) -> None:
+        try:
+            # Serialize account deletion against changes to this identity on PostgreSQL.
+            model = self.db.scalar(
+                select(UserModel).where(UserModel.id == user_id).with_for_update()
+            )
+            if model is None:
+                raise UserNotFoundError(user_id)
+            if model.role != Role.CITIZEN.value or not model.is_active:
+                raise ForbiddenError("Only citizens can delete their own account")
+            has_records = any(
+                self.db.scalar(select(table.id).where(table.citizen_id == user_id).limit(1))
+                for table in (CitizenRequestModel, DemandeModel)
+            )
+            if has_records:
+                self.db.add(self._to_model(archive))
+                self.db.flush()
+                for table in (CitizenRequestModel, DemandeModel):
+                    self.db.execute(
+                        update(table)
+                        .where(table.citizen_id == user_id)
+                        .values(citizen_id=archive.id)
+                    )
+            self.db.execute(
+                update(DemandeEventModel)
+                .where(DemandeEventModel.actor_id == user_id)
+                .values(actor_id=None, actor_name=archive.name)
+            )
+            for session_table in (RefreshTokenModel, NotificationReadModel, TerraRequestReadModel):
+                self.db.execute(delete(session_table).where(session_table.user_id == user_id))
+            self.db.delete(model)
+            self.db.commit()
+        except Exception:
+            self.db.rollback()
+            raise
 
     def list(self) -> list[User]:
         models = self.db.scalars(select(UserModel).order_by(UserModel.created_at))

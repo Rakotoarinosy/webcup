@@ -62,6 +62,10 @@ def get_municipal_publication(
 def send_contact_message(
     dto: CreateContactMessageIn, repo: MunicipalContentRepository
 ) -> ContactMessage:
+    if dto.service_id is not None and not any(
+        service.id == dto.service_id for service in repo.list_services()
+    ):
+        raise MunicipalServiceNotFoundError(dto.service_id)
     now = datetime.now(UTC)
     message = ContactMessage(
         id=str(uuid.uuid4()),

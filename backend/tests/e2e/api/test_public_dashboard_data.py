@@ -9,6 +9,7 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.orm import Session
 
+from src.domain.citizen_request import RequestStatus
 from src.features.citizen_request import router
 from src.infrastructure.persistence.models import CitizenRequestModel, UserModel
 
@@ -24,22 +25,35 @@ pytestmark = pytest.mark.anyio
     ],
 )
 async def test_public_dashboard_counts_local_days_and_dst_boundaries(
-    client: AsyncClient, db_session: Session, monkeypatch: pytest.MonkeyPatch,
-    zone: str, day: str,
+    client: AsyncClient,
+    db_session: Session,
+    monkeypatch: pytest.MonkeyPatch,
+    zone: str,
+    day: str,
 ) -> None:
     start = datetime.fromisoformat(day).replace(tzinfo=ZoneInfo(zone))
     end = start + timedelta(days=1)
     instants = [start - timedelta(microseconds=1), start, end - timedelta(microseconds=1), end]
-    db_session.add(UserModel(id="private-citizen", name="Private identity", email="private@test.mg"))
-    db_session.add_all([
-        CitizenRequestModel(
-            id=f"request-{index}", title="Private title", description="Private description",
-            category="Autre", priority="Normale", status="R\u00e9solue",
-            citizen_id="private-citizen", location="Private address",
-            created_at=instant.astimezone(UTC), resolved_at=instant.astimezone(UTC),
-        )
-        for index, instant in enumerate(instants)
-    ])
+    db_session.add(
+        UserModel(id="private-citizen", name="Private identity", email="private@test.mg")
+    )
+    db_session.add_all(
+        [
+            CitizenRequestModel(
+                id=f"request-{index}",
+                title="Private title",
+                description="Private description",
+                category="Autre",
+                priority="Normale",
+                status=RequestStatus.RESOLVED.value,
+                citizen_id="private-citizen",
+                location="Private address",
+                created_at=instant.astimezone(UTC),
+                resolved_at=instant.astimezone(UTC),
+            )
+            for index, instant in enumerate(instants)
+        ]
+    )
     db_session.commit()
     monkeypatch.setattr(router, "get_settings", lambda: SimpleNamespace(app_timezone=zone))
     with patch("src.features.citizen_request.use_cases.datetime", wraps=datetime) as clock:

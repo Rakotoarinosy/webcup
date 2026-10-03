@@ -1,3 +1,4 @@
+import { LiveDataService } from '../shared/live-data.service';
 import { Component } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router, RouterOutlet, provideRouter } from '@angular/router';
@@ -53,6 +54,7 @@ describe('MyRequests', () => {
                     }
                 ]),
                 { provide: CitizenRequestService, useValue: requestsApi },
+                { provide: LiveDataService, useValue: { watch: () => {} } },
                 { provide: NotificationService, useValue: notificationsApi },
                 { provide: AuthService, useValue: { user: () => ({ id: 'citizen-1' }) } }
             ]
@@ -74,21 +76,20 @@ describe('MyRequests', () => {
     });
 
     it('shows unread notifications and requests awaiting citizen action', async () => {
-        requestsApi.list.and.returnValues(
-            of({ items: [], total: 0, page: 1, page_size: 10, total_pages: 0 }),
-            of({ items: [{ ...savedRequest, status: 'En attente' }], total: 1, page: 1, page_size: 10, total_pages: 1 })
-        );
+        requestsApi.list.and.returnValues(of({ items: [], total: 0, page: 1, page_size: 10, total_pages: 0 }), of({ items: [{ ...savedRequest, status: 'En attente' }], total: 1, page: 1, page_size: 10, total_pages: 1 }));
         notificationsApi.list.and.returnValue(
             of({
-                items: [{
-                    key: 'notification-1',
-                    kind: 'assigned',
-                    title: 'Votre demande nécessite votre attention',
-                    message: 'Veuillez apporter des précisions.',
-                    demande_id: 'd-1',
-                    created_at: '2026-10-03T10:00:00Z',
-                    is_read: false
-                }],
+                items: [
+                    {
+                        key: 'notification-1',
+                        kind: 'assigned',
+                        title: 'Votre demande nécessite votre attention',
+                        message: 'Veuillez apporter des précisions.',
+                        demande_id: 'd-1',
+                        created_at: '2026-10-03T10:00:00Z',
+                        is_read: false
+                    }
+                ],
                 unread_count: 1
             })
         );

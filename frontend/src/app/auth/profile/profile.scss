@@ -1,0 +1,116 @@
+:host {
+    display: block;
+}
+.profile-hero {
+    background: linear-gradient(120deg, color-mix(in srgb, var(--p-primary-color) 15%, var(--surface-card)), var(--surface-card));
+    border: 1px solid var(--surface-border);
+}
+.profile-panel,
+.profile-hero {
+    animation: profile-in 250ms ease-out both;
+}
+.profile-fields {
+    border: 0;
+    margin: 0;
+    padding: 0;
+    min-width: 0;
+}
+label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+input:not([type='checkbox']) {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    border: 1px solid var(--surface-border);
+    border-radius: 0.65rem;
+    padding: 0.85rem;
+    background: var(--surface-card);
+    color: var(--text-color);
+    font: inherit;
+}
+input:focus-visible,
+button:focus-visible,
+a:focus-visible {
+    outline: 3px solid var(--p-primary-color);
+    outline-offset: 3px;
+}
+small {
+    display: block;
+    margin-top: 0.5rem;
+    color: var(--text-color-secondary);
+}
+.profile-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    padding: 0.85rem 1.2rem;
+    border: 1px solid transparent;
+    border-radius: 0.7rem;
+    background: var(--p-primary-color);
+    color: var(--p-primary-contrast-color);
+    font: inherit;
+    font-weight: 600;
+    transition: opacity 160ms;
+    cursor: pointer;
+}
+.profile-button.danger {
+    background: var(--p-red-700);
+    color: white;
+}
+.profile-button.secondary {
+    background: var(--surface-card);
+    border-color: var(--surface-border);
+    color: var(--text-color);
+}
+button:disabled,
+fieldset:disabled {
+    opacity: 0.65;
+}
+button:disabled {
+    cursor: wait;
+}
+.profile-notice {
+    background: color-mix(in srgb, var(--p-primary-color) 12%, var(--surface-card));
+}
+.profile-dialog {
+    margin: auto;
+    width: min(36rem, calc(100vw - 2rem));
+    max-height: calc(100dvh - 2rem);
+    overflow: auto;
+    padding: 1.5rem;
+    border: 1px solid var(--surface-border);
+    border-radius: 1rem;
+    background: var(--surface-card);
+    color: var(--text-color);
+}
+.profile-dialog::backdrop {
+    background: rgb(0 0 0 / 50%);
+}
+@keyframes profile-in {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .profile-panel,
+    .profile-hero {
+        animation: none;
+    }
+    .profile-button {
+        transition: none;
+    }
+}
+@media (max-width: 480px) {
+    .profile-button {
+        width: 100%;
+    }
+}

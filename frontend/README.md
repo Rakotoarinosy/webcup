@@ -26,3 +26,19 @@ Les dates du tableau de bord suivent `APP_TIMEZONE`, configuré côté backend.
 La session conserve le token d'accès en mémoire et se restaure avec le cookie
 HttpOnly de refresh. Les routes et les endpoints appliquent les droits de chaque rôle.
 Les vues Terra Nova possèdent déjà leur propre rafraîchissement.
+
+Les pages publiques `/municipal`, `/municipal/services`, `/municipal/publications`
+et `/municipal/contact` sont accessibles sans connexion. Les cartes ouvrent
+le service ou la publication sur toute leur surface et restent utilisables au clavier.
+Le contact présélectionne le service, conserve le message en cas d’échec,
+empêche un double envoi et affiche une confirmation persistante avec référence
+et date après l’enregistrement effectif en base. Les dates sont affichées en français.
+
+Le profil `/home/profile`, accessible depuis « Mon espace » et les menus du compte,
+permet de modifier son nom, son email et son mot de passe. Les changements demandent
+le mot de passe actuel et actualisent la session en mémoire. Un citoyen peut supprimer
+son compte après confirmation et vérification de son mot de passe ; il est alors
+déconnecté et ses anciens accès sont refusés par l’API. Les demandes municipales
+conservent leur contenu et leur suivi sous l’identité « Compte supprimé ».
+La page s’adapte au mobile et désactive ses animations lorsque la préférence système
+de réduction des mouvements est activée.
