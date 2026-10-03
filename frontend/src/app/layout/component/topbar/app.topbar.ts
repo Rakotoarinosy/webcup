@@ -26,6 +26,7 @@ export class AppTopbar {
     readonly userMenu = viewChild<Menu>('menu');
 
     readonly user = this.auth.user;
+    readonly roleLabel = this.auth.roleLabel;
 
     // Menu utilisateur : identité (non cliquable) puis déconnexion.
     readonly items = computed<MenuItem[]>(() => {
@@ -35,20 +36,21 @@ export class AppTopbar {
             {
                 label: user?.name ?? 'Utilisateur',
                 items: [
-                    { 
-                        label: user ? `${user.email} · ${ROLE_LABELS[user.role] ?? user.role}` : '', 
-                        icon: 'pi pi-user', 
-                        disabled: true 
-                    }, 
-                    { separator: true }, 
-                    { 
-                        label: 'Déconnexion', 
-                        icon: 'pi pi-sign-out', 
+                    {
+                        label: user ? `${user.email} · ${ROLE_LABELS[user.role] ?? user.role}` : '',
+                        icon: 'pi pi-user',
+                        disabled: true
+                    },
+                    { label: 'Mon espace', icon: 'pi pi-user', routerLink: ['/home/account'] },
+                    { separator: true },
+                    {
+                        label: 'Déconnexion',
+                        icon: 'pi pi-sign-out',
                         command: () => {
                             // Ferme le menu popup proprement avant de lancer la déconnexion
                             this.userMenu()?.hide();
                             this.auth.logout();
-                        } 
+                        }
                     }
                 ]
             }

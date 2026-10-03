@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard, roleGuard } from './app/auth/auth.guard';
+import { authGuard, publicSessionGuard } from './app/auth/auth.guard';
 import { AppLayout } from './app/layout/component/layout/app.layout';
 import { Landing } from './app/pages/landing/landing';
 import { Notfound } from './app/pages/notfound/notfound';
@@ -9,16 +9,17 @@ export const appRoutes: Routes = [
     {
         path: 'home',
         component: AppLayout,
-        canActivate: [authGuard],
+        canActivateChild: [authGuard],
         children: [
-            { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
-            { path: 'dashboard', component: Dashboard },
-            { path: 'users', canActivate: [roleGuard], data: { roles: ['admin'] }, loadComponent: () => import('./app/users/users').then((m) => m.Users) },
-            { path: 'requests', loadComponent: () => import('./app/requests/requests').then((m) => m.Requests) },
-            { path: 'agents', canActivate: [roleGuard], data: { roles: ['manager', 'admin'] }, loadComponent: () => import('./app/agents/agents').then((m) => m.Agents) }
+            { path: 'account', loadComponent: () => import('./app/auth/account/account').then((m) => m.Account) },
+            { path: '', redirectTo: 'account', pathMatch: 'full' },
+            { path: 'dashboard', data: { roles: ['manager', 'admin'] }, component: Dashboard },
+            { path: 'users', data: { roles: ['admin'] }, loadComponent: () => import('./app/users/users').then((m) => m.Users) },
+            { path: 'requests', data: { roles: ['admin'] }, loadComponent: () => import('./app/requests/requests').then((m) => m.Requests) },
+            { path: 'agents', data: { roles: ['manager', 'admin'] }, loadComponent: () => import('./app/agents/agents').then((m) => m.Agents) }
         ]
     },
-    { path: '', component: Landing },
+    { path: '', component: Landing, canActivate: [publicSessionGuard] },
     { path: 'notfound', component: Notfound },
     { path: 'auth', loadChildren: () => import('./app/auth/auth.routes') },
     { path: '**', redirectTo: '/notfound' }

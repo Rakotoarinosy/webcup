@@ -7,7 +7,8 @@
                 Kotrana aide les collectivités à centraliser, traiter et suivre les demandes des citoyens, pour des services publics plus réactifs et plus proches du terrain.
             </p>
             <div class="mt-9 flex flex-wrap gap-5">
-                <a routerLink="/auth/login" class="rounded-xl bg-emerald-600 px-6 py-3.5 font-bold text-white shadow-xl shadow-emerald-600/20">Accéder à Kotrana <i class="pi pi-arrow-right ml-2"></i></a
+                <a [routerLink]="auth.isAuthenticated() ? auth.homeUrl() : '/auth/login'" class="rounded-xl bg-emerald-600 px-6 py-3.5 font-bold text-white shadow-xl shadow-emerald-600/20"
+                    >{{ auth.isAuthenticated() ? 'Retrouver mon espace' : 'Accéder à Kotrana' }} <i class="pi pi-arrow-right ml-2"></i></a
                 ><a href="#process" class="py-3.5 font-semibold text-emerald-700 dark:text-emerald-300">Découvrir le fonctionnement</a>
             </div>
         </div>
@@ -74,7 +75,9 @@
     <section id="securite" class="mx-auto max-w-4xl px-6 py-24 text-center">
         <h2 class="m-0 !text-4xl font-bold leading-tight dark:!text-white">Prêt à simplifier la gestion des demandes citoyennes ?</h2>
         <p class="mt-5 text-lg text-emerald-950/65 dark:text-emerald-50/70">Des services publics plus réactifs, plus transparents et plus proches des citoyens.</p>
-        <a routerLink="/auth/register" class="mt-8 inline-block rounded-xl bg-emerald-600 px-6 py-3.5 font-bold text-white shadow-xl shadow-emerald-600/20">Créer un compte <i class="pi pi-arrow-right ml-2"></i></a>
+        <a [routerLink]="auth.isAuthenticated() ? auth.homeUrl() : '/auth/register'" class="mt-8 inline-block rounded-xl bg-emerald-600 px-6 py-3.5 font-bold text-white shadow-xl shadow-emerald-600/20"
+            >{{ auth.isAuthenticated() ? 'Retrouver mon espace' : 'Créer un compte' }} <i class="pi pi-arrow-right ml-2"></i
+        ></a>
     </section>
     <footer class="border-t border-emerald-100 px-6 py-8 dark:border-emerald-900">
         <div class="mx-auto flex max-w-7xl flex-col justify-between gap-4 text-sm text-emerald-950/55 dark:text-emerald-50/55 sm:flex-row">

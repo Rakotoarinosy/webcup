@@ -53,3 +53,21 @@ async def client(engine: Engine) -> AsyncIterator[httpx.AsyncClient]:
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as http_client:
         yield http_client
     app.dependency_overrides.clear()
+
+
+@pytest.fixture
+async def admin_client(client: httpx.AsyncClient, db_session: Session) -> httpx.AsyncClient:
+    from dataclasses import replace
+
+    from src.domain.user import Role
+    from src.infrastructure.persistence.user_repository import SqlAlchemyUserRepository
+
+    payload = {"email": "admin@test.mg", "name": "Admin", "password": "Motdepasse123"}
+    profile = (await client.post("/api/v1/auth/register", json=payload)).json()
+    repo = SqlAlchemyUserRepository(db_session)
+    user = repo.get_by_id(profile["id"])
+    assert user is not None
+    repo.update(replace(user, role=Role.ADMIN))
+    session = (await client.post("/api/v1/auth/login", json=payload)).json()
+    client.headers["Authorization"] = f"Bearer {session['access_token']}"
+    return client

@@ -1,3 +1,5 @@
+from unittest.mock import Mock
+
 import pytest
 
 from src.domain.user import User, UserAlreadyExistsError, UserNotFoundError
@@ -9,6 +11,7 @@ from src.features.user.use_cases import (
     list_users,
     update_user,
 )
+from src.infrastructure.security.password import Argon2PasswordHasher
 from tests.fakes import FakeUserRepository
 
 
@@ -19,7 +22,11 @@ def repo() -> FakeUserRepository:
 
 @pytest.fixture
 def ada(repo: FakeUserRepository) -> User:
-    return create_user(CreateUserIn(email="ada@example.com", name="Ada"), repo)
+    return create_user(
+        CreateUserIn(email="ada@example.com", name="Ada", password="Motdepasse123"),
+        repo,
+        Argon2PasswordHasher(),
+    )
 
 
 def test_get_user_raises_when_missing(repo: FakeUserRepository) -> None:
@@ -32,7 +39,9 @@ def test_list_users(repo: FakeUserRepository, ada: User) -> None:
 
 
 def test_update_user_changes_only_given_fields(repo: FakeUserRepository, ada: User) -> None:
-    updated = update_user(ada.id, UpdateUserIn(name="Ada Lovelace"), repo)
+    updated = update_user(
+        ada.id, UpdateUserIn(name="Ada Lovelace"), repo, Mock(), Argon2PasswordHasher()
+    )
 
     assert updated.name == "Ada Lovelace"
     assert updated.email == ada.email
@@ -40,14 +49,26 @@ def test_update_user_changes_only_given_fields(repo: FakeUserRepository, ada: Us
 
 
 def test_update_user_rejects_an_email_already_taken(repo: FakeUserRepository, ada: User) -> None:
-    create_user(CreateUserIn(email="grace@example.com", name="Grace"), repo)
+    create_user(
+        CreateUserIn(email="grace@example.com", name="Grace", password="Motdepasse123"),
+        repo,
+        Argon2PasswordHasher(),
+    )
 
     with pytest.raises(UserAlreadyExistsError):
-        update_user(ada.id, UpdateUserIn(email="grace@example.com"), repo)
+        update_user(
+            ada.id, UpdateUserIn(email="grace@example.com"), repo, Mock(), Argon2PasswordHasher()
+        )
 
 
 def test_update_user_accepts_its_own_email(repo: FakeUserRepository, ada: User) -> None:
-    updated = update_user(ada.id, UpdateUserIn(email="ada@example.com", name="A"), repo)
+    updated = update_user(
+        ada.id,
+        UpdateUserIn(email="ada@example.com", name="A"),
+        repo,
+        Mock(),
+        Argon2PasswordHasher(),
+    )
 
     assert updated.name == "A"
 

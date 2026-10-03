@@ -11,13 +11,10 @@ import { AppFloatingConfigurator } from '../../layout/component/floatingconfigur
 import { AuthService } from '@/app/auth/auth.service';
 import { apiErrorMessage } from '@/app/users/user.service';
 
-const DEFAULT_REDIRECT = '/auth/login';
-
 function passwordMatchValidator(control: AbstractControl): ValidationErrors | null {
     const password = control.get('password');
     const confirmPassword = control.get('confirmPassword');
     if (password && confirmPassword && password.value !== confirmPassword.value) {
-        confirmPassword.setErrors({ passwordMismatch: true });
         return { passwordMismatch: true };
     }
     return null;
@@ -26,7 +23,7 @@ function passwordMatchValidator(control: AbstractControl): ValidationErrors | nu
 @Component({
     selector: 'app-register',
     imports: [ButtonModule, InputTextModule, MessageModule, PasswordModule, ReactiveFormsModule, RouterModule, AppFloatingConfigurator],
-    templateUrl: './register.html',
+    templateUrl: './register.html'
 })
 export class Register implements AfterViewInit {
     private readonly auth = inject(AuthService);
@@ -38,7 +35,7 @@ export class Register implements AfterViewInit {
         {
             name: ['', [Validators.required]],
             email: ['', [Validators.required, Validators.email]],
-            password: ['', [Validators.required, Validators.minLength(6)]],
+            password: ['', [Validators.required, Validators.minLength(10), Validators.maxLength(128), Validators.pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/)]],
             confirmPassword: ['', [Validators.required]]
         },
         { validators: passwordMatchValidator }
@@ -61,15 +58,13 @@ export class Register implements AfterViewInit {
         this.errorMessage.set(null);
 
         const { name, email, password } = this.registerForm.getRawValue();
+        this.registerForm.disable();
 
         this.auth.register(name.trim(), email.trim(), password).subscribe({
-            next: () => {
-                // Nettoyer d'abord une éventuelle ancienne session
-                this.auth.logout();
-                this.router.navigateByUrl('/auth/login');
-            },
+            next: () => this.router.navigateByUrl(this.auth.homeUrl()),
             error: (error: unknown) => {
                 this.loading.set(false);
+                this.registerForm.enable();
                 this.registerForm.patchValue({ password: '', confirmPassword: '' });
                 this.errorMessage.set(registerErrorMessage(error));
             }

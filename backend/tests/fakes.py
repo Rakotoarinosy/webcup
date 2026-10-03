@@ -1,11 +1,14 @@
 """Repositories en mémoire pour les tests unitaires : ni base de données, ni HTTP."""
 
-from src.domain.user import User, UserRepository
+from src.domain.user import Role, User, UserRepository
 
 
 class FakeUserRepository(UserRepository):
     def __init__(self) -> None:
         self.users: dict[str, User] = {}
+
+    def count_active_by_role(self, role: Role) -> int:
+        return sum(u.is_active and u.role is role for u in self.users.values())
 
     def get_by_id(self, user_id: str) -> User | None:
         return self.users.get(user_id)

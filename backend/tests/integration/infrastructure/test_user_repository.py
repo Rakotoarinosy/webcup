@@ -7,7 +7,9 @@ from src.infrastructure.persistence.user_repository import SqlAlchemyUserReposit
 
 
 def make_user(user_id: str = "u1", email: str = "ada@example.com") -> User:
-    return User(id=user_id, email=email, name="Ada", created_at=datetime.now(UTC))
+    return User(
+        id=user_id, email=email, name="Ada", created_at=datetime.now(UTC), password_hash="test-hash"
+    )
 
 
 def test_add_then_get_by_id_and_email(db_session: Session) -> None:
