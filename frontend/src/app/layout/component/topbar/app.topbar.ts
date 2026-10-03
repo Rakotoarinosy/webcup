@@ -54,6 +54,15 @@ export class AppTopbar {
         }
     }
 
+    /** Même point de départ vertical que le configurateur (sans modifier son axe horizontal). */
+    alignAccountMenu(): void {
+        requestAnimationFrame(() => {
+            // PrimeNG place le popup dans un conteneur parent appendu au body.
+            const popup = this.userMenu()?.container as HTMLElement | undefined;
+            if (popup) popup.style.top = '3.75rem';
+        });
+    }
+
     constructor() {
         effect(() => {
             const isConfigOpen = this.overlays.active() === 'config';
@@ -85,13 +94,9 @@ export class AppTopbar {
             {
                 label: user?.name ?? 'Utilisateur',
                 items: [
-                    {
-                        label: user ? `${user.email} · ${ROLE_LABELS[user.role] ?? user.role}` : '',
-                        icon: 'pi pi-user',
-                        disabled: true
-                    },
                     { label: 'Mon espace', icon: 'pi pi-user', routerLink: ['/home/account'] },
                     { label: 'Mon profil', icon: 'pi pi-id-card', routerLink: ['/home/profile'] },
+                    { label: 'Mes données', icon: 'pi pi-lock', routerLink: ['/home/profile'] },
                     { separator: true },
                     {
                         label: 'Déconnexion',

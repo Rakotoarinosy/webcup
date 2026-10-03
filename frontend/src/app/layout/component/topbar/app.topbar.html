@@ -42,7 +42,7 @@
                     <i class="pi pi-user" aria-hidden="true"></i>
                     <span>{{ user()?.name ?? 'Compte' }}</span>
                 </button>
-                <p-menu #menu [model]="items()" [popup]="true" appendTo="body" (onHide)="overlays.close('account')" />
+                <p-menu #menu [model]="items()" [popup]="true" appendTo="body" styleClass="topbar-account-menu" (onShow)="alignAccountMenu()" (onHide)="overlays.close('account')" />
             </div>
         </div>
     </div>
