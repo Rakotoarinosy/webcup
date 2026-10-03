@@ -38,6 +38,15 @@ describe('Route access by role', () => {
             });
         }
     }
+    for (const role of ['citizen', 'agent', 'manager', 'admin'] as Role[]) {
+        it(`inherits Terra Nova access restrictions for ${role}`, async () => {
+            auth.validateSession.and.returnValue(of({ ...user, role }));
+            const route = { data: {}, parent: { data: { roles: ['agent', 'manager', 'admin'] }, parent: null } } as unknown as ActivatedRouteSnapshot;
+            const result = await TestBed.runInInjectionContext(() => firstValueFrom(authGuard(route, { url: '/home/terra-nova/demandes' } as RouterStateSnapshot) as Observable<boolean | UrlTree>));
+            if (role === 'citizen') expect(TestBed.inject(Router).serializeUrl(result as UrlTree)).toBe('/home/account');
+            else expect(result).toBeTrue();
+        });
+    }
     it('redirects an authenticated visitor away from login', async () => {
         auth.validateSession.and.returnValue(of(user));
         expect(TestBed.inject(Router).serializeUrl((await run(guestGuard)) as UrlTree)).toBe('/home/account');

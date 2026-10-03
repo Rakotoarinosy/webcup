@@ -8,7 +8,11 @@ from src.infrastructure.persistence.user_repository import SqlAlchemyUserReposit
 
 def make_user(user_id: str = "u1", email: str = "ada@example.com") -> User:
     return User(
-        id=user_id, email=email, name="Ada", created_at=datetime.now(UTC), password_hash="test-hash"
+        id=user_id,
+        email=email,
+        name="Ada",
+        created_at=datetime.now(UTC),
+        password_hash="hashed:Motdepasse123",
     )
 
 

@@ -88,8 +88,14 @@ def delete_user(user_id: str, repo: UserRepository) -> None:
     repo.delete(user_id)
 
 
-def _ensure_admin_remains(user: User, new_role: Role, new_active: bool, repo: UserRepository) -> None:
+def _ensure_admin_remains(
+    user: User, new_role: Role, new_active: bool, repo: UserRepository
+) -> None:
     """Empêche de supprimer, rétrograder ou désactiver le dernier admin actif."""
-    loses_admin = user.role is Role.ADMIN and user.is_active and (new_role is not Role.ADMIN or not new_active)
+    loses_admin = (
+        user.role is Role.ADMIN
+        and user.is_active
+        and (new_role is not Role.ADMIN or not new_active)
+    )
     if loses_admin and repo.count_active_by_role(Role.ADMIN) <= 1:
         raise LastAdminError()

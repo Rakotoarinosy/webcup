@@ -41,9 +41,7 @@ class SqlAlchemyDemandeRepository(DemandeRepository):
     def search(self, query: DemandeQuery) -> Page[Demande]:
         conditions = self._conditions(query)
 
-        total = self.db.scalar(
-            select(func.count()).select_from(DemandeModel).where(*conditions)
-        )
+        total = self.db.scalar(select(func.count()).select_from(DemandeModel).where(*conditions))
 
         column = _SORT_COLUMNS[query.sort_by]
         direction = column.desc() if query.descending else column.asc()

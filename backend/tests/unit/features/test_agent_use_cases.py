@@ -55,7 +55,9 @@ def test_update_changes_only_given_fields(repo):
 
 def test_update_rejects_email_used_by_another_agent(repo):
     create_agent(_payload(), repo)
-    other = create_agent(_payload(name="Sarah Andry", email="sarah@mairie.mg", department="Eau"), repo)
+    other = create_agent(
+        _payload(name="Sarah Andry", email="sarah@mairie.mg", department="Eau"), repo
+    )
 
     with pytest.raises(AgentAlreadyExistsError):
         update_agent(other.id, UpdateAgentIn(email="jean@mairie.mg"), repo)

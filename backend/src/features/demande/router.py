@@ -222,7 +222,11 @@ def map_demandes_endpoint(
     """Demandes géolocalisées pour la carte (par défaut : uniquement les non clôturées)."""
     citizen_id, agent_id = _apply_scope(user, None, agent_id)
     query = DemandeQuery(
-        status=status, category=category, priority=priority, agent_id=agent_id, citizen_id=citizen_id
+        status=status,
+        category=category,
+        priority=priority,
+        agent_id=agent_id,
+        citizen_id=citizen_id,
     )
 
     return list_map_points(query, analytics, active_only=not include_closed, limit=limit)

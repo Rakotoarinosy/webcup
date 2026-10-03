@@ -1,8 +1,8 @@
 """Cloche de notifications (T+4h).
 
-  GET  /notifications?unread_only=&limit=   liste + nombre de non lues (pour le badge de la cloche)
-  POST /notifications/{key}/read            marque une notification comme lue (au clic)
-  POST /notifications/read-all              tout marquer comme lu
+GET  /notifications?unread_only=&limit=   liste + nombre de non lues (pour le badge de la cloche)
+POST /notifications/{key}/read            marque une notification comme lue (au clic)
+POST /notifications/read-all              tout marquer comme lu
 """
 
 from fastapi import APIRouter, Depends, Path, Query

@@ -18,6 +18,11 @@ describe('Menu follows the authenticated role', () => {
             expect(labels.includes('Utilisateurs')).toBe(value === 'admin');
             expect(labels.includes('Agents')).toBe(value === 'manager' || value === 'admin');
             expect(labels).not.toContain('Transaction');
+            expect(menu.model().some((group) => group.label === 'Terra Nova')).toBe(value !== 'citizen');
+            const municipal = menu.model().find((group) => group.label === 'La mairie')!;
+            expect(municipal.items!.map((item) => item.routerLink[0])).toEqual([
+                '/home/municipal', '/home/municipal/services', '/home/municipal/publications', '/home/municipal/contact'
+            ]);
         }
     });
 });

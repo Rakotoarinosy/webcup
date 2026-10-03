@@ -37,7 +37,17 @@ export class AppMenu {
 
         const groups: MenuItem[] = [{ label: 'Kotrana', items }];
 
-        if (this.auth.hasRole('manager', 'admin')) {
+        groups.push({
+            label: 'La mairie',
+            items: [
+                { label: 'Accueil municipal', icon: 'pi pi-fw pi-building', routerLink: ['/home/municipal'], routerLinkActiveOptions: { exact: true } },
+                { label: 'Services municipaux', icon: 'pi pi-fw pi-map-marker', routerLink: ['/home/municipal/services'] },
+                { label: 'Publications', icon: 'pi pi-fw pi-megaphone', routerLink: ['/home/municipal/publications'] },
+                { label: 'Contacter la mairie', icon: 'pi pi-fw pi-envelope', routerLink: ['/home/municipal/contact'] }
+            ]
+        });
+
+        if (this.auth.hasRole('agent', 'manager', 'admin')) {
             groups.push({
                 label: 'Terra Nova',
                 items: [

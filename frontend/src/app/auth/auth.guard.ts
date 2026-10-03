@@ -1,5 +1,5 @@
 import { inject } from '@angular/core';
-import { CanActivateFn, Router } from '@angular/router';
+import { ActivatedRouteSnapshot, CanActivateFn, Router } from '@angular/router';
 import { map } from 'rxjs';
 
 import { Role } from './auth.model';
@@ -14,8 +14,14 @@ export const authGuard: CanActivateFn = (route, state) => {
             if (!user) {
                 return router.createUrlTree(['/auth/login'], { queryParams: { returnUrl: state.url } });
             }
-            const roles = route.data['roles'] as Role[] | undefined;
-            return !roles || roles.includes(user.role) ? true : router.parseUrl(auth.homeUrl());
+            // Lazy children keep the restrictions of their parent, even after a role change.
+            let current: ActivatedRouteSnapshot | null = route;
+            while (current) {
+                const roles = current.data['roles'] as Role[] | undefined;
+                if (roles && !roles.includes(user.role)) return router.parseUrl(auth.homeUrl());
+                current = current.parent;
+            }
+            return true;
         })
     );
 };

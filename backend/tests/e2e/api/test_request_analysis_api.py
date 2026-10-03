@@ -107,7 +107,7 @@ async def _request_with_agents(client: httpx.AsyncClient) -> tuple[str, dict, di
 async def test_analyze_returns_suggestion_without_modifying_request(
     client: httpx.AsyncClient, analyzer: FakeAnalyzer
 ) -> None:
-    request_id, marc, off = await _request_with_agents(client)
+    request_id, marc, _off = await _request_with_agents(client)
 
     response = await client.post(f"{REQUESTS}/{request_id}/analyze")
 
@@ -158,14 +158,14 @@ async def test_citizen_cannot_analyze(client: httpx.AsyncClient, analyzer: FakeA
 
 
 async def test_missing_api_key_returns_503(
-    client: httpx.AsyncClient, monkeypatch: pytest.MonkeyPatch
+    admin_client: httpx.AsyncClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     from src.infrastructure.config import get_settings
 
     monkeypatch.setattr(get_settings(), "gemini_api_key", None)
     app.dependency_overrides[get_current_user] = lambda: _user(Role.ADMIN)
     try:
-        response = await client.post(f"{REQUESTS}/x/analyze")
+        response = await admin_client.post(f"{REQUESTS}/x/analyze")
     finally:
         app.dependency_overrides.pop(get_current_user, None)
 

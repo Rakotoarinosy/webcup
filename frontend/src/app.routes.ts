@@ -18,6 +18,10 @@ export const appRoutes: Routes = [
             { path: 'requests', data: { roles: ['admin'] }, loadComponent: () => import('./app/requests/requests').then((m) => m.Requests) },
             { path: 'agent', data: { roles: ['agent'] }, loadComponent: () => import('./app/agent-workspace/agent-workspace').then((m) => m.AgentWorkspace) },
             { path: 'agents', data: { roles: ['manager', 'admin'] }, loadComponent: () => import('./app/agents/agents').then((m) => m.Agents) },
+            { path: 'municipal', loadComponent: () => import('./app/municipal/municipal-home').then((m) => m.MunicipalHome) },
+            { path: 'municipal/services', loadComponent: () => import('./app/municipal/municipal-services').then((m) => m.MunicipalServices) },
+            { path: 'municipal/publications', loadComponent: () => import('./app/municipal/municipal-publications').then((m) => m.MunicipalPublications) },
+            { path: 'municipal/contact', loadComponent: () => import('./app/municipal/municipal-contact').then((m) => m.MunicipalContact) },
             { path: 'terra-nova', data: { roles: ['agent', 'manager', 'admin'] }, loadChildren: () => import('./app/terra-nova/terra-nova.routes') }
         ]
     },

@@ -1,4 +1,3 @@
-from unittest.mock import Mock
 
 import pytest
 
@@ -11,8 +10,7 @@ from src.features.user.use_cases import (
     list_users,
     update_user,
 )
-from src.infrastructure.security.password import Argon2PasswordHasher
-from tests.fakes import FakeUserRepository
+from tests.fakes import FakePasswordHasher, FakeRefreshTokenRepository, FakeUserRepository
 
 
 @pytest.fixture
@@ -25,7 +23,7 @@ def ada(repo: FakeUserRepository) -> User:
     return create_user(
         CreateUserIn(email="ada@example.com", name="Ada", password="Motdepasse123"),
         repo,
-        Argon2PasswordHasher(),
+        FakePasswordHasher(),
     )
 
 
@@ -40,7 +38,11 @@ def test_list_users(repo: FakeUserRepository, ada: User) -> None:
 
 def test_update_user_changes_only_given_fields(repo: FakeUserRepository, ada: User) -> None:
     updated = update_user(
-        ada.id, UpdateUserIn(name="Ada Lovelace"), repo, Mock(), Argon2PasswordHasher()
+        ada.id,
+        UpdateUserIn(name="Ada Lovelace"),
+        repo,
+        FakeRefreshTokenRepository(),
+        FakePasswordHasher(),
     )
 
     assert updated.name == "Ada Lovelace"
@@ -52,12 +54,16 @@ def test_update_user_rejects_an_email_already_taken(repo: FakeUserRepository, ad
     create_user(
         CreateUserIn(email="grace@example.com", name="Grace", password="Motdepasse123"),
         repo,
-        Argon2PasswordHasher(),
+        FakePasswordHasher(),
     )
 
     with pytest.raises(UserAlreadyExistsError):
         update_user(
-            ada.id, UpdateUserIn(email="grace@example.com"), repo, Mock(), Argon2PasswordHasher()
+            ada.id,
+            UpdateUserIn(email="grace@example.com"),
+            repo,
+            FakeRefreshTokenRepository(),
+            FakePasswordHasher(),
         )
 
 
@@ -66,8 +72,8 @@ def test_update_user_accepts_its_own_email(repo: FakeUserRepository, ada: User) 
         ada.id,
         UpdateUserIn(email="ada@example.com", name="A"),
         repo,
-        Mock(),
-        Argon2PasswordHasher(),
+        FakeRefreshTokenRepository(),
+        FakePasswordHasher(),
     )
 
     assert updated.name == "A"

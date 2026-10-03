@@ -3,8 +3,7 @@ import pytest
 from src.domain.user import UserAlreadyExistsError
 from src.features.user.schemas import CreateUserIn
 from src.features.user.use_cases import create_user
-from src.infrastructure.security.password import Argon2PasswordHasher
-from tests.fakes import FakeUserRepository
+from tests.fakes import FakePasswordHasher, FakeUserRepository
 
 
 def test_create_user_returns_a_valid_user() -> None:
@@ -13,7 +12,7 @@ def test_create_user_returns_a_valid_user() -> None:
     user = create_user(
         CreateUserIn(email="ada@example.com", name="Ada", password="Motdepasse123"),
         repo,
-        Argon2PasswordHasher(),
+        FakePasswordHasher(),
     )
 
     assert user.email == "ada@example.com"
@@ -28,12 +27,12 @@ def test_create_user_raises_when_email_is_taken() -> None:
     create_user(
         CreateUserIn(email="ada@example.com", name="Ada", password="Motdepasse123"),
         repo,
-        Argon2PasswordHasher(),
+        FakePasswordHasher(),
     )
 
     with pytest.raises(UserAlreadyExistsError):
         create_user(
             CreateUserIn(email="ada@example.com", name="Other", password="Motdepasse123"),
             repo,
-            Argon2PasswordHasher(),
+            FakePasswordHasher(),
         )
