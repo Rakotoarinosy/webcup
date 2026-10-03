@@ -32,6 +32,10 @@ export class AgentService {
         return this.http.get<Agent[]>(this.baseUrl, { params });
     }
 
+    availableForCitizen(): Observable<Agent[]> {
+        return this.http.get<Agent[]>(`${this.baseUrl}/available`);
+    }
+
     get(id: string): Observable<Agent> {
         return this.http.get<Agent>(`${this.baseUrl}/${id}`);
     }

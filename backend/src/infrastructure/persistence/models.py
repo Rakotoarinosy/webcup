@@ -73,6 +73,15 @@ class RefreshTokenModel(Base):
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
+class UserPreferenceModel(Base):
+    __tablename__ = "user_preferences"
+
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    theme: Mapped[str] = mapped_column(String(10), nullable=False, default="system", server_default="system")
+    font_size: Mapped[str] = mapped_column(String(10), nullable=False, default="medium", server_default="medium")
+    font_family: Mapped[str] = mapped_column(String(10), nullable=False, default="system", server_default="system")
+
+
 # ─── agent ──────────────────────────────────────────────────────────
 
 

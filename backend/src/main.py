@@ -17,6 +17,7 @@ from src.features.demande.router import router as demande_router
 from src.features.municipal_content.router import router as municipal_content_router
 from src.features.notification.router import router as notification_router
 from src.features.priority.router import router as priority_router
+from src.features.preferences.router import router as preferences_router
 from src.features.search.router import router as search_router
 from src.features.terra_request.router import router as terra_request_router
 from src.features.user.router import router as user_router
@@ -36,6 +37,7 @@ FEATURE_ROUTERS: list[APIRouter] = [
     notification_router,
     search_router,
     priority_router,
+    preferences_router,
     municipal_content_router,
     terra_request_router,
 ]

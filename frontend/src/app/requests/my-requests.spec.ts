@@ -5,7 +5,7 @@ import { Router, RouterOutlet, provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 
 import { AuthService } from '@/app/auth/auth.service';
-import { NotificationService } from '@/app/notifications/notification.service';
+import { AgentService } from '@/app/agents/agent.service';
 import { CitizenRequestService } from './request.service';
 import { MyRequests } from './my-requests';
 
@@ -16,7 +16,7 @@ describe('MyRequests', () => {
     let fixture: ComponentFixture<TestShell>;
     let router: Router;
     let requestsApi: jasmine.SpyObj<CitizenRequestService>;
-    let notificationsApi: jasmine.SpyObj<NotificationService>;
+    let agentsApi: jasmine.SpyObj<AgentService>;
 
     const savedRequest = {
         id: 'request-12345678',
@@ -39,8 +39,8 @@ describe('MyRequests', () => {
         requestsApi.get.and.returnValue(of(savedRequest));
         requestsApi.list.and.returnValue(of({ items: [], total: 0, page: 1, page_size: 10, total_pages: 0 }));
         requestsApi.create.and.returnValue(of(savedRequest));
-        notificationsApi = jasmine.createSpyObj<NotificationService>('NotificationService', ['list']);
-        notificationsApi.list.and.returnValue(of({ items: [], unread_count: 0 }));
+        agentsApi = jasmine.createSpyObj<AgentService>('AgentService', ['availableForCitizen']);
+        agentsApi.availableForCitizen.and.returnValue(of([{ id: 'agent-1', name: 'Mairie Centre', email: 'centre@mairie.mg', department: 'Accueil', status: 'available', is_active: true, interventions: 0, created_at: '2026-10-03T10:00:00Z' }]));
         await TestBed.configureTestingModule({
             imports: [TestShell, MyRequests],
             providers: [
@@ -55,7 +55,7 @@ describe('MyRequests', () => {
                 ]),
                 { provide: CitizenRequestService, useValue: requestsApi },
                 { provide: LiveDataService, useValue: { watch: () => {} } },
-                { provide: NotificationService, useValue: notificationsApi },
+                { provide: AgentService, useValue: agentsApi },
                 { provide: AuthService, useValue: { user: () => ({ id: 'citizen-1' }) } }
             ]
         }).compileComponents();
@@ -64,42 +64,36 @@ describe('MyRequests', () => {
         router = TestBed.inject(Router);
     });
 
-    it('shows a persistent submission confirmation on the new request detail', async () => {
-        await router.navigateByUrl('/home/my-requests/request-12345678?submitted=1');
+    it('shows the selected request detail', async () => {
+        await router.navigateByUrl('/home/my-requests/request-12345678');
         fixture.detectChanges();
 
-        const banner = fixture.nativeElement.querySelector('[role="status"]') as HTMLElement;
-        expect(banner).toBeTruthy();
-        expect(banner.textContent).toContain('Votre demande a bien été envoyée');
-        expect(banner.textContent).toContain('#request-');
-        expect(banner.textContent).toContain('Nouveau');
+        expect(fixture.nativeElement.textContent).toContain('Lampadaire en panne');
     });
 
-    it('shows unread notifications and requests awaiting citizen action', async () => {
-        requestsApi.list.and.returnValues(of({ items: [], total: 0, page: 1, page_size: 10, total_pages: 0 }), of({ items: [{ ...savedRequest, status: 'En attente' }], total: 1, page: 1, page_size: 10, total_pages: 1 }));
-        notificationsApi.list.and.returnValue(
-            of({
-                items: [
-                    {
-                        key: 'notification-1',
-                        kind: 'assigned',
-                        title: 'Votre demande nécessite votre attention',
-                        message: 'Veuillez apporter des précisions.',
-                        demande_id: 'd-1',
-                        created_at: '2026-10-03T10:00:00Z',
-                        is_read: false
-                    }
-                ],
-                unread_count: 1
-            })
-        );
-
+    it('sends the search term when the citizen filters their table', async () => {
         await router.navigateByUrl('/home/my-requests');
         fixture.detectChanges();
         await fixture.whenStable();
+
+        const search = fixture.nativeElement.querySelector('#request-search') as HTMLInputElement;
+        search.value = 'canalisation';
+        search.dispatchEvent(new Event('input'));
         fixture.detectChanges();
 
-        expect(fixture.nativeElement.textContent).toContain('Votre demande nécessite votre attention');
-        expect(fixture.nativeElement.textContent).toContain('en attente d’une action ou d’informations de votre part');
+        expect(requestsApi.list.calls.mostRecent().args[0]).toEqual(
+            jasmine.objectContaining({ mine: true, search: 'canalisation', page: 1 })
+        );
+    });
+
+    it('opens the three-step creation workflow and submits the selected agent', async () => {
+        await router.navigateByUrl('/home/my-requests');
+        fixture.detectChanges();
+
+        (fixture.nativeElement.querySelector('button') as HTMLButtonElement).click();
+        fixture.detectChanges();
+
+        expect(fixture.nativeElement.textContent).toContain('Choisissez le service qui traitera votre demande');
+        expect(agentsApi.availableForCitizen).toHaveBeenCalled();
     });
 });
