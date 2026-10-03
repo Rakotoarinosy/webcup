@@ -1,6 +1,6 @@
 <div class="card">
     <div class="mb-3 flex flex-wrap items-center gap-3">
-        <p-iconfield class="min-w-64 flex-1">
+        <p-iconfield class="min-w-0 w-full flex-1 sm:min-w-64">
             <p-inputicon styleClass="pi pi-search" />
             <input pInputText type="search" class="w-full" placeholder="Rechercher un code, un message, un demandeur…" aria-label="Recherche" [ngModel]="search()" (ngModelChange)="setFilter(search, $event)" />
         </p-iconfield>
@@ -13,11 +13,11 @@
             [severity]="onlyNew() ? 'primary' : 'secondary'"
             (onClick)="setFilter(onlyNew, !onlyNew())"
         />
-        <p-select [options]="sortOptions" optionLabel="label" optionValue="value" [ngModel]="sort()" (ngModelChange)="sort.set($event)" size="small" class="min-w-60" ariaLabel="Trier" />
+        <p-select [options]="sortOptions" optionLabel="label" optionValue="value" [ngModel]="sort()" (ngModelChange)="sort.set($event)" size="small" class="min-w-0 max-w-full" ariaLabel="Trier" />
     </div>
 
     <div class="mb-4 flex flex-wrap items-center gap-3">
-        <p-multiselect
+        <p-multiselect class="max-w-full"
             [options]="difficultyOptions"
             optionLabel="label"
             optionValue="value"
@@ -29,7 +29,7 @@
             display="chip"
             size="small"
         />
-        <p-multiselect
+        <p-multiselect class="max-w-full"
             [options]="statusOptions"
             optionLabel="label"
             optionValue="value"
@@ -41,12 +41,12 @@
             display="chip"
             size="small"
         />
-        <p-multiselect [options]="waveOptions()" optionLabel="label" optionValue="value" placeholder="Vague" [ngModel]="waveFilter()" (ngModelChange)="setFilter(waveFilter, $event)" [showToggleAll]="false" [filter]="false" size="small" />
-        <p-multiselect [options]="requesterOptions()" optionLabel="label" optionValue="value" placeholder="Type de demandeur" [ngModel]="requesterFilter()" (ngModelChange)="setFilter(requesterFilter, $event)" [showToggleAll]="false" size="small" />
-        <div class="flex items-center gap-2">
-            <p-inputnumber [ngModel]="xpMin()" (ngModelChange)="setFilter(xpMin, $event)" placeholder="XP min" [min]="0" [step]="250" size="small" inputStyleClass="w-28" ariaLabel="XP minimum" />
+        <p-multiselect class="max-w-full" [options]="waveOptions()" optionLabel="label" optionValue="value" placeholder="Vague" [ngModel]="waveFilter()" (ngModelChange)="setFilter(waveFilter, $event)" [showToggleAll]="false" [filter]="false" size="small" />
+        <p-multiselect class="max-w-full" [options]="requesterOptions()" optionLabel="label" optionValue="value" placeholder="Type de demandeur" [ngModel]="requesterFilter()" (ngModelChange)="setFilter(requesterFilter, $event)" [showToggleAll]="false" size="small" />
+        <div class="grid max-w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
+            <p-inputnumber class="min-w-0" [ngModel]="xpMin()" (ngModelChange)="setFilter(xpMin, $event)" placeholder="XP min" [min]="0" [step]="250" size="small" inputStyleClass="w-full max-w-full sm:w-28" ariaLabel="XP minimum" />
             <span class="text-muted-color">–</span>
-            <p-inputnumber [ngModel]="xpMax()" (ngModelChange)="setFilter(xpMax, $event)" placeholder="XP max" [min]="0" [step]="250" size="small" inputStyleClass="w-28" ariaLabel="XP maximum" />
+            <p-inputnumber class="min-w-0" [ngModel]="xpMax()" (ngModelChange)="setFilter(xpMax, $event)" placeholder="XP max" [min]="0" [step]="250" size="small" inputStyleClass="w-full max-w-full sm:w-28" ariaLabel="XP maximum" />
         </div>
         @if (activeFilterCount()) {
             <p-button label="Réinitialiser" icon="pi pi-filter-slash" severity="secondary" [text]="true" size="small" (onClick)="resetFilters()" />

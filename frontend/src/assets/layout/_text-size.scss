@@ -1,0 +1,90 @@
+// Let enlarged navigation flow naturally instead of overlapping the content.
+html:is([data-font-scale='1.5'], [data-font-scale='2']) {
+    .layout-topbar {
+        position: sticky;
+        height: auto;
+        min-height: 4rem;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        padding-block: 0.75rem;
+
+        .layout-topbar-logo-container {
+            width: auto;
+        }
+        .layout-topbar-actions {
+            flex-wrap: wrap;
+            gap: min(1rem, 14px);
+        }
+        [data-testid='session-identity'] {
+            margin: 0;
+            max-width: 100%;
+        }
+        [data-testid='session-identity'] strong {
+            white-space: normal;
+            overflow-wrap: anywhere;
+        }
+    }
+
+    .layout-main-container {
+        padding-top: 2rem;
+    }
+
+    @media (max-width: 991px) {
+        .layout-topbar-actions {
+            width: 100%;
+            justify-content: flex-end;
+        }
+        .layout-topbar-menu {
+            top: 100%;
+            right: var(--layout-gutter);
+        }
+        .layout-topbar-logo svg {
+            width: 2rem;
+        }
+    }
+}
+
+// Keep long content and fields inside their column; tables retain their own scroll area.
+.layout-main {
+    overflow-wrap: anywhere;
+    .card {
+        min-width: 0;
+        padding: min(2rem, 28px);
+    }
+    .p-datatable {
+        max-width: 100%;
+    }
+    .p-datatable-table-container {
+        overflow-x: auto;
+    }
+}
+
+// Keep settings in the normal flow above authentication forms.
+.auth-display-settings {
+    display: block;
+    padding: min(1rem, 14px) var(--layout-gutter);
+    background: var(--surface-card);
+    > div {
+        justify-content: flex-end;
+    }
+}
+app-login main,
+app-register main {
+    overflow-wrap: anywhere;
+}
+app-login main > section,
+app-register main > section {
+    min-width: 0;
+}
+html:is([data-font-scale='1.5'], [data-font-scale='2']) {
+    @media (max-width: 1400px) {
+        app-login main,
+        app-register main {
+            grid-template-columns: minmax(0, 1fr);
+        }
+        app-login section[aria-label='Kotrana'],
+        app-register section[aria-label='Kotrana'] {
+            display: none !important;
+        }
+    }
+}

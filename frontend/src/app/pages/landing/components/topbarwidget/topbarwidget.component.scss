@@ -1,0 +1,16 @@
+:host {
+    flex-wrap: wrap;
+    gap: 1rem;
+    min-width: 0;
+}
+:host > div {
+    min-width: 0;
+    max-width: 100%;
+    flex-wrap: wrap;
+}
+nav {
+    flex-wrap: wrap;
+}
+nav + div {
+    flex-wrap: wrap !important;
+}

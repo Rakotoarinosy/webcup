@@ -13,7 +13,7 @@
             </div>
         </div>
         <div class="overflow-hidden rounded-2xl border border-emerald-100 bg-white p-3 shadow-2xl shadow-emerald-950/15 dark:border-emerald-800 dark:bg-emerald-900">
-            <div class="grid min-h-[25rem] grid-cols-[9rem_1fr] rounded-xl bg-emerald-50 dark:bg-emerald-950">
+            <div class="grid min-h-[25rem] grid-cols-1 md:grid-cols-[9rem_minmax(0,1fr)] rounded-xl bg-emerald-50 dark:bg-emerald-950">
                 <aside class="hidden bg-emerald-950 p-5 text-xs text-emerald-100 md:block">
                     <b class="mb-9 block text-white">● Kotrana</b>
                     <div class="grid gap-4"><span class="rounded bg-emerald-800 p-2">⌂ Tableau de bord</span><span>☷ Demandes</span><span>⌖ Carte</span><span>☑ Tâches</span></div>
@@ -24,7 +24,7 @@
                     <div class="my-5 rounded-lg border border-emerald-100 bg-white p-3 text-xs text-emerald-950/40 dark:border-emerald-800 dark:bg-emerald-900">⌕ Rechercher une demande…</div>
                     <div class="grid gap-3">
                         @for (item of ['Nid-de-poule sur la chaussée', 'Éclairage public défectueux', 'Collecte des déchets non assurée']; track item) {
-                            <div class="flex justify-between rounded-xl bg-white p-3 text-xs font-semibold shadow-sm dark:bg-emerald-900">
+                            <div class="flex flex-wrap gap-2 justify-between rounded-xl bg-white p-3 text-xs font-semibold shadow-sm dark:bg-emerald-900">
                                 <span>{{ item }}</span
                                 ><b class="text-emerald-600">En cours</b>
                             </div>
