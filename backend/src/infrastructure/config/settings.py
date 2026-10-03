@@ -1,23 +1,29 @@
 """Configuration de l'application, chargée depuis les variables d'environnement et `.env`."""
 
+import os
 from functools import lru_cache
 from pathlib import Path
 from typing import Annotated, Literal
 
-from pydantic import field_validator, model_validator
-from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
+from dotenv import load_dotenv
+from pydantic import Field, field_validator, model_validator
+from pydantic_settings import BaseSettings, NoDecode
 
 # backend/.env, quel que soit le dossier de lancement (uvicorn, Passenger, pytest…).
 ENV_FILE = Path(__file__).resolve().parents[3] / ".env"
+# Charge le fichier local avant l'instanciation des settings. Les variables déjà
+# exportées par l'environnement (Docker, CI, production) restent prioritaires.
+load_dotenv(dotenv_path=ENV_FILE, override=False)
 
 DEFAULT_SECRET = "change-me-in-production"
+DEFAULT_DATABASE_URL = "sqlite:///./app.db"
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=ENV_FILE, env_file_encoding="utf-8", extra="ignore")
-
     environment: Literal["development", "production", "test"] = "development"
-    database_url: str = "sqlite:///./app.db"
+    database_url: str = Field(
+        default_factory=lambda: os.getenv("DATABASE_URL", DEFAULT_DATABASE_URL)
+    )
     # NoDecode : la valeur est une liste séparée par des virgules, pas du JSON.
     cors_origins: Annotated[list[str], NoDecode] = ["http://localhost:4200"]
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
