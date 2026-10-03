@@ -8,6 +8,7 @@ import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
 import { MunicipalPublication } from './municipal-content.model';
 import { MunicipalContentService } from './municipal-content.service';
+import { PublicationReadService } from './publication-read.service';
 
 @Component({ selector: 'app-municipal-publications', imports: [DatePipe, ButtonModule, SelectModule], templateUrl: './municipal-publications.html', styleUrl: './municipal-publications.scss' })
 export class MunicipalPublications implements OnInit {
@@ -15,6 +16,7 @@ export class MunicipalPublications implements OnInit {
     private readonly destroyRef = inject(DestroyRef);
     private readonly content = inject(MunicipalContentService);
     private readonly route = inject(ActivatedRoute);
+    private readonly reads = inject(PublicationReadService);
     readonly expandedPublication = signal<string | null>(null);
     readonly loading = signal(false);
     readonly error = signal<string | null>(null);
@@ -49,6 +51,7 @@ export class MunicipalPublications implements OnInit {
     }
     togglePublication(id: string): void {
         this.expandedPublication.update((current) => (current === id ? null : id));
+        this.reads.markRead(id);
     }
     selectCategory(value: string | null): void {
         this.selectedCategory.set(value);

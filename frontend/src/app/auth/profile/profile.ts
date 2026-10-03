@@ -1,20 +1,24 @@
 import { DatePipe } from '@angular/common';
-import { HttpErrorResponse } from '@angular/common/http';
+import { HttpErrorResponse, HttpResponse } from '@angular/common/http';
 import { Component, DestroyRef, ElementRef, Injector, afterNextRender, computed, inject, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
+import { MessageService } from 'primeng/api';
+import { ToastModule } from 'primeng/toast';
 import { finalize } from 'rxjs';
 
 import { AuthService } from '../auth.service';
 import { NAME_VALIDATORS, PASSWORD_VALIDATORS } from '../auth.validators';
 import { apiErrorMessage } from '@/app/users/user.service';
+import { ProfileExportService, UserExportFormat } from './profile-export.service';
 
 @Component({
     selector: 'app-profile',
-    imports: [DatePipe, ReactiveFormsModule, RouterLink],
+    imports: [DatePipe, ReactiveFormsModule, ToastModule],
     templateUrl: './profile.html',
-    styleUrl: './profile.scss'
+    styleUrl: './profile.scss',
+    providers: [MessageService]
 })
 export class Profile {
     readonly auth = inject(AuthService);
@@ -22,13 +26,13 @@ export class Profile {
     private readonly router = inject(Router);
     private readonly destroyRef = inject(DestroyRef);
     private readonly injector = inject(Injector);
-    readonly feedback = viewChild<ElementRef<HTMLElement>>('feedback');
+    private readonly profileExport = inject(ProfileExportService);
+    private readonly messages = inject(MessageService);
     readonly deleteFeedback = viewChild<ElementRef<HTMLElement>>('deleteFeedback');
     readonly deleteDialog = viewChild<ElementRef<HTMLDialogElement>>('deleteDialog');
-    readonly busy = signal<'profile' | 'password' | 'delete' | null>(null);
-    readonly notice = signal<string | null>(null);
-    readonly error = signal<string | null>(null);
+    readonly busy = signal<'profile' | 'password' | 'delete' | 'export' | null>(null);
     readonly deleteError = signal<string | null>(null);
+    readonly exportFormat = signal<UserExportFormat>('pdf');
     readonly initials = computed(() =>
         (
             this.auth
@@ -71,13 +75,11 @@ export class Profile {
             .subscribe({
                 next: (user) => {
                     this.profileForm.reset({ name: user.name, email: user.email, current_password: '' });
-                    this.notice.set('Vos informations ont été enregistrées. Utilisez cette adresse email lors de votre prochaine connexion.');
-                    this.focusFeedback();
+                    this.success('Informations enregistrées', 'Utilisez cette adresse email lors de votre prochaine connexion.');
                 },
                 error: (error: unknown) => {
                     this.profileForm.controls.current_password.reset();
-                    this.error.set(this.message(error));
-                    this.focusFeedback();
+                    this.failure('Enregistrement impossible', error);
                 }
             });
     }
@@ -88,9 +90,7 @@ export class Profile {
         if (this.passwordForm.invalid) return;
         const value = this.passwordForm.getRawValue();
         if (value.new_password !== value.confirmation) {
-            this.error.set('Les deux nouveaux mots de passe doivent être identiques.');
-            this.notice.set(null);
-            this.focusFeedback();
+            this.messages.add({ severity: 'warn', summary: 'Vérifiez le mot de passe', detail: 'Les deux nouveaux mots de passe doivent être identiques.', life: 5000 });
             return;
         }
         this.start('password');
@@ -103,13 +103,11 @@ export class Profile {
             .subscribe({
                 next: () => {
                     this.passwordForm.reset();
-                    this.notice.set('Votre mot de passe a été modifié. Les sessions des autres appareils ne pourront plus être renouvelées.');
-                    this.focusFeedback();
+                    this.success('Mot de passe modifié', 'Les sessions des autres appareils ne pourront plus être renouvelées.');
                 },
                 error: (error: unknown) => {
                     this.passwordForm.controls.current_password.reset();
-                    this.error.set(this.message(error));
-                    this.focusFeedback();
+                    this.failure('Modification impossible', error);
                 }
             });
     }
@@ -156,14 +154,47 @@ export class Profile {
             });
     }
 
-    private start(action: 'profile' | 'password' | 'delete'): void {
-        this.busy.set(action);
-        this.notice.set(null);
-        this.error.set(null);
+    downloadPersonalData(): void {
+        if (this.busy()) return;
+        const format = this.exportFormat();
+        this.start('export');
+        this.profileExport
+            .exportPersonalData(format)
+            .pipe(
+                takeUntilDestroyed(this.destroyRef),
+                finalize(() => this.busy.set(null))
+            )
+            .subscribe({
+                next: (response) => {
+                    this.saveFile(response, format);
+                    this.success('Export prêt', 'Le téléchargement de vos données a commencé.');
+                },
+                error: (error: unknown) => {
+                    this.failure('Export impossible', error);
+                }
+            });
     }
 
-    private focusFeedback(): void {
-        afterNextRender(() => this.feedback()?.nativeElement.focus(), { injector: this.injector });
+    private start(action: 'profile' | 'password' | 'delete' | 'export'): void {
+        this.busy.set(action);
+    }
+
+    private success(summary: string, detail: string): void {
+        this.messages.add({ severity: 'success', summary, detail, life: 4000 });
+    }
+
+    private failure(summary: string, error: unknown): void {
+        this.messages.add({ severity: 'error', summary, detail: this.message(error), life: 5000 });
+    }
+
+    private saveFile(response: HttpResponse<Blob>, format: UserExportFormat): void {
+        const filename = response.headers.get('content-disposition')?.match(/filename="?([^";]+)"?/i)?.[1] ?? `mes-donnees.${format === 'excel' ? 'xlsx' : format === 'word' ? 'doc' : format}`;
+        const url = URL.createObjectURL(response.body ?? new Blob());
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        link.click();
+        URL.revokeObjectURL(url);
     }
 
     private message(error: unknown): string {

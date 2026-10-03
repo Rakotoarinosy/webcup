@@ -19,7 +19,7 @@
 
     <div class="mb-5 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
         <p-iconfield>
-            <p-inputicon styleClass="pi pi-search" />
+            <p-inputicon styleClass="pi pi-search" aria-hidden="true" />
             <input
                 pInputText
                 type="search"
@@ -64,6 +64,8 @@
     </div>
 
     <p-table
+        role="region"
+        aria-label="Liste des demandes citoyennes"
         [value]="requests()"
         [lazy]="true"
         [paginator]="true"
@@ -111,13 +113,13 @@
                 <td>{{ agentName(request.assigned_agent_id) }}</td>
                 <td>
                     <div class="flex gap-1">
-                        <p-button icon="pi pi-eye" [rounded]="true" [text]="true" ariaLabel="Consulter la demande" (onClick)="openDetails(request)" />
-                        <p-button icon="pi pi-sparkles" severity="help" [rounded]="true" [text]="true" ariaLabel="Analyser la demande avec l'IA" pTooltip="Analyser la demande" tooltipPosition="top" (onClick)="analyze(request)" />
+                        <p-button icon="pi pi-eye" [rounded]="true" [text]="true" [ariaLabel]="'Consulter la demande « ' + request.title + ' »'" (onClick)="openDetails(request)" />
+                        <p-button icon="pi pi-sparkles" severity="help" [rounded]="true" [text]="true" [ariaLabel]="'Analyser avec l’IA la demande « ' + request.title + ' »'" pTooltip="Analyser la demande" tooltipPosition="top" (onClick)="analyze(request)" />
                         @if (isOpen(request.status)) {
-                            <p-button icon="pi pi-user-plus" [rounded]="true" [text]="true" ariaLabel="Attribuer à un agent" pTooltip="Attribuer" tooltipPosition="top" (onClick)="openAssign(request)" />
-                            <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" ariaLabel="Modifier la demande" (onClick)="openEdit(request)" />
+                            <p-button icon="pi pi-user-plus" [rounded]="true" [text]="true" [ariaLabel]="'Attribuer à un agent la demande « ' + request.title + ' »'" pTooltip="Attribuer" tooltipPosition="top" (onClick)="openAssign(request)" />
+                            <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" [ariaLabel]="'Modifier la demande « ' + request.title + ' »'" (onClick)="openEdit(request)" />
                         }
-                        <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [text]="true" ariaLabel="Supprimer la demande" (onClick)="confirmDelete(request)" />
+                        <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [text]="true" [ariaLabel]="'Supprimer la demande « ' + request.title + ' »'" (onClick)="confirmDelete(request)" />
                     </div>
                 </td>
             </tr>
@@ -133,59 +135,117 @@
 
 <p-dialog [(visible)]="submitDialogVisible" header="Saisir une demande pour un citoyen" [modal]="true" [style]="{ width: 'min(48rem, 95vw)' }">
     <p class="mt-0 text-sm text-muted-color">Le statut, la priorité et l'institut destinataire sont fixés automatiquement.</p>
-    <form #submitFormRef="ngForm" id="submitForm" class="grid grid-cols-1 gap-4 md:grid-cols-2" (ngSubmit)="submit(submitFormRef)">
+    <form #submitFormRef="ngForm" id="submitForm" class="grid grid-cols-1 gap-4 md:grid-cols-2" novalidate (ngSubmit)="submit(submitFormRef)">
+        <p class="m-0 text-sm text-muted-color md:col-span-2">Les champs marqués d’un astérisque (<span aria-hidden="true">*</span>) sont obligatoires.</p>
+        @if (submitFormRef.submitted && submitFormRef.invalid) {
+            <p role="alert" class="m-0 rounded-border border border-red-300 bg-red-50 p-3 text-sm text-red-700 md:col-span-2 dark:border-red-800 dark:bg-red-950 dark:text-red-100">Le formulaire contient des erreurs : corrigez les champs signalés.</p>
+        }
         <div>
-            <label for="submit-title" class="mb-2 block font-semibold">Titre</label>
-            <input pInputText id="submit-title" name="title" [(ngModel)]="submitForm.title" required maxlength="255" class="w-full" />
+            <label for="submit-title" class="mb-2 block font-semibold">Titre <span class="text-red-600" aria-hidden="true">*</span></label>
+            <input pInputText #submitTitle="ngModel" id="submit-title" name="title" [(ngModel)]="submitForm.title" required maxlength="255" aria-describedby="submit-title-error" [attr.aria-invalid]="submitTitle.invalid && submitTitle.touched" class="w-full" />
+            <small id="submit-title-error" class="field-error block text-sm text-red-600 dark:text-red-300">
+                @if (submitTitle.invalid && submitTitle.touched) {
+                    <span class="block pt-1">Le titre est obligatoire.</span>
+                }
+            </small>
         </div>
         <div>
-            <label for="submit-category" class="mb-2 block font-semibold">Catégorie</label>
-            <p-select inputId="submit-category" name="category" [(ngModel)]="submitForm.category" [options]="categories" required class="w-full" />
+            <label for="submit-category" id="submit-category-label" class="mb-2 block font-semibold">Catégorie <span class="text-red-600" aria-hidden="true">*</span></label>
+            <p-select #submitCategory="ngModel" inputId="submit-category" name="category" [(ngModel)]="submitForm.category" [options]="categories" required ariaLabelledBy="submit-category-label submit-category-error" [invalid]="!!submitCategory.invalid && !!submitCategory.touched" class="w-full" />
+            <small id="submit-category-error" class="field-error block text-sm text-red-600 dark:text-red-300">
+                @if (submitCategory.invalid && submitCategory.touched) {
+                    <span class="block pt-1">Choisissez une catégorie.</span>
+                }
+            </small>
         </div>
         <div class="md:col-span-2">
-            <label for="submit-description" class="mb-2 block font-semibold">Description</label>
-            <textarea pTextarea id="submit-description" name="description" [(ngModel)]="submitForm.description" required maxlength="10000" rows="4" class="w-full"></textarea>
+            <label for="submit-description" class="mb-2 block font-semibold">Description <span class="text-red-600" aria-hidden="true">*</span></label>
+            <textarea pTextarea #submitDescription="ngModel" id="submit-description" name="description" [(ngModel)]="submitForm.description" required maxlength="10000" rows="4" aria-describedby="submit-description-error" [attr.aria-invalid]="submitDescription.invalid && submitDescription.touched" class="w-full"></textarea>
+            <small id="submit-description-error" class="field-error block text-sm text-red-600 dark:text-red-300">
+                @if (submitDescription.invalid && submitDescription.touched) {
+                    <span class="block pt-1">La description est obligatoire.</span>
+                }
+            </small>
         </div>
         <div>
-            <label for="submit-citizen" class="mb-2 block font-semibold">Citoyen</label>
-            <p-select inputId="submit-citizen" name="citizen_id" [(ngModel)]="submitForm.citizen_id" [options]="userOptions()" optionLabel="label" optionValue="value" [filter]="true" placeholder="Sélectionner un citoyen" required class="w-full" />
+            <label for="submit-citizen" id="submit-citizen-label" class="mb-2 block font-semibold">Citoyen <span class="text-red-600" aria-hidden="true">*</span></label>
+            <p-select #submitCitizen="ngModel" inputId="submit-citizen" name="citizen_id" [(ngModel)]="submitForm.citizen_id" [options]="userOptions()" optionLabel="label" optionValue="value" [filter]="true" ariaFilterLabel="Rechercher un citoyen" placeholder="Sélectionner un citoyen" required ariaLabelledBy="submit-citizen-label submit-citizen-error" [invalid]="!!submitCitizen.invalid && !!submitCitizen.touched" class="w-full" />
+            <small id="submit-citizen-error" class="field-error block text-sm text-red-600 dark:text-red-300">
+                @if (submitCitizen.invalid && submitCitizen.touched) {
+                    <span class="block pt-1">Choisissez le citoyen concerné.</span>
+                }
+            </small>
         </div>
         <div>
-            <label for="submit-location" class="mb-2 block font-semibold">Localisation</label>
-            <input pInputText id="submit-location" name="location" [(ngModel)]="submitForm.location" required maxlength="500" class="w-full" />
+            <label for="submit-location" class="mb-2 block font-semibold">Localisation <span class="text-red-600" aria-hidden="true">*</span></label>
+            <input pInputText #submitLocation="ngModel" id="submit-location" name="location" [(ngModel)]="submitForm.location" required maxlength="500" aria-describedby="submit-location-error" [attr.aria-invalid]="submitLocation.invalid && submitLocation.touched" class="w-full" />
+            <small id="submit-location-error" class="field-error block text-sm text-red-600 dark:text-red-300">
+                @if (submitLocation.invalid && submitLocation.touched) {
+                    <span class="block pt-1">La localisation est obligatoire.</span>
+                }
+            </small>
         </div>
     </form>
     <ng-template #footer>
         <button pButton type="button" label="Annuler" icon="pi pi-times" [text]="true" (click)="submitDialogVisible = false"></button>
-        <button pButton type="submit" form="submitForm" label="Enregistrer" icon="pi pi-check" [loading]="saving()" [disabled]="!submitFormRef.valid || saving()"></button>
+        <button pButton type="submit" form="submitForm" label="Enregistrer" icon="pi pi-check" [loading]="saving()" [disabled]="saving()"></button>
     </ng-template>
 </p-dialog>
 
 <p-dialog [(visible)]="editDialogVisible" header="Modifier la demande" [modal]="true" [style]="{ width: 'min(48rem, 95vw)' }">
     @if (editForm; as values) {
-        <form #editFormRef="ngForm" id="editForm" class="grid grid-cols-1 gap-4 md:grid-cols-2" (ngSubmit)="saveEdit(editFormRef)">
+        <form #editFormRef="ngForm" id="editForm" class="grid grid-cols-1 gap-4 md:grid-cols-2" novalidate (ngSubmit)="saveEdit(editFormRef)">
+            <p class="m-0 text-sm text-muted-color md:col-span-2">Les champs marqués d’un astérisque (<span aria-hidden="true">*</span>) sont obligatoires.</p>
+            @if (editFormRef.submitted && editFormRef.invalid) {
+                <p role="alert" class="m-0 rounded-border border border-red-300 bg-red-50 p-3 text-sm text-red-700 md:col-span-2 dark:border-red-800 dark:bg-red-950 dark:text-red-100">Le formulaire contient des erreurs : corrigez les champs signalés.</p>
+            }
             <div class="md:col-span-2">
-                <label for="edit-title" class="mb-2 block font-semibold">Titre</label>
-                <input pInputText id="edit-title" name="title" [(ngModel)]="values.title" required maxlength="255" class="w-full" />
+                <label for="edit-title" class="mb-2 block font-semibold">Titre <span class="text-red-600" aria-hidden="true">*</span></label>
+                <input pInputText #editTitle="ngModel" id="edit-title" name="title" [(ngModel)]="values.title" required maxlength="255" aria-describedby="edit-title-error" [attr.aria-invalid]="editTitle.invalid && editTitle.touched" class="w-full" />
+                <small id="edit-title-error" class="field-error block text-sm text-red-600 dark:text-red-300">
+                    @if (editTitle.invalid && editTitle.touched) {
+                        <span class="block pt-1">Le titre est obligatoire.</span>
+                    }
+                </small>
             </div>
             <div class="md:col-span-2">
-                <label for="edit-description" class="mb-2 block font-semibold">Description</label>
-                <textarea pTextarea id="edit-description" name="description" [(ngModel)]="values.description" required maxlength="10000" rows="4" class="w-full"></textarea>
+                <label for="edit-description" class="mb-2 block font-semibold">Description <span class="text-red-600" aria-hidden="true">*</span></label>
+                <textarea pTextarea #editDescription="ngModel" id="edit-description" name="description" [(ngModel)]="values.description" required maxlength="10000" rows="4" aria-describedby="edit-description-error" [attr.aria-invalid]="editDescription.invalid && editDescription.touched" class="w-full"></textarea>
+                <small id="edit-description-error" class="field-error block text-sm text-red-600 dark:text-red-300">
+                    @if (editDescription.invalid && editDescription.touched) {
+                        <span class="block pt-1">La description est obligatoire.</span>
+                    }
+                </small>
             </div>
             <div>
-                <label for="edit-category" class="mb-2 block font-semibold">Catégorie</label>
-                <p-select inputId="edit-category" name="category" [(ngModel)]="values.category" [options]="categories" required class="w-full" />
+                <label for="edit-category" id="edit-category-label" class="mb-2 block font-semibold">Catégorie <span class="text-red-600" aria-hidden="true">*</span></label>
+                <p-select #editCategory="ngModel" inputId="edit-category" name="category" [(ngModel)]="values.category" [options]="categories" required ariaLabelledBy="edit-category-label edit-category-error" [invalid]="!!editCategory.invalid && !!editCategory.touched" class="w-full" />
                 @if (editedRequest && values.category !== editedRequest.category) {
-                    <small class="mt-1 block text-orange-600">La demande partira à l'institut de cette catégorie ; l'agent actuel sera retiré.</small>
+                    <small class="mt-1 block text-orange-600" role="status">La demande partira à l'institut de cette catégorie ; l'agent actuel sera retiré.</small>
                 }
+                <small id="edit-category-error" class="field-error block text-sm text-red-600 dark:text-red-300">
+                    @if (editCategory.invalid && editCategory.touched) {
+                        <span class="block pt-1">Choisissez une catégorie.</span>
+                    }
+                </small>
             </div>
             <div>
-                <label for="edit-priority" class="mb-2 block font-semibold">Priorité</label>
-                <p-select inputId="edit-priority" name="priority" [(ngModel)]="values.priority" [options]="priorities" required class="w-full" />
+                <label for="edit-priority" id="edit-priority-label" class="mb-2 block font-semibold">Priorité <span class="text-red-600" aria-hidden="true">*</span></label>
+                <p-select #editPriority="ngModel" inputId="edit-priority" name="priority" [(ngModel)]="values.priority" [options]="priorities" required ariaLabelledBy="edit-priority-label edit-priority-error" [invalid]="!!editPriority.invalid && !!editPriority.touched" class="w-full" />
+                <small id="edit-priority-error" class="field-error block text-sm text-red-600 dark:text-red-300">
+                    @if (editPriority.invalid && editPriority.touched) {
+                        <span class="block pt-1">Choisissez une priorité.</span>
+                    }
+                </small>
             </div>
             <div class="md:col-span-2">
-                <label for="edit-location" class="mb-2 block font-semibold">Localisation</label>
-                <input pInputText id="edit-location" name="location" [(ngModel)]="values.location" required maxlength="500" class="w-full" />
+                <label for="edit-location" class="mb-2 block font-semibold">Localisation <span class="text-red-600" aria-hidden="true">*</span></label>
+                <input pInputText #editLocation="ngModel" id="edit-location" name="location" [(ngModel)]="values.location" required maxlength="500" aria-describedby="edit-location-error" [attr.aria-invalid]="editLocation.invalid && editLocation.touched" class="w-full" />
+                <small id="edit-location-error" class="field-error block text-sm text-red-600 dark:text-red-300">
+                    @if (editLocation.invalid && editLocation.touched) {
+                        <span class="block pt-1">La localisation est obligatoire.</span>
+                    }
+                </small>
             </div>
         </form>
     }
@@ -200,15 +260,15 @@
         <p class="mt-0 text-muted-color">« {{ request.title }} » · {{ institutName(request.institut_id) }}</p>
         <div class="grid gap-4">
             <div>
-                <label for="assign-agent" class="mb-2 block font-semibold">Agent</label>
-                <p-select inputId="assign-agent" [(ngModel)]="assignAgentId" [options]="agentOptions(request)" optionLabel="label" optionValue="value" placeholder="Choisir un agent actif de l'institut" emptyMessage="Aucun agent actif dans cet institut" class="w-full" appendTo="body" />
+                <label for="assign-agent" id="assign-agent-label" class="mb-2 block font-semibold">Agent</label>
+                <p-select inputId="assign-agent" ariaLabelledBy="assign-agent-label" [(ngModel)]="assignAgentId" [options]="agentOptions(request)" optionLabel="label" optionValue="value" placeholder="Choisir un agent actif de l'institut" emptyMessage="Aucun agent actif dans cet institut" class="w-full" appendTo="body" />
             </div>
             <div>
                 <label for="assign-date" class="mb-2 block font-semibold">Intervention prévue le <span class="font-normal text-muted-color">(facultatif)</span></label>
                 <input pInputText id="assign-date" type="datetime-local" [(ngModel)]="assignScheduledAt" class="w-full" />
             </div>
             @if (request.status !== 'En cours') {
-                <small class="text-muted-color"><i class="pi pi-info-circle mr-1"></i>La demande passera « En cours ».</small>
+                <small class="text-muted-color"><i class="pi pi-info-circle mr-1" aria-hidden="true"></i>La demande passera « En cours ».</small>
             }
         </div>
     }
@@ -242,7 +302,7 @@
                     <span class="text-sm text-muted-color"> · {{ event.actor_name ?? 'Système' }} · <time [attr.datetime]="event.created_at">{{ event.created_at | date: 'dd/MM/yyyy HH:mm' }}</time></span>
                 </li>
             } @empty {
-                <li class="text-muted-color">Chargement de l'historique…</li>
+                <li class="text-muted-color" role="status">Chargement de l'historique…</li>
             }
         </ol>
     }
@@ -261,9 +321,9 @@
     </ng-template>
 </p-dialog>
 
-<p-dialog [(visible)]="analysisDialogVisible" [modal]="true" [style]="{ width: 'min(42rem, 95vw)' }">
+<p-dialog #analysisDialog [(visible)]="analysisDialogVisible" header="Analyse IA de la demande" [modal]="true" [style]="{ width: 'min(42rem, 95vw)' }">
     <ng-template #header>
-        <div class="flex items-center gap-2 font-semibold text-xl"><i class="pi pi-sparkles text-purple-500"></i>Analyse IA de la demande</div>
+        <div [id]="analysisDialog.ariaLabelledBy" class="flex items-center gap-2 font-semibold text-xl"><i class="pi pi-sparkles text-purple-500" aria-hidden="true"></i>Analyse IA de la demande</div>
     </ng-template>
 
     @if (analyzedRequest; as request) {
@@ -272,12 +332,12 @@
 
     @if (analyzing()) {
         <div class="flex flex-col items-center gap-3 py-10 text-muted-color" role="status" aria-live="polite">
-            <i class="pi pi-spin pi-spinner text-3xl"></i>
+            <i class="pi pi-spin pi-spinner text-3xl" aria-hidden="true"></i>
             <span>Analyse en cours…</span>
         </div>
     } @else if (analysisError()) {
         <div class="flex items-start gap-3 rounded-border bg-red-50 p-4 text-red-700 dark:bg-red-400/10 dark:text-red-300" role="alert">
-            <i class="pi pi-exclamation-triangle mt-1"></i>
+            <i class="pi pi-exclamation-triangle mt-1" aria-hidden="true"></i>
             <span>{{ analysisError() }}</span>
         </div>
     } @else if (analysis(); as result) {
@@ -320,7 +380,7 @@
                 <dd class="mt-1 whitespace-pre-wrap">{{ result.reason }}</dd>
             </div>
         </dl>
-        <p class="mt-5 mb-0 text-xs text-muted-color"><i class="pi pi-info-circle mr-1"></i>Suggestion générée par IA : vérifiez-la avant de l'appliquer.</p>
+        <p class="mt-5 mb-0 text-xs text-muted-color"><i class="pi pi-info-circle mr-1" aria-hidden="true"></i>Suggestion générée par IA : vérifiez-la avant de l'appliquer.</p>
     }
 
     <ng-template #footer>

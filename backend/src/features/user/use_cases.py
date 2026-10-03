@@ -5,6 +5,7 @@ from dataclasses import replace
 from datetime import UTC, datetime
 
 from src.domain.agent import AgentQuery, AgentRepository, AgentStatus
+from src.domain.audit import AuditAction, AuditTarget
 from src.domain.institut import InstitutRepository
 from src.domain.user import (
     LastAdminError,
@@ -16,11 +17,17 @@ from src.domain.user import (
     UserNotFoundError,
     UserRepository,
 )
+from src.features.audit.recording import AuditTrail, field_changes, record
 from src.features.auth.schemas import UpdateProfileIn
 from src.features.user.schemas import CreateUserIn, UpdateCitizenAccountIn, UpdateUserIn
 
 
-def create_user(dto: CreateUserIn, repo: UserRepository, hasher: PasswordHasher) -> User:
+def create_user(
+    dto: CreateUserIn,
+    repo: UserRepository,
+    hasher: PasswordHasher,
+    audit: AuditTrail | None = None,
+) -> User:
     if repo.get_by_email(dto.email):
         raise UserAlreadyExistsError(dto.email)
 
@@ -33,7 +40,16 @@ def create_user(dto: CreateUserIn, repo: UserRepository, hasher: PasswordHasher)
         role=dto.role,
     )
 
-    return repo.add(user)
+    created = repo.add(user)
+    record(
+        audit,
+        AuditAction.ACCOUNT_CREATED,
+        AuditTarget.ACCOUNT,
+        created.id,
+        _label(created),
+        details={"role": created.role.value},
+    )
+    return created
 
 
 def get_user(user_id: str, repo: UserRepository) -> User:
@@ -69,6 +85,7 @@ def update_account(
     hasher: PasswordHasher,
     agents: AgentRepository,
     instituts: InstitutRepository,
+    audit: AuditTrail | None = None,
 ) -> User:
     """Modification d'un compte par l'admin, en gardant rôles et rattachements cohérents :
     un compte qui cesse d'être manager (rôle changé ou compte désactivé) libère son institut,
@@ -89,6 +106,12 @@ def update_account(
         for agent in agents.search(AgentQuery(user_id=updated.id, is_active=True)):
             agents.update(replace(agent, is_active=False, status=AgentStatus.OFFLINE))
 
+    if audit is not None:
+        institut = instituts.get_by_manager(updated.id)
+        profiles = agents.search(AgentQuery(user_id=updated.id))
+        institut_id = institut.id if institut else (profiles[0].institut_id if profiles else None)
+        record_account_changes(audit, before, updated, dto.password is not None, institut_id)
+
     return updated
 
 
@@ -108,6 +131,7 @@ def update_citizen_account(
     dto: UpdateCitizenAccountIn,
     repo: UserRepository,
     refresh_repo: RefreshTokenRepository,
+    audit: AuditTrail | None = None,
 ) -> User:
     user = get_citizen_account(user_id, repo)
     changes = {
@@ -125,6 +149,8 @@ def update_citizen_account(
     updated = repo.update(replace(user, **changes))
     if {"email", "is_active"} & changes.keys():
         refresh_repo.revoke_all_for_user(user.id, datetime.now(UTC))
+    if audit is not None:
+        record_account_changes(audit, user, updated, password_reset=False, institut_id=None)
     return updated
 
 
@@ -164,10 +190,51 @@ def update_user(
     return updated
 
 
-def delete_user(user_id: str, repo: UserRepository) -> None:
+def delete_user(user_id: str, repo: UserRepository, audit: AuditTrail | None = None) -> None:
     user = get_user(user_id, repo)
     _ensure_admin_remains(user, new_role=Role.CITIZEN, new_active=False, repo=repo)
     repo.delete(user_id)
+    record(audit, AuditAction.ACCOUNT_DELETED, AuditTarget.ACCOUNT, user.id, _label(user))
+
+
+def record_account_changes(
+    audit: AuditTrail,
+    before: User,
+    after: User,
+    password_reset: bool,
+    institut_id: str | None,
+) -> None:
+    """Une entrée par type d'opération, pour qu'un filtre « désactivations » soit exact."""
+    label = _label(after)
+    extra = {"institut_id": institut_id}
+    if before.role is not after.role:
+        diff = {"role": {"from": before.role.value, "to": after.role.value}}
+        audit.record(
+            AuditAction.ACCOUNT_ROLE_CHANGED,
+            AuditTarget.ACCOUNT,
+            after.id,
+            label,
+            details=diff,
+            **extra,
+        )
+    if before.is_active != after.is_active:
+        action = (
+            AuditAction.ACCOUNT_REACTIVATED if after.is_active else AuditAction.ACCOUNT_DEACTIVATED
+        )
+        audit.record(action, AuditTarget.ACCOUNT, after.id, label, **extra)
+    if password_reset:
+        audit.record(
+            AuditAction.ACCOUNT_PASSWORD_RESET, AuditTarget.ACCOUNT, after.id, label, **extra
+        )
+    diff = field_changes(before, after, ("name", "email"))
+    if diff:
+        audit.record(
+            AuditAction.ACCOUNT_UPDATED, AuditTarget.ACCOUNT, after.id, label, details=diff, **extra
+        )
+
+
+def _label(user: User) -> str:
+    return f"{user.name} ({user.email})"
 
 
 def _ensure_admin_remains(

@@ -19,12 +19,12 @@
 
     @if (uncovered().length) {
         <div class="mb-5 flex items-start gap-3 rounded-border bg-orange-50 p-4 text-orange-800 dark:bg-orange-400/10 dark:text-orange-200" role="status">
-            <i class="pi pi-info-circle mt-1"></i>
+            <i class="pi pi-info-circle mt-1" aria-hidden="true"></i>
             <span>Aucun institut actif ne reçoit : <strong>{{ uncovered().join(', ') }}</strong>. Ces demandes sont traitées par l'administration.</span>
         </div>
     }
 
-    <p-table [value]="instituts()" [loading]="loading()" [tableStyle]="{ 'min-width': '52rem' }" [rowHover]="true" dataKey="id">
+    <p-table role="region" aria-label="Liste des instituts" [value]="instituts()" [loading]="loading()" [tableStyle]="{ 'min-width': '52rem' }" [rowHover]="true" dataKey="id">
         <ng-template #header>
             <tr>
                 <th pSortableColumn="name" style="min-width: 14rem">Institut <p-sortIcon field="name" /></th>
@@ -47,7 +47,7 @@
                         @for (category of institut.categories; track category) {
                             <p-tag [value]="category" severity="secondary" />
                         } @empty {
-                            <span class="text-muted-color">—</span>
+                            <span class="text-muted-color" aria-hidden="true">—</span><span class="sr-only">Aucune catégorie</span>
                         }
                     </div>
                 </td>
@@ -57,11 +57,11 @@
                 </td>
                 <td>
                     <div class="flex gap-1">
-                        <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" ariaLabel="Modifier l'institut" pTooltip="Modifier" tooltipPosition="top" (onClick)="openEdit(institut)" />
+                        <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" [ariaLabel]="'Modifier l’institut ' + institut.name" pTooltip="Modifier" tooltipPosition="top" (onClick)="openEdit(institut)" />
                         @if (institut.is_active) {
-                            <p-button icon="pi pi-ban" severity="danger" [rounded]="true" [text]="true" ariaLabel="Désactiver l'institut" pTooltip="Désactiver" tooltipPosition="top" (onClick)="toggleActive(institut)" />
+                            <p-button icon="pi pi-ban" severity="danger" [rounded]="true" [text]="true" [ariaLabel]="'Désactiver l’institut ' + institut.name" pTooltip="Désactiver" tooltipPosition="top" (onClick)="toggleActive(institut)" />
                         } @else {
-                            <p-button icon="pi pi-replay" severity="success" [rounded]="true" [text]="true" ariaLabel="Réactiver l'institut" pTooltip="Réactiver" tooltipPosition="top" (onClick)="toggleActive(institut)" />
+                            <p-button icon="pi pi-replay" severity="success" [rounded]="true" [text]="true" [ariaLabel]="'Réactiver l’institut ' + institut.name" pTooltip="Réactiver" tooltipPosition="top" (onClick)="toggleActive(institut)" />
                         }
                     </div>
                 </td>
@@ -76,27 +76,68 @@
 </div>
 
 <p-dialog [(visible)]="dialogVisible" [header]="edited ? 'Modifier l\'institut' : 'Nouvel institut'" [modal]="true" [style]="{ width: 'min(36rem, 95vw)' }">
-    <form #institutForm="ngForm" id="institutForm" class="grid grid-cols-1 gap-4" (ngSubmit)="save(institutForm)">
+    <form #institutForm="ngForm" id="institutForm" class="grid grid-cols-1 gap-4" novalidate (ngSubmit)="save(institutForm)">
+        <p class="m-0 text-sm text-muted-color">Les champs marqués d’un astérisque (<span aria-hidden="true">*</span>) sont obligatoires.</p>
+        @if (institutForm.submitted && (institutForm.invalid || !form.categories.length)) {
+            <p role="alert" class="m-0 rounded-border border border-red-300 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-100">Le formulaire contient des erreurs : corrigez les champs signalés.</p>
+        }
         <div>
-            <label for="institut-name" class="mb-2 block font-semibold">Nom</label>
-            <input pInputText id="institut-name" name="name" [(ngModel)]="form.name" required maxlength="255" class="w-full" />
+            <label for="institut-name" class="mb-2 block font-semibold">Nom <span class="text-red-600" aria-hidden="true">*</span></label>
+            <input
+                pInputText
+                #nameModel="ngModel"
+                id="institut-name"
+                name="name"
+                [(ngModel)]="form.name"
+                required
+                maxlength="255"
+                autocomplete="off"
+                aria-describedby="institut-name-error"
+                [attr.aria-invalid]="nameModel.invalid && nameModel.touched"
+                class="w-full"
+            />
+            <small id="institut-name-error" class="field-error block text-sm text-red-600 dark:text-red-300">
+                @if (nameModel.invalid && nameModel.touched) {
+                    <span class="block pt-1">Le nom de l’institut est obligatoire.</span>
+                }
+            </small>
         </div>
         <div>
             <label for="institut-description" class="mb-2 block font-semibold">Description <span class="font-normal text-muted-color">(facultatif)</span></label>
             <textarea pTextarea id="institut-description" name="description" [(ngModel)]="form.description" maxlength="2000" rows="2" class="w-full"></textarea>
         </div>
         <div>
-            <label for="institut-categories" class="mb-2 block font-semibold">Catégories reçues</label>
-            <p-multiselect inputId="institut-categories" name="categories" [(ngModel)]="form.categories" [options]="categoryOptions()" optionLabel="label" optionValue="value" optionDisabled="disabled" display="chip" placeholder="Au moins une catégorie" class="w-full" appendTo="body" />
-            <small class="mt-1 block text-muted-color">Une catégorie déjà reçue par un autre institut actif est indisponible.</small>
+            <label for="institut-categories" id="institut-categories-label" class="mb-2 block font-semibold">Catégories reçues <span class="text-red-600" aria-hidden="true">*</span></label>
+            <p-multiselect
+                #categoriesModel="ngModel"
+                inputId="institut-categories"
+                name="categories"
+                [(ngModel)]="form.categories"
+                [options]="categoryOptions()"
+                optionLabel="label"
+                optionValue="value"
+                optionDisabled="disabled"
+                display="chip"
+                placeholder="Au moins une catégorie"
+                ariaLabelledBy="institut-categories-label institut-categories-error"
+                [invalid]="!form.categories.length && (!!categoriesModel.touched || institutForm.submitted)"
+                class="w-full"
+                appendTo="body"
+            />
+            <small id="institut-categories-help" class="mt-1 block text-muted-color">Une catégorie déjà reçue par un autre institut actif est indisponible.</small>
+            <small id="institut-categories-error" class="field-error block text-sm text-red-600 dark:text-red-300">
+                @if (!form.categories.length && (categoriesModel.touched || institutForm.submitted)) {
+                    <span class="block pt-1">Choisissez au moins une catégorie.</span>
+                }
+            </small>
         </div>
         <div>
-            <label for="institut-manager" class="mb-2 block font-semibold">Responsable</label>
-            <p-select inputId="institut-manager" name="manager_id" [(ngModel)]="form.manager_id" [options]="managerOptions()" optionLabel="label" optionValue="value" [showClear]="true" placeholder="Aucun" emptyMessage="Aucun compte manager disponible" class="w-full" appendTo="body" />
+            <label for="institut-manager" id="institut-manager-label" class="mb-2 block font-semibold">Responsable <span class="font-normal text-muted-color">(facultatif)</span></label>
+            <p-select inputId="institut-manager" name="manager_id" [(ngModel)]="form.manager_id" [options]="managerOptions()" optionLabel="label" optionValue="value" [showClear]="true" placeholder="Aucun" emptyMessage="Aucun compte manager disponible" ariaLabelledBy="institut-manager-label" class="w-full" appendTo="body" />
         </div>
     </form>
     <ng-template #footer>
         <button pButton type="button" label="Annuler" icon="pi pi-times" [text]="true" (click)="dialogVisible = false"></button>
-        <button pButton type="submit" form="institutForm" label="Enregistrer" icon="pi pi-check" [loading]="saving()" [disabled]="!institutForm.valid || !form.categories.length || saving()"></button>
+        <button pButton type="submit" form="institutForm" label="Enregistrer" icon="pi pi-check" [loading]="saving()" [disabled]="saving()"></button>
     </ng-template>
 </p-dialog>

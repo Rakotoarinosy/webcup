@@ -7,6 +7,8 @@ from sqlalchemy.orm import Session
 from src.domain.citizen_request import Actor
 from src.domain.institut import Institut, InstitutRepository
 from src.domain.user import UserRepository
+from src.features.audit.recording import AuditTrail
+from src.features.audit.router import get_audit_trail
 from src.features.institut.schemas import (
     CreateInstitutIn,
     InstitutOut,
@@ -42,8 +44,9 @@ def create_institut_endpoint(
     actor: Actor = Depends(get_current_actor),
     repo: InstitutRepository = Depends(get_institut_repo),
     users: UserRepository = Depends(get_users_repo),
+    audit: AuditTrail = Depends(get_audit_trail),
 ) -> InstitutOut:
-    return _out(create_institut(payload, actor, repo, users))
+    return _out(create_institut(payload, actor, repo, users, audit=audit))
 
 
 @router.get("", response_model=list[InstitutOut])
@@ -70,8 +73,9 @@ def update_institut_endpoint(
     payload: UpdateInstitutIn,
     actor: Actor = Depends(get_current_actor),
     repo: InstitutRepository = Depends(get_institut_repo),
+    audit: AuditTrail = Depends(get_audit_trail),
 ) -> InstitutOut:
-    return _out(update_institut(institut_id, payload, actor, repo))
+    return _out(update_institut(institut_id, payload, actor, repo, audit))
 
 
 @router.put("/{institut_id}/manager", response_model=InstitutOut)
@@ -81,8 +85,9 @@ def set_manager_endpoint(
     actor: Actor = Depends(get_current_actor),
     repo: InstitutRepository = Depends(get_institut_repo),
     users: UserRepository = Depends(get_users_repo),
+    audit: AuditTrail = Depends(get_audit_trail),
 ) -> InstitutOut:
-    return _out(set_manager(institut_id, payload, actor, repo, users))
+    return _out(set_manager(institut_id, payload, actor, repo, users, audit))
 
 
 def _out(institut: Institut) -> InstitutOut:

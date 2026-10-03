@@ -10,8 +10,10 @@ from starlette.responses import HTMLResponse
 
 from src.bootstrap import ensure_bootstrap_admin, start_terra_sync
 from src.features.agent.router import router as agent_router
+from src.features.audit.router import router as audit_router
 from src.features.auth.router import router as auth_router
 from src.features.citizen_request.router import dashboard_router, request_router
+from src.features.data_concern.router import router as data_concern_router
 from src.features.institut.router import router as institut_router
 from src.features.municipal_content.router import router as municipal_content_router
 from src.features.notification.router import router as notification_router
@@ -19,6 +21,7 @@ from src.features.preferences.router import router as preferences_router
 from src.features.search.router import router as search_router
 from src.features.terra_request.router import router as terra_request_router
 from src.features.user.router import router as user_router
+from src.features.user_export.router import router as user_export_router
 from src.infrastructure.config import configure_logging, get_settings
 from src.shared.errors import register_exception_handlers
 
@@ -34,7 +37,10 @@ FEATURE_ROUTERS: list[APIRouter] = [
     notification_router,
     search_router,
     preferences_router,
+    user_export_router,
     municipal_content_router,
+    data_concern_router,
+    audit_router,
     terra_request_router,
 ]
 

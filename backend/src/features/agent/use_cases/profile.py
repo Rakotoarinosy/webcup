@@ -12,6 +12,7 @@ from src.domain.agent import (
     AgentStatus,
     InvalidAgentAccountError,
 )
+from src.domain.audit import AuditAction, AuditTarget
 from src.domain.citizen_request import (
     Actor,
     CitizenRequest,
@@ -27,6 +28,7 @@ from src.domain.institut import (
 from src.domain.user import ForbiddenError, Role, UserRepository
 from src.features.agent.schemas import CreateAgentProfileIn
 from src.features.agent.use_cases.read import get_agent
+from src.features.audit.recording import AuditTrail, record
 
 
 def create_agent_profile(
@@ -36,6 +38,7 @@ def create_agent_profile(
     users: UserRepository,
     instituts: InstitutRepository,
     now: datetime | None = None,
+    audit: AuditTrail | None = None,
 ) -> Agent:
     institut_id = actor.institut_id if actor.role is Role.MANAGER else dto.institut_id
     ensure_can_manage_institut(actor, institut_id)
@@ -47,7 +50,7 @@ def create_agent_profile(
     if repo.search(AgentQuery(user_id=user.id)):
         raise AgentAlreadyExistsError(user.email)
 
-    return repo.add(
+    agent = repo.add(
         Agent(
             id=str(uuid.uuid4()),
             user_id=user.id,
@@ -59,6 +62,16 @@ def create_agent_profile(
             institut_name=institut.name,
         )
     )
+    record(
+        audit,
+        AuditAction.AGENT_CREATED,
+        AuditTarget.AGENT,
+        agent.id,
+        user.name,
+        institut_id=institut.id,
+        details={"institut": institut.name},
+    )
+    return agent
 
 
 def list_agents_in_scope(actor: Actor, query: AgentQuery, repo: AgentRepository) -> list[Agent]:
@@ -74,13 +87,25 @@ def list_agents_in_scope(actor: Actor, query: AgentQuery, repo: AgentRepository)
     raise ForbiddenError()
 
 
-def set_agent_active(agent_id: str, active: bool, actor: Actor, repo: AgentRepository) -> Agent:
+def set_agent_active(
+    agent_id: str,
+    active: bool,
+    actor: Actor,
+    repo: AgentRepository,
+    audit: AuditTrail | None = None,
+) -> Agent:
     """On ne supprime jamais un agent : ses interventions restent dans l'historique."""
     agent = get_agent(agent_id, repo)
     ensure_can_manage_institut(actor, agent.institut_id)
 
     status = AgentStatus.AVAILABLE if active else AgentStatus.OFFLINE
-    return repo.update(replace(agent, is_active=active, status=status))
+    saved = repo.update(replace(agent, is_active=active, status=status))
+    if agent.is_active != active:
+        action = AuditAction.AGENT_ACTIVATED if active else AuditAction.AGENT_DEACTIVATED
+        record(
+            audit, action, AuditTarget.AGENT, saved.id, saved.name, institut_id=saved.institut_id
+        )
+    return saved
 
 
 def move_agent(
@@ -89,6 +114,7 @@ def move_agent(
     actor: Actor,
     repo: AgentRepository,
     instituts: InstitutRepository,
+    audit: AuditTrail | None = None,
 ) -> Agent:
     """Changement d'institut : décision d'administration (deux instituts sont concernés)."""
     if actor.role is not Role.ADMIN:
@@ -96,7 +122,21 @@ def move_agent(
     agent = get_agent(agent_id, repo)
     institut = _active_institut(institut_id, instituts)
 
-    return repo.update(replace(agent, institut_id=institut.id, institut_name=institut.name))
+    saved = repo.update(replace(agent, institut_id=institut.id, institut_name=institut.name))
+    if agent.institut_id != saved.institut_id:
+        details = {"institut": {"from": agent.institut_name, "to": saved.institut_name}}
+        # Visible par les managers des deux instituts : une entrée pour chacun.
+        for side in (agent.institut_id, saved.institut_id):
+            record(
+                audit,
+                AuditAction.AGENT_MOVED,
+                AuditTarget.AGENT,
+                saved.id,
+                saved.name,
+                institut_id=side,
+                details=details,
+            )
+    return saved
 
 
 def _active_institut(institut_id: str | None, instituts: InstitutRepository) -> Institut:
@@ -129,9 +169,24 @@ def list_interventions_for(
 
 
 def set_agent_status(
-    agent_id: str, status: AgentStatus, actor: Actor, repo: AgentRepository
+    agent_id: str,
+    status: AgentStatus,
+    actor: Actor,
+    repo: AgentRepository,
+    audit: AuditTrail | None = None,
 ) -> Agent:
     """Disponibilité : l'agent la déclare lui-même, son manager peut la corriger."""
     agent = get_agent_for(agent_id, actor, repo)
 
-    return repo.update(replace(agent, status=status))
+    saved = repo.update(replace(agent, status=status))
+    if agent.status is not status:
+        record(
+            audit,
+            AuditAction.AGENT_STATUS_CHANGED,
+            AuditTarget.AGENT,
+            saved.id,
+            saved.name,
+            institut_id=saved.institut_id,
+            details={"status": {"from": agent.status.value, "to": status.value}},
+        )
+    return saved

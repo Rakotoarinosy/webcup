@@ -1,3 +1,4 @@
+<a class="skip-link" href="#main-content" (click)="skipToContent($event)">Aller au contenu principal</a>
 <header>
     <div class="header-row">
         <a class="brand" routerLink="/" aria-label="Kotrana, accueil">Kotrana</a>
@@ -15,4 +16,4 @@
     </div>
     <div class="header-row" style="justify-content: flex-end; margin-top: 0.5rem"><app-font-size /></div>
 </header>
-<main><router-outlet /></main>
+<main id="main-content" tabindex="-1"><router-outlet /></main>

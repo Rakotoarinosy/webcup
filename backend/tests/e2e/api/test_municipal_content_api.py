@@ -513,3 +513,36 @@ async def test_contact_preserves_selected_service_and_receipt_matches_persistenc
     )
     assert stored is not None
     assert stored.service_id == "roads"
+
+
+async def test_manager_sets_where_a_service_welcomes_residents(
+    admin_client: AsyncClient, db_session: Session
+) -> None:
+    db_session.add(
+        MunicipalServiceModel(
+            id="town-hall",
+            name="État civil",
+            category="Administration",
+            description="Actes et certificats",
+            contact_details="Guichet 1",
+            opening_hours="8h-16h",
+        )
+    )
+    db_session.commit()
+    url = "/api/v1/municipal/services/town-hall/location"
+    location = {"address": "Hôtel de ville, place centrale", "latitude": -18.9, "longitude": 47.52}
+
+    partial = await admin_client.patch(url, json={"address": "Sans position"})
+    assert partial.status_code == 422
+    updated = await admin_client.patch(url, json=location)
+    assert updated.status_code == 200, updated.text
+
+    token = admin_client.headers.pop("Authorization")
+    assert (await admin_client.patch(url, json=location)).status_code == 401
+    listed = (await admin_client.get("/api/v1/municipal/services")).json()
+    admin_client.headers["Authorization"] = token
+    assert (listed[0]["address"], listed[0]["latitude"], listed[0]["longitude"]) == (
+        "Hôtel de ville, place centrale",
+        -18.9,
+        47.52,
+    )

@@ -1,16 +1,16 @@
 import { CommonModule, DatePipe } from '@angular/common';
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, computed, effect, ElementRef, HostListener, inject, signal, viewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import { BadgeModule } from 'primeng/badge';
-import { EMPTY, catchError, switchMap, timer } from 'rxjs';
+import { catchError, EMPTY } from 'rxjs';
 
 import { AuthService } from '@/app/auth/auth.service';
-import { apiErrorMessage } from '@/app/users/user.service';
-import { TerraNotification } from '@/app/terra-nova/terra-nova.model';
-import { TerraNovaService } from '@/app/terra-nova/terra-nova.service';
+import { NotificationService, PlatformNotification } from '@/app/notifications/notification.service';
+import { PublicationReadService } from '@/app/municipal/publication-read.service';
+import { OverlayCoordinatorService } from '@/app/layout/service/overlay-coordinator.service';
 
-const REFRESH_MS = 10_000;
-const STAFF_ROLES = ['admin', 'manager', 'agent'] as const;
+type PublicationNotification = ReturnType<PublicationReadService['notificationItems']>[number];
+type DisplayNotification = (PlatformNotification | PublicationNotification) & { typeLabel: string };
 
 @Component({
     selector: 'app-notifications',
@@ -20,96 +20,60 @@ const STAFF_ROLES = ['admin', 'manager', 'agent'] as const;
 })
 export class Notifications {
     private readonly auth = inject(AuthService);
-    private readonly api = inject(TerraNovaService);
+    private readonly api = inject(NotificationService);
+    private readonly publications = inject(PublicationReadService);
     private readonly router = inject(Router);
+    private readonly overlays = inject(OverlayCoordinatorService);
 
     readonly showPanel = signal(false);
-    readonly notifications = signal<TerraNotification[]>([]);
-    readonly error = signal<string | null>(null);
-    readonly canView = computed(() => {
-        const role = this.auth.user()?.role;
-        return role !== undefined && STAFF_ROLES.some((staffRole) => staffRole === role);
-    });
-    readonly unreadCount = computed(() => this.notifications().filter((notification) => !notification.is_read).length);
-    readonly recentNotifications = computed(() => this.notifications().slice(0, 8));
+    readonly notificationMenu = viewChild<ElementRef<HTMLElement>>('notificationMenu');
+    readonly canView = this.auth.isAuthenticated;
+    readonly unreadCount = computed(() => this.api.unreadCount() + this.publications.unreadCount());
+    readonly allNotifications = computed<DisplayNotification[]>(() => [
+        ...this.api.recent().map((notification) => ({ ...notification, typeLabel: 'Demande' })),
+        ...this.publications.notificationItems().map((notification) => ({ ...notification, typeLabel: 'Publication' }))
+    ].sort((left, right) => Date.parse(right.created_at) - Date.parse(left.created_at)).slice(0, 12));
+    readonly error = this.api.error;
 
     constructor() {
-        effect((onCleanup) => {
-            if (!this.canView()) {
-                this.notifications.set([]);
-                this.showPanel.set(false);
-                this.error.set(null);
-                return;
-            }
-
-            const subscription = timer(0, REFRESH_MS)
-                .pipe(
-                    switchMap(() =>
-                        this.api.notifications().pipe(
-                            catchError((error: unknown) => {
-                                this.error.set(apiErrorMessage(error));
-                                return EMPTY;
-                            })
-                        )
-                    )
-                )
-                .subscribe((response) => {
-                    this.notifications.set(response.items);
-                    this.error.set(null);
-                });
-
-            onCleanup(() => subscription.unsubscribe());
-        });
+        effect(() => this.showPanel.set(this.overlays.active() === 'notifications'));
     }
 
     togglePanel(event: Event): void {
         event.stopPropagation();
-        this.showPanel.update((show) => !show);
+        this.overlays.active() === 'notifications' ? this.overlays.close('notifications') : this.overlays.open('notifications');
     }
 
-    open(notification: TerraNotification): void {
-        this.showPanel.set(false);
-        if (!notification.is_read) {
-            this.setRead((item) => item.key === notification.key);
-            this.api.markRead(notification.key).subscribe({
-                error: (error: unknown) => {
-                    this.error.set(apiErrorMessage(error));
-                    this.refresh();
-                }
-            });
+    @HostListener('document:pointerdown', ['$event'])
+    closeOnOutsidePointerDown(event: PointerEvent): void {
+        if (this.showPanel() && !this.notificationMenu()?.nativeElement.contains(event.target as Node)) this.overlays.close('notifications');
+    }
+
+    open(notification: PlatformNotification | PublicationNotification): void {
+        this.overlays.close('notifications');
+        if ('publicationId' in notification) {
+            if (!notification.is_read) this.publications.markRead(notification.publicationId);
+            void this.router.navigate(['/home/municipal/publications'], { queryParams: { publication: notification.publicationId } });
+            return;
         }
-        void this.router.navigate(['/home/terra-nova/notifications']);
+        if (!notification.is_read) {
+            this.api.markRead(notification.key).pipe(catchError(() => EMPTY)).subscribe();
+        }
+        const role = this.auth.user()?.role;
+        void this.router.navigate(role === 'citizen' ? ['/home/my-requests', notification.request_id] : role === 'agent' ? ['/home/agent'] : ['/home/requests']);
     }
 
     markAllAsRead(event: Event): void {
         event.stopPropagation();
         if (!this.unreadCount()) return;
 
-        this.setRead(() => true);
-        this.api.markAllRead().subscribe({
-            error: (error: unknown) => {
-                this.error.set(apiErrorMessage(error));
-                this.refresh();
-            }
-        });
+        this.publications.notificationItems().filter((item) => !item.is_read).forEach((item) => this.publications.markRead(item.publicationId));
+        this.api.markAllRead().pipe(catchError(() => EMPTY)).subscribe();
     }
 
     openAll(): void {
-        this.showPanel.set(false);
-        void this.router.navigate(['/home/terra-nova/notifications']);
-    }
-
-    private setRead(matches: (notification: TerraNotification) => boolean): void {
-        this.notifications.update((items) => items.map((item) => (matches(item) ? { ...item, is_read: true } : item)));
-    }
-
-    private refresh(): void {
-        this.api.notifications().subscribe({
-            next: (response) => {
-                this.notifications.set(response.items);
-                this.error.set(null);
-            },
-            error: (error: unknown) => this.error.set(apiErrorMessage(error))
-        });
+        this.overlays.close('notifications');
+        const role = this.auth.user()?.role;
+        void this.router.navigate(role === 'citizen' ? ['/home/my-requests'] : role === 'agent' ? ['/home/agent'] : ['/home/requests']);
     }
 }

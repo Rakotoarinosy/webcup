@@ -1,10 +1,11 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
-import { inject, Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
+import { computed, effect, inject, Injectable, signal } from '@angular/core';
+import { EMPTY, catchError, switchMap, timer } from 'rxjs';
 
+import { AuthService } from '@/app/auth/auth.service';
 import { environment } from '@/environments/environment';
 
-export interface CitizenNotification {
+export interface PlatformNotification {
     key: string;
     kind: string;
     title: string;
@@ -14,22 +15,55 @@ export interface CitizenNotification {
     is_read: boolean;
 }
 
-export interface CitizenNotificationList {
-    items: CitizenNotification[];
-    unread_count: number;
-}
+interface NotificationList { items: PlatformNotification[]; unread_count: number; }
 
 @Injectable({ providedIn: 'root' })
 export class NotificationService {
     private readonly http = inject(HttpClient);
+    private readonly auth = inject(AuthService);
     private readonly baseUrl = `${environment.apiUrl}/notifications`;
 
-    list(limit = 20): Observable<CitizenNotificationList> {
-        const params = new HttpParams().set('limit', limit);
-        return this.http.get<CitizenNotificationList>(this.baseUrl, { params });
+    readonly items = signal<PlatformNotification[]>([]);
+    readonly unreadCount = signal(0);
+    readonly error = signal<string | null>(null);
+    readonly recent = computed(() => this.items().slice(0, 8));
+
+    constructor() {
+        effect((onCleanup) => {
+            if (!this.auth.isAuthenticated()) {
+                this.items.set([]);
+                this.unreadCount.set(0);
+                return;
+            }
+            const subscription = timer(0, 10_000).pipe(switchMap(() => this.fetch().pipe(catchError(() => EMPTY)))).subscribe();
+            onCleanup(() => subscription.unsubscribe());
+        });
     }
 
-    markRead(key: string): Observable<void> {
+    fetch() {
+        return this.http.get<NotificationList>(this.baseUrl).pipe(
+            catchError((error: unknown) => {
+                this.error.set('Impossible de charger les notifications.');
+                throw error;
+            }),
+            switchMap((response) => {
+                this.items.set(response.items);
+                this.unreadCount.set(response.unread_count);
+                this.error.set(null);
+                return EMPTY;
+            })
+        );
+    }
+
+    markRead(key: string) {
+        this.items.update((items) => items.map((item) => item.key === key ? { ...item, is_read: true } : item));
+        this.unreadCount.update((count) => Math.max(0, count - 1));
         return this.http.post<void>(`${this.baseUrl}/${encodeURIComponent(key)}/read`, {});
+    }
+
+    markAllRead() {
+        this.items.update((items) => items.map((item) => ({ ...item, is_read: true })));
+        this.unreadCount.set(0);
+        return this.http.post<void>(`${this.baseUrl}/read-all`, {});
     }
 }

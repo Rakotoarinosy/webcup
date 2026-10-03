@@ -84,7 +84,11 @@ export class Users {
 
     save(form: NgForm): void {
         const user = this.selectedUser();
-        if (!user || form.invalid || this.saving()) return;
+        if (!user || this.saving()) return;
+        if (form.invalid) {
+            form.control.markAllAsTouched();
+            return;
+        }
 
         this.saving.set(true);
         this.userService.update(user.id, this.form).subscribe({

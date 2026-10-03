@@ -1,11 +1,10 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { AfterViewInit, Component, ElementRef, inject, signal, viewChild } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, Injector, afterNextRender, inject, signal, viewChild } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
-import { PasswordModule } from 'primeng/password';
 import { AppFloatingConfigurator } from '../../layout/component/floatingconfigurator/app.floatingconfigurator';
 
 import { AuthService } from '@/app/auth/auth.service';
@@ -15,7 +14,7 @@ import { safeReturnUrl } from '../return-url';
 
 @Component({
     selector: 'app-login',
-    imports: [ButtonModule, InputTextModule, MessageModule, PasswordModule, ReactiveFormsModule, RouterModule, AppFloatingConfigurator, GoogleButton],
+    imports: [ButtonModule, InputTextModule, MessageModule, ReactiveFormsModule, RouterModule, AppFloatingConfigurator, GoogleButton],
     templateUrl: './login.html'
 })
 export class Login implements AfterViewInit {
@@ -23,7 +22,9 @@ export class Login implements AfterViewInit {
     private readonly router = inject(Router);
     private readonly route = inject(ActivatedRoute);
     private readonly fb = inject(FormBuilder);
+    private readonly injector = inject(Injector);
     private readonly emailInput = viewChild<ElementRef<HTMLInputElement>>('emailInput');
+    private readonly errorSummary = viewChild<ElementRef<HTMLElement>>('errorSummary');
 
     readonly loginForm = this.fb.nonNullable.group({
         email: ['', [Validators.required, Validators.email]],
@@ -32,6 +33,9 @@ export class Login implements AfterViewInit {
 
     readonly loading = signal(false);
     readonly errorMessage = signal<string | null>(null);
+    /** Passe à true au premier envoi refusé : affiche le récapitulatif des erreurs. */
+    readonly submitAttempted = signal(false);
+    readonly showPassword = signal(false);
     readonly accountDeleted = this.route.snapshot.queryParamMap.get('accountDeleted') === '1';
 
     ngAfterViewInit(): void {
@@ -39,8 +43,12 @@ export class Login implements AfterViewInit {
     }
 
     submit(): void {
-        if (this.loginForm.invalid || this.loading()) {
+        if (this.loading()) return;
+        if (this.loginForm.invalid) {
             this.loginForm.markAllAsTouched();
+            this.submitAttempted.set(true);
+            // Le récapitulatif (role="alert") reçoit le focus pour être lu et parcouru au clavier.
+            afterNextRender(() => this.errorSummary()?.nativeElement.focus(), { injector: this.injector });
             return;
         }
 
@@ -63,6 +71,25 @@ export class Login implements AfterViewInit {
                 this.errorMessage.set(loginErrorMessage(error));
             }
         });
+    }
+
+    emailError(): string {
+        return this.loginForm.controls.email.hasError('required') ? 'L’email est obligatoire.' : 'Saisissez une adresse email valide.';
+    }
+
+    /** Erreurs du formulaire, dans l’ordre des champs, pour le récapitulatif. */
+    formErrors(): { field: string; message: string }[] {
+        const { email, password } = this.loginForm.controls;
+        const errors: { field: string; message: string }[] = [];
+        if (email.invalid) errors.push({ field: 'email', message: this.emailError() });
+        if (password.invalid) errors.push({ field: 'password', message: 'Le mot de passe est obligatoire.' });
+        return errors;
+    }
+
+    /** Lien du récapitulatif : place le focus dans le champ concerné sans recharger la page. */
+    focusField(event: Event, id: string): void {
+        event.preventDefault();
+        document.getElementById(id)?.focus();
     }
 
     /** Page demandée avant la connexion (?returnUrl=), limitée aux chemins internes. */

@@ -1,9 +1,9 @@
 :host {
-    position: fixed;
+    position: absolute;
     z-index: 1000;
-    top: min(6rem, 25vh);
-    right: var(--layout-gutter, 1rem);
+    top: calc(100% + 0.5rem);
+    right: 0;
     max-width: calc(100vw - 2rem);
-    max-height: calc(100dvh - min(6rem, 25vh) - 1rem);
+    max-height: calc(100dvh - 5rem);
     overflow: auto;
 }

@@ -1,6 +1,6 @@
 import { DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
+import { Component, DestroyRef, Injector, OnInit, afterNextRender, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -56,6 +56,7 @@ export class MyRequests implements OnInit {
     private readonly auth = inject(AuthService);
     private readonly route = inject(ActivatedRoute);
     private readonly destroyRef = inject(DestroyRef);
+    private readonly injector = inject(Injector);
 
     protected readonly requests = signal<CitizenRequest[]>([]);
     protected readonly total = signal(0);
@@ -76,6 +77,8 @@ export class MyRequests implements OnInit {
     protected readonly creationStep = signal(1);
     protected readonly createError = signal<string | null>(null);
     protected readonly submitting = signal(false);
+    /** Passe à true quand l’étape « Description » a été validée avec des champs vides. */
+    protected readonly descriptionAttempted = signal(false);
     protected readonly categories = [...REQUEST_CATEGORIES];
     protected readonly categoryHints = CATEGORY_HINTS;
     protected readonly statuses = [...REQUEST_STATUSES];
@@ -158,6 +161,7 @@ export class MyRequests implements OnInit {
     protected openCreateDialog(): void {
         this.creationStep.set(1);
         this.createError.set(null);
+        this.descriptionAttempted.set(false);
         this.form = { ...EMPTY_FORM };
         this.createDialogVisible.set(true);
     }
@@ -174,19 +178,39 @@ export class MyRequests implements OnInit {
     protected nextCreationStep(): void {
         if (this.creationStep() === 1 && !this.form.category) {
             this.createError.set('Choisissez le type de problème : il détermine le service qui traitera votre demande.');
+            this.focusAfterRender('input[name="request-type"]');
             return;
         }
         if (this.creationStep() === 2 && !this.isDescriptionStepValid()) {
+            this.descriptionAttempted.set(true);
             this.createError.set('Renseignez le titre, la description et le lieu de la demande.');
+            this.focusAfterRender('[aria-invalid="true"]');
             return;
         }
         this.createError.set(null);
         this.creationStep.update((step) => Math.min(3, step + 1));
+        this.focusStepHeading();
     }
 
     protected previousCreationStep(): void {
         this.createError.set(null);
         this.creationStep.update((step) => Math.max(1, step - 1));
+        this.focusStepHeading();
+    }
+
+    /** Champ obligatoire de l’étape 2 laissé vide après une tentative de passage à l’étape suivante. */
+    protected descriptionInvalid(field: 'title' | 'description' | 'location'): boolean {
+        return this.descriptionAttempted() && !this.form[field].trim();
+    }
+
+    /** Après un changement d’étape, le focus va sur le titre de la nouvelle étape pour l’annoncer. */
+    private focusStepHeading(): void {
+        const headings = ['choose-type-title', 'description-step-title', 'review-step-title'];
+        this.focusAfterRender('#' + headings[this.creationStep() - 1]);
+    }
+
+    private focusAfterRender(selector: string): void {
+        afterNextRender(() => document.querySelector<HTMLElement>(`.p-dialog ${selector}`)?.focus(), { injector: this.injector });
     }
 
     protected submitCreation(): void {

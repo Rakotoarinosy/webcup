@@ -1,7 +1,9 @@
-import { TestBed } from '@angular/core/testing';
+import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { AuthService } from '../auth.service';
+import { AppFloatingConfigurator } from '../../layout/component/floatingconfigurator/app.floatingconfigurator';
 import { Register } from './register';
 
 describe('Registration flow', () => {
@@ -53,5 +55,36 @@ describe('Registration flow', () => {
         component.registerForm.controls.confirmPassword.setValue('Motdepasse123');
         expect(component.registerForm.hasError('passwordMismatch')).toBeFalse();
         expect(component.registerForm.controls.confirmPassword.valid).toBeTrue();
+    });
+});
+
+describe('Registration form accessibility', () => {
+    let fixture: ComponentFixture<Register>;
+
+    beforeEach(async () => {
+        const auth = jasmine.createSpyObj<AuthService>('AuthService', ['register', 'homeUrl']);
+        await TestBed.configureTestingModule({ imports: [Register], providers: [provideRouter([]), { provide: AuthService, useValue: auth }] })
+            .overrideComponent(Register, { remove: { imports: [AppFloatingConfigurator] }, add: { schemas: [CUSTOM_ELEMENTS_SCHEMA] } })
+            .compileComponents();
+        fixture = TestBed.createComponent(Register);
+        fixture.detectChanges();
+    });
+
+    it('links the password rules and the mismatch error to their fields', async () => {
+        const host = fixture.nativeElement as HTMLElement;
+        expect(host.querySelector('#password')?.getAttribute('aria-describedby')).toBe('password-help password-error');
+        expect(host.querySelector('#password-help')?.textContent).toContain('10 à 128 caractères');
+
+        fixture.componentInstance.registerForm.setValue({ name: 'Rina', email: 'r@test.mg', password: 'Motdepasse123', confirmPassword: 'Autre123456' });
+        (host.querySelector('form') as HTMLFormElement).dispatchEvent(new Event('submit'));
+        fixture.detectChanges();
+        await fixture.whenStable();
+
+        const confirm = host.querySelector('#confirmPassword') as HTMLInputElement;
+        expect(confirm.getAttribute('aria-invalid')).toBe('true');
+        expect(confirm.getAttribute('aria-describedby')).toBe('confirmPassword-error');
+        expect(host.querySelector('#confirmPassword-error')?.textContent).toContain('Les mots de passe ne correspondent pas.');
+        expect(host.querySelector('#register-error-summary')?.getAttribute('role')).toBe('alert');
+        expect(host.querySelector('#password')?.getAttribute('aria-invalid')).toBe('false');
     });
 });

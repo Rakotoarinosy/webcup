@@ -21,6 +21,8 @@ from src.features.agent.use_cases import (
     set_agent_active,
     set_agent_status,
 )
+from src.features.audit.recording import AuditTrail
+from src.features.audit.router import get_audit_trail
 from src.features.citizen_request.schemas import CitizenRequestOut
 from src.infrastructure.persistence.agent_repository import SqlAlchemyAgentRepository
 from src.infrastructure.persistence.citizen_request_repository import (
@@ -57,8 +59,9 @@ def create_agent_endpoint(
     repo: AgentRepository = Depends(get_agent_repo),
     users: UserRepository = Depends(get_users_repo),
     instituts: InstitutRepository = Depends(get_instituts_repo),
+    audit: AuditTrail = Depends(get_audit_trail),
 ) -> Agent:
-    return create_agent_profile(payload, actor, repo, users, instituts)
+    return create_agent_profile(payload, actor, repo, users, instituts, audit=audit)
 
 
 @router.get("", response_model=list[AgentOut])
@@ -111,8 +114,9 @@ def set_agent_status_endpoint(
     payload: AgentStatusIn,
     actor: Actor = Depends(get_current_actor),
     repo: AgentRepository = Depends(get_agent_repo),
+    audit: AuditTrail = Depends(get_audit_trail),
 ) -> Agent:
-    return set_agent_status(agent_id, payload.status, actor, repo)
+    return set_agent_status(agent_id, payload.status, actor, repo, audit)
 
 
 @router.post("/{agent_id}/deactivate", response_model=AgentOut)
@@ -120,8 +124,9 @@ def deactivate_agent_endpoint(
     agent_id: str,
     actor: Actor = Depends(get_current_actor),
     repo: AgentRepository = Depends(get_agent_repo),
+    audit: AuditTrail = Depends(get_audit_trail),
 ) -> Agent:
-    return set_agent_active(agent_id, False, actor, repo)
+    return set_agent_active(agent_id, False, actor, repo, audit)
 
 
 @router.post("/{agent_id}/activate", response_model=AgentOut)
@@ -129,8 +134,9 @@ def activate_agent_endpoint(
     agent_id: str,
     actor: Actor = Depends(get_current_actor),
     repo: AgentRepository = Depends(get_agent_repo),
+    audit: AuditTrail = Depends(get_audit_trail),
 ) -> Agent:
-    return set_agent_active(agent_id, True, actor, repo)
+    return set_agent_active(agent_id, True, actor, repo, audit)
 
 
 @router.post("/{agent_id}/move", response_model=AgentOut)
@@ -140,5 +146,6 @@ def move_agent_endpoint(
     actor: Actor = Depends(get_current_actor),
     repo: AgentRepository = Depends(get_agent_repo),
     instituts: InstitutRepository = Depends(get_instituts_repo),
+    audit: AuditTrail = Depends(get_audit_trail),
 ) -> Agent:
-    return move_agent(agent_id, payload.institut_id, actor, repo, instituts)
+    return move_agent(agent_id, payload.institut_id, actor, repo, instituts, audit)

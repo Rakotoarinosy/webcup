@@ -12,7 +12,7 @@
 
     <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
         <p-iconfield class="w-full md:w-96">
-            <p-inputicon styleClass="pi pi-search" />
+            <p-inputicon styleClass="pi pi-search" aria-hidden="true" />
             <input
                 pInputText
                 type="search"
@@ -23,10 +23,10 @@
                 (ngModelChange)="loadUsers($event)"
             />
         </p-iconfield>
-        <span class="text-sm text-muted-color" aria-live="polite">{{ users().length }} compte(s)</span>
+        <span class="text-sm text-muted-color" role="status">{{ users().length }} compte(s)</span>
     </div>
 
-    <p-table [value]="users()" [loading]="loading()" [paginator]="users().length > 10" [rows]="10" [rowHover]="true" dataKey="id" [tableStyle]="{ 'min-width': '42rem' }">
+    <p-table role="region" aria-label="Liste des comptes citoyens" [value]="users()" [loading]="loading()" [paginator]="users().length > 10" [rows]="10" [rowHover]="true" dataKey="id" [tableStyle]="{ 'min-width': '42rem' }">
         <ng-template #header>
             <tr>
                 <th pSortableColumn="name">Citoyen <p-sortIcon field="name" /></th>
@@ -51,12 +51,12 @@
                 <td>{{ user.created_at | date: 'dd/MM/yyyy' }}</td>
                 <td>
                     <div class="flex gap-1">
-                        <p-button icon="pi pi-eye" [rounded]="true" [text]="true" ariaLabel="Voir le compte" (onClick)="openDetails(user)" />
-                        <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" ariaLabel="Modifier le profil" (onClick)="openEdit(user)" />
+                        <p-button icon="pi pi-eye" [rounded]="true" [text]="true" [ariaLabel]="'Voir le compte de ' + user.name" (onClick)="openDetails(user)" />
+                        <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" [ariaLabel]="'Modifier le profil de ' + user.name" (onClick)="openEdit(user)" />
                         @if (user.is_active) {
-                            <p-button icon="pi pi-ban" severity="danger" [rounded]="true" [text]="true" ariaLabel="Désactiver le compte" (onClick)="confirmActivationChange(user)" />
+                            <p-button icon="pi pi-ban" severity="danger" [rounded]="true" [text]="true" [ariaLabel]="'Désactiver le compte de ' + user.name" (onClick)="confirmActivationChange(user)" />
                         } @else {
-                            <p-button icon="pi pi-replay" severity="success" [rounded]="true" [text]="true" ariaLabel="Activer le compte" (onClick)="confirmActivationChange(user)" />
+                            <p-button icon="pi pi-replay" severity="success" [rounded]="true" [text]="true" [ariaLabel]="'Activer le compte de ' + user.name" (onClick)="confirmActivationChange(user)" />
                         }
                     </div>
                 </td>
@@ -85,18 +85,58 @@
 </p-dialog>
 
 <p-dialog [visible]="editVisible()" (visibleChange)="editVisible.set($event)" header="Modifier le profil citoyen" [modal]="true" [style]="{ width: 'min(32rem, 95vw)' }">
-    <form #accountForm="ngForm" id="citizenAccountForm" class="flex flex-col gap-5" (ngSubmit)="save(accountForm)">
+    <form #accountForm="ngForm" id="citizenAccountForm" class="flex flex-col gap-5" novalidate (ngSubmit)="save(accountForm)">
+        <p class="m-0 text-sm text-muted-color">Tous les champs sont obligatoires.</p>
+        @if (accountForm.submitted && accountForm.invalid) {
+            <p role="alert" class="m-0 rounded-border border border-red-300 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-100">Le formulaire contient des erreurs : corrigez les champs signalés.</p>
+        }
         <div>
             <label for="citizen-name" class="mb-2 block font-semibold">Nom</label>
-            <input pInputText id="citizen-name" name="name" [(ngModel)]="form.name" required maxlength="255" class="w-full" />
+            <input
+                pInputText
+                #nameModel="ngModel"
+                id="citizen-name"
+                name="name"
+                [(ngModel)]="form.name"
+                required
+                maxlength="255"
+                autocomplete="off"
+                aria-describedby="citizen-name-error"
+                [attr.aria-invalid]="nameModel.invalid && nameModel.touched"
+                class="w-full"
+            />
+            <small id="citizen-name-error" class="field-error block text-sm text-red-600 dark:text-red-300">
+                @if (nameModel.invalid && nameModel.touched) {
+                    <span class="block pt-1">Le nom est obligatoire.</span>
+                }
+            </small>
         </div>
         <div>
             <label for="citizen-email" class="mb-2 block font-semibold">Email</label>
-            <input pInputText id="citizen-email" name="email" type="email" [(ngModel)]="form.email" required email maxlength="320" class="w-full" />
+            <input
+                pInputText
+                #emailModel="ngModel"
+                id="citizen-email"
+                name="email"
+                type="email"
+                [(ngModel)]="form.email"
+                required
+                email
+                maxlength="320"
+                autocomplete="off"
+                aria-describedby="citizen-email-error"
+                [attr.aria-invalid]="emailModel.invalid && emailModel.touched"
+                class="w-full"
+            />
+            <small id="citizen-email-error" class="field-error block text-sm text-red-600 dark:text-red-300">
+                @if (emailModel.invalid && emailModel.touched) {
+                    <span class="block pt-1">{{ emailModel.hasError('required') ? 'L’email est obligatoire.' : 'Saisissez une adresse email valide.' }}</span>
+                }
+            </small>
         </div>
     </form>
     <ng-template #footer>
         <button pButton type="button" label="Annuler" icon="pi pi-times" [text]="true" (click)="editVisible.set(false)"></button>
-        <button pButton type="submit" form="citizenAccountForm" label="Enregistrer" icon="pi pi-check" [loading]="saving()" [disabled]="!accountForm.valid || saving()"></button>
+        <button pButton type="submit" form="citizenAccountForm" label="Enregistrer" icon="pi pi-check" [loading]="saving()" [disabled]="saving()"></button>
     </ng-template>
 </p-dialog>

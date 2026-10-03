@@ -9,6 +9,9 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Any
 
+from src.domain.citizen_request.analytics import RequestScope
+from src.domain.citizen_request.entities import RequestStatus
+
 
 class RequestEventType(StrEnum):
     CREATED = "created"
@@ -43,3 +46,32 @@ class CitizenRequestEventRepository(ABC):
     @abstractmethod
     def list_for_request(self, request_id: str) -> list[CitizenRequestEvent]:
         """Événements d'une demande, du plus ancien au plus récent."""
+
+
+@dataclass(frozen=True)
+class ActivityQuery:
+    """Filtres du journal d'activité (toutes demandes du périmètre confondues)."""
+
+    types: frozenset[RequestEventType] = frozenset()
+    since: datetime | None = None
+    until: datetime | None = None
+    search: str | None = None  # titre de la demande ou auteur de l'action
+    page: int = 1
+    page_size: int = 20
+
+
+@dataclass
+class RequestActivity:
+    """Un événement replacé dans son contexte : de quelle demande s'agit-il, où en est-elle ?"""
+
+    event: CitizenRequestEvent
+    request_title: str
+    request_status: RequestStatus
+
+
+class RequestActivityLog(ABC):
+    @abstractmethod
+    def list_activity(
+        self, scope: RequestScope, query: ActivityQuery
+    ) -> tuple[list[RequestActivity], int]:
+        """Du plus récent au plus ancien, limité au périmètre ; avec le total filtré."""

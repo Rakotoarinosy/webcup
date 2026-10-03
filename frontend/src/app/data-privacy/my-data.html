@@ -1,0 +1,159 @@
+<div class="mx-auto grid max-w-[64rem] gap-6">
+    <header class="card mb-0">
+        <p class="mb-1 font-semibold text-primary">Transparence</p>
+        <h1 class="m-0 text-3xl font-bold">Mes données</h1>
+        <p class="mb-0 mt-3">Ce que Kotrana enregistre sur vous, pourquoi, qui peut le voir, et comment nous faire part d’une inquiétude.</p>
+    </header>
+
+    <section class="card mb-0" aria-labelledby="usage-heading">
+        <h2 id="usage-heading" class="mt-0 text-xl font-semibold">Comment vos données sont utilisées</h2>
+        <div class="grid gap-3">
+            <details class="rounded-lg border border-surface p-4" open>
+                <summary class="cursor-pointer font-semibold">Ce que nous enregistrons</summary>
+                <ul class="mb-0 mt-3 grid gap-2 pl-5">
+                    <li><strong>Votre compte :</strong> nom, adresse email et mot de passe. Le mot de passe n’est jamais conservé en clair.</li>
+                    <li><strong>Vos demandes :</strong> titre, description, lieu indiqué et, si vous la donnez, la position sur la carte.</li>
+                    <li><strong>Le suivi de vos demandes :</strong> chaque étape (prise en charge, changement de statut) avec sa date.</li>
+                    <li><strong>Vos préférences d’affichage :</strong> thème, taille et police du texte.</li>
+                </ul>
+            </details>
+            <details class="rounded-lg border border-surface p-4">
+                <summary class="cursor-pointer font-semibold">Pourquoi</summary>
+                <p class="mb-0 mt-3">Pour traiter vos demandes, vous tenir informé de leur avancement et produire des chiffres d’ensemble sur l’activité de la ville. Les chiffres publics ne contiennent ni nom ni demande individuelle.</p>
+            </details>
+            <details class="rounded-lg border border-surface p-4">
+                <summary class="cursor-pointer font-semibold">Qui peut les voir</summary>
+                <ul class="mb-0 mt-3 grid gap-2 pl-5">
+                    <li>Le service de la mairie chargé du type de problème signalé, et l’agent qui intervient.</li>
+                    <li>Les administrateurs de la plateforme.</li>
+                    <li>
+                        Pour aider au tri, un responsable peut demander une suggestion à un service d’intelligence artificielle (Google Gemini). Seuls le titre, le lieu, la date et la description de la demande lui sont transmis, jamais votre nom
+                        ni votre email. Une personne valide toujours la suggestion.
+                    </li>
+                    <li>Vos données ne sont ni vendues ni utilisées à des fins publicitaires.</li>
+                </ul>
+            </details>
+            <details class="rounded-lg border border-surface p-4">
+                <summary class="cursor-pointer font-semibold">Combien de temps</summary>
+                <p class="mb-0 mt-3">Tant que votre compte existe. Si vous supprimez votre compte, votre nom, votre email, votre mot de passe, vos sessions et vos préférences sont effacés. Vos demandes restent au dossier de la mairie, sans votre identité.</p>
+            </details>
+            <details class="rounded-lg border border-surface p-4">
+                <summary class="cursor-pointer font-semibold">Vos droits</summary>
+                <ul class="mb-0 mt-3 grid gap-2 pl-5">
+                    <li>Modifier votre nom et votre email, ou supprimer votre compte : <a routerLink="/home/profile" class="font-semibold text-primary underline">Mon profil</a>.</li>
+                    <li>Poser une question ou signaler un problème sur vos données : le formulaire ci-dessous. Chaque signalement reçoit une référence et une réponse écrite de la mairie.</li>
+                </ul>
+            </details>
+        </div>
+    </section>
+
+    <section class="card mb-0" aria-labelledby="concern-heading">
+        <h2 id="concern-heading" class="mt-0 text-xl font-semibold">Signaler une inquiétude</h2>
+        <p class="mt-0 text-muted-color">Les champs marqués d’un astérisque (*) sont obligatoires.</p>
+
+        @if (sent(); as concern) {
+            <div #confirmation tabindex="-1" role="status" class="mb-4 rounded-xl border border-green-300 p-4">
+                <p class="m-0 font-semibold">Votre signalement a bien été reçu.</p>
+                <p class="mb-0 mt-1">
+                    Référence <strong>{{ concern.reference }}</strong>. Vous pouvez suivre son traitement dans « Mes signalements » ci-dessous.
+                </p>
+            </div>
+        }
+        @if (sendError(); as message) {
+            <p role="alert" class="rounded-xl border border-red-300 p-4 text-red-700 dark:text-red-300">{{ message }}</p>
+        }
+
+        <form #concernForm="ngForm" (ngSubmit)="send(concernForm)" novalidate class="grid gap-4">
+            <div class="grid gap-2">
+                <label for="concern-topic" class="font-semibold">Sujet *</label>
+                <select
+                    id="concern-topic"
+                    name="topic"
+                    #topicModel="ngModel"
+                    [(ngModel)]="form.topic"
+                    required
+                    class="p-inputtext w-full"
+                    aria-describedby="concern-topic-error"
+                    [attr.aria-invalid]="topicModel.invalid && (topicModel.touched || submitted)"
+                >
+                    <option value="" disabled>Choisissez un sujet</option>
+                    @for (topic of topics; track topic) {
+                        <option [value]="topic">{{ topic }}</option>
+                    }
+                </select>
+                <small id="concern-topic-error" class="text-red-700 dark:text-red-300">
+                    @if (topicModel.invalid && (topicModel.touched || submitted)) {
+                        Choisissez le sujet de votre signalement.
+                    }
+                </small>
+            </div>
+            <div class="grid gap-2">
+                <label for="concern-message" class="font-semibold">Votre message *</label>
+                <textarea
+                    id="concern-message"
+                    name="message"
+                    #messageModel="ngModel"
+                    [(ngModel)]="form.message"
+                    required
+                    minlength="10"
+                    maxlength="5000"
+                    rows="5"
+                    class="p-inputtext w-full"
+                    aria-describedby="concern-message-help concern-message-error"
+                    [attr.aria-invalid]="messageModel.invalid && (messageModel.touched || submitted)"
+                ></textarea>
+                <small id="concern-message-help" class="text-muted-color">{{ form.message.length }} / 5 000 caractères · 10 caractères minimum. N’indiquez pas de mot de passe.</small>
+                <small id="concern-message-error" class="text-red-700 dark:text-red-300">
+                    @if (messageModel.invalid && (messageModel.touched || submitted)) {
+                        Décrivez votre inquiétude en au moins 10 caractères.
+                    }
+                </small>
+            </div>
+            <div>
+                <p-button type="submit" label="Envoyer le signalement" icon="pi pi-send" [loading]="sending()" />
+            </div>
+        </form>
+    </section>
+
+    <section class="card mb-0" aria-labelledby="mine-heading">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2 id="mine-heading" class="m-0 text-xl font-semibold">Mes signalements</h2>
+            <p-button icon="pi pi-refresh" severity="secondary" [text]="true" [loading]="loading()" ariaLabel="Actualiser mes signalements" (onClick)="load()" />
+        </div>
+        @if (loadError(); as message) {
+            <p role="alert" class="text-red-700 dark:text-red-300">{{ message }}</p>
+        }
+        @for (concern of concerns(); track concern.id) {
+            <article class="mt-4 rounded-lg border border-surface p-4" [attr.aria-labelledby]="'concern-' + concern.id">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <h3 [id]="'concern-' + concern.id" class="m-0 text-lg font-semibold">{{ concern.topic }} · <span class="font-normal">{{ concern.reference }}</span></h3>
+                    <p-tag [value]="concern.status" [severity]="severity(concern.status)" />
+                </div>
+                <p class="whitespace-pre-line">{{ concern.message }}</p>
+                <ol class="m-0 grid list-none gap-2 p-0" [attr.aria-label]="'Suivi du signalement ' + concern.reference">
+                    @for (step of steps(concern); track step.label) {
+                        <li class="flex items-center gap-2">
+                            @if (step.date) {
+                                <i class="pi pi-check-circle text-green-600" aria-hidden="true"></i>
+                                <span>{{ step.label }} — <time [attr.datetime]="step.date">{{ step.date | date: 'd MMMM y à HH:mm' }}</time></span>
+                            } @else {
+                                <i class="pi pi-circle text-muted-color" aria-hidden="true"></i>
+                                <span class="text-muted-color">{{ step.label }} — à venir</span>
+                            }
+                        </li>
+                    }
+                </ol>
+                @if (concern.response) {
+                    <div class="mt-4 rounded-lg bg-emphasis p-4">
+                        <p class="m-0 font-semibold">Réponse de la mairie<span class="font-normal"> ({{ concern.answered_by }})</span></p>
+                        <p class="mb-0 mt-2 whitespace-pre-line">{{ concern.response }}</p>
+                    </div>
+                }
+            </article>
+        } @empty {
+            @if (!loading()) {
+                <p class="mb-0 mt-3 text-muted-color">Vous n’avez encore envoyé aucun signalement.</p>
+            }
+        }
+    </section>
+</div>

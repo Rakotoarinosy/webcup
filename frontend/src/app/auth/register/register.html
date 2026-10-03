@@ -13,11 +13,11 @@
         </div>
         <ul class="mt-auto grid list-none gap-5 pb-8 pt-16">
             <li class="flex items-center gap-4">
-                <i class="pi pi-users grid size-11 place-items-center rounded-full border border-emerald-200/40 text-emerald-100"></i
+                <i aria-hidden="true" class="pi pi-users grid size-11 place-items-center rounded-full border border-emerald-200/40 text-emerald-100"></i
                 ><span class="grid gap-0.5"><strong class="text-[.94rem]">Des citoyens mieux accompagnés</strong><small class="text-[.81rem] text-emerald-100/75">Un suivi clair, au bon moment.</small></span>
             </li>
             <li class="flex items-center gap-4">
-                <i class="pi pi-shield grid size-11 place-items-center rounded-full border border-emerald-200/40 text-emerald-100"></i
+                <i aria-hidden="true" class="pi pi-shield grid size-11 place-items-center rounded-full border border-emerald-200/40 text-emerald-100"></i
                 ><span class="grid gap-0.5"><strong class="text-[.94rem]">Vos données protégées</strong><small class="text-[.81rem] text-emerald-100/75">Une plateforme conçue pour le service public.</small></span>
             </li>
         </ul>
@@ -36,7 +36,18 @@
             @if (errorMessage()) {
                 <p-message severity="error" [text]="errorMessage()!" icon="pi pi-exclamation-circle" styleClass="mb-4 block" role="alert" />
             }
-            <form [formGroup]="registerForm" (ngSubmit)="submit()" novalidate class="space-y-2">
+            @if (submitAttempted() && formErrors().length) {
+                <div #errorSummary id="register-error-summary" role="alert" tabindex="-1" class="mb-4 rounded-xl border border-red-300 bg-red-50 p-4 text-sm text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-100">
+                    <p class="m-0 font-semibold">{{ formErrors().length > 1 ? 'Le formulaire contient ' + formErrors().length + ' erreurs :' : 'Le formulaire contient une erreur :' }}</p>
+                    <ul class="mb-0 mt-2 list-disc pl-5">
+                        @for (error of formErrors(); track error.field) {
+                            <li><a class="underline" [href]="'#' + error.field" (click)="focusField($event, error.field)">{{ error.message }}</a></li>
+                        }
+                    </ul>
+                </div>
+            }
+            <form [formGroup]="registerForm" (ngSubmit)="submit()" novalidate class="space-y-2" aria-labelledby="register-title" [attr.aria-busy]="loading()">
+                <p class="mb-3 mt-0 text-sm text-emerald-950/60 dark:text-emerald-50/65">Tous les champs sont obligatoires.</p>
                 <div>
                     <label for="name" class="mb-2 inline-block text-sm font-semibold">Nom complet</label
                     ><span class="relative block"
@@ -48,10 +59,14 @@
                             type="text"
                             autocomplete="name"
                             placeholder="Votre nom"
+                            required
+                            maxlength="255"
+                            aria-describedby="name-error"
+                            [attr.aria-invalid]="registerForm.controls.name.invalid && registerForm.controls.name.touched"
                             class="w-full rounded-xl border-emerald-200 py-3 !pl-11 text-[.95rem] shadow-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/15 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-50"
                             formControlName="name"
                             [invalid]="registerForm.controls.name.invalid && registerForm.controls.name.touched" /></span
-                    ><small class="block min-h-4 pt-1 text-xs text-red-600">
+                    ><small id="name-error" class="field-error block min-h-4 pt-1 text-xs text-red-600 dark:text-red-300">
                         @if (registerForm.controls.name.invalid && registerForm.controls.name.touched) {
                             Saisissez un nom de 1 à 255 caractères.
                         }
@@ -66,53 +81,79 @@
                             id="email"
                             type="email"
                             autocomplete="email"
+                            inputmode="email"
                             placeholder="vous@exemple.mg"
+                            required
+                            maxlength="320"
+                            aria-describedby="email-error"
+                            [attr.aria-invalid]="registerForm.controls.email.invalid && registerForm.controls.email.touched"
                             class="w-full rounded-xl border-emerald-200 py-3 !pl-11 text-[.95rem] shadow-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/15 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-50"
                             formControlName="email"
                             [invalid]="registerForm.controls.email.invalid && registerForm.controls.email.touched" /></span
-                    ><small class="block min-h-4 pt-1 text-xs text-red-600">
+                    ><small id="email-error" class="field-error block min-h-4 pt-1 text-xs text-red-600 dark:text-red-300">
                         @if (registerForm.controls.email.invalid && registerForm.controls.email.touched) {
-                            {{ registerForm.controls.email.hasError('required') ? 'L’email est obligatoire.' : 'Saisissez une adresse email valide.' }}
+                            {{ emailError() }}
                         }
                     </small>
                 </div>
                 <div>
                     <label for="password" class="mb-2 inline-block text-sm font-semibold">Mot de passe</label
-                    ><p-password
-                        inputId="password"
-                        autocomplete="new-password"
-                        placeholder="10 caractères minimum"
-                        formControlName="password"
-                        [toggleMask]="true"
-                        [feedback]="true"
-                        [fluid]="true"
-                        inputStyleClass="rounded-xl border-emerald-200 py-3 !pr-11 text-[.95rem] shadow-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/15 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-50"
-                        [invalid]="registerForm.controls.password.invalid && registerForm.controls.password.touched"
-                    /><small class="block min-h-4 pt-1 text-xs text-red-600">
+                    ><span class="relative block"
+                        ><input
+                            pInputText
+                            id="password"
+                            [type]="showPassword() ? 'text' : 'password'"
+                            autocomplete="new-password"
+                            placeholder="10 caractères minimum"
+                            required
+                            aria-describedby="password-help password-error"
+                            [attr.aria-invalid]="registerForm.controls.password.invalid && registerForm.controls.password.touched"
+                            class="w-full rounded-xl border-emerald-200 py-3 !pr-12 text-[.95rem] shadow-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/15 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-50"
+                            formControlName="password"
+                            [invalid]="registerForm.controls.password.invalid && registerForm.controls.password.touched" /><button
+                            type="button"
+                            class="absolute right-1.5 top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-lg text-emerald-950/60 hover:bg-emerald-50 dark:text-emerald-50/70 dark:hover:bg-emerald-900"
+                            aria-label="Afficher le mot de passe"
+                            aria-controls="password"
+                            [attr.aria-pressed]="showPassword()"
+                            (click)="showPassword.set(!showPassword())"
+                        >
+                            <i [class]="showPassword() ? 'pi pi-eye-slash' : 'pi pi-eye'" aria-hidden="true"></i></button
+                    ></span>
+                    <small id="password-help" class="block pt-1 text-xs text-emerald-950/60 dark:text-emerald-50/65">10 à 128 caractères, avec au moins une majuscule, une minuscule et un chiffre.</small>
+                    <small id="password-error" class="field-error block min-h-4 pt-1 text-xs text-red-600 dark:text-red-300">
                         @if (registerForm.controls.password.invalid && registerForm.controls.password.touched) {
-                            {{ registerForm.controls.password.hasError('required') ? 'Le mot de passe est obligatoire.' : '10 à 128 caractères, avec majuscule, minuscule et chiffre.' }}
+                            {{ passwordError() }}
                         }
                     </small>
                 </div>
                 <div>
                     <label for="confirmPassword" class="mb-2 inline-block text-sm font-semibold">Confirmer le mot de passe</label
-                    ><p-password
-                        inputId="confirmPassword"
-                        autocomplete="new-password"
-                        placeholder="Répétez votre mot de passe"
-                        formControlName="confirmPassword"
-                        [toggleMask]="true"
-                        [feedback]="false"
-                        [fluid]="true"
-                        inputStyleClass="rounded-xl border-emerald-200 py-3 !pr-11 text-[.95rem] shadow-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/15 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-50"
-                        [invalid]="(registerForm.controls.confirmPassword.invalid || registerForm.hasError('passwordMismatch')) && registerForm.controls.confirmPassword.touched"
-                    /><small class="block min-h-4 pt-1 text-xs text-red-600">
-                        @if ((registerForm.controls.confirmPassword.invalid || registerForm.hasError('passwordMismatch')) && registerForm.controls.confirmPassword.touched) {
-                            @if (registerForm.controls.confirmPassword.hasError('required')) {
-                                La confirmation est obligatoire.
-                            } @else if (registerForm.hasError('passwordMismatch')) {
-                                Les mots de passe ne correspondent pas.
-                            }
+                    ><span class="relative block"
+                        ><input
+                            pInputText
+                            id="confirmPassword"
+                            [type]="showConfirm() ? 'text' : 'password'"
+                            autocomplete="new-password"
+                            placeholder="Répétez votre mot de passe"
+                            required
+                            aria-describedby="confirmPassword-error"
+                            [attr.aria-invalid]="confirmInvalid()"
+                            class="w-full rounded-xl border-emerald-200 py-3 !pr-12 text-[.95rem] shadow-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/15 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-50"
+                            formControlName="confirmPassword"
+                            [invalid]="confirmInvalid()" /><button
+                            type="button"
+                            class="absolute right-1.5 top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-lg text-emerald-950/60 hover:bg-emerald-50 dark:text-emerald-50/70 dark:hover:bg-emerald-900"
+                            aria-label="Afficher la confirmation du mot de passe"
+                            aria-controls="confirmPassword"
+                            [attr.aria-pressed]="showConfirm()"
+                            (click)="showConfirm.set(!showConfirm())"
+                        >
+                            <i [class]="showConfirm() ? 'pi pi-eye-slash' : 'pi pi-eye'" aria-hidden="true"></i></button
+                    ></span>
+                    <small id="confirmPassword-error" class="field-error block min-h-4 pt-1 text-xs text-red-600 dark:text-red-300">
+                        @if (confirmInvalid()) {
+                            {{ confirmError() }}
                         }
                     </small>
                 </div>

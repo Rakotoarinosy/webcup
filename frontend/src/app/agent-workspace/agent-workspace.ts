@@ -1,9 +1,12 @@
 import { DatePipe } from '@angular/common';
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
-import { finalize, forkJoin } from 'rxjs';
+import { RouterLink } from '@angular/router';
+import { catchError, finalize, forkJoin, of } from 'rxjs';
 
 import { CitizenRequest, DashboardStats, RequestEvent, RequestStatus, STATUS_TRANSITIONS, eventLabel } from '@/app/requests/request.model';
 import { CitizenRequestService } from '@/app/requests/request.service';
+import { RequestActivity } from '@/app/journal/journal.model';
+import { JournalService } from '@/app/journal/journal.service';
 import { LiveDataService } from '@/app/shared/live-data.service';
 import { apiErrorMessage } from '@/app/users/user.service';
 
@@ -19,13 +22,14 @@ const ACTION_LABELS: Partial<Record<RequestStatus, string>> = {
 /** « Mes interventions » : le serveur ne renvoie que les demandes attribuées à l'agent connecté. */
 @Component({
     selector: 'app-agent-workspace',
-    imports: [DatePipe],
+    imports: [DatePipe, RouterLink],
     templateUrl: './agent-workspace.html',
     styleUrl: './agent-workspace.scss'
 })
 export class AgentWorkspace {
     private readonly api = inject(CitizenRequestService);
     private readonly live = inject(LiveDataService);
+    private readonly journal = inject(JournalService);
     private readonly destroyRef = inject(DestroyRef);
 
     protected readonly items = signal<CitizenRequest[]>([]);
@@ -38,6 +42,8 @@ export class AgentWorkspace {
     protected readonly timelineFor = signal<string | null>(null);
     protected readonly timeline = signal<RequestEvent[]>([]);
     protected readonly eventLabel = eventLabel;
+    /** Dernières actions sur les demandes de l'agent (F47), le détail complet est dans le Journal. */
+    protected readonly recentActivity = signal<RequestActivity[]>([]);
 
     protected readonly actionRequired = computed(() => this.items().filter((item) => item.status === 'En cours'));
     protected readonly count = (status: RequestStatus) => this.stats()?.by_status[status] ?? 0;
@@ -55,11 +61,14 @@ export class AgentWorkspace {
         this.error.set(null);
         forkJoin({
             page: this.api.list({ page: this.page(), page_size: PAGE_SIZE, sort_by: 'created_at', sort_order: 'desc' }),
-            stats: this.api.dashboard()
+            stats: this.api.dashboard(),
+            // Le journal est un complément : son indisponibilité ne bloque pas la liste.
+            activity: this.journal.activity({ type: null, since: null, until: null, search: '', page: 1 }, 5).pipe(catchError(() => of(null)))
         })
             .pipe(finalize(() => this.loading.set(false)))
             .subscribe({
-                next: ({ page, stats }) => {
+                next: ({ page, stats, activity }) => {
+                    this.recentActivity.set(activity?.items ?? []);
                     this.items.set(page.items);
                     this.page.set(page.page);
                     this.pages.set(Math.max(1, page.total_pages));

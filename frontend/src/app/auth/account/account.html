@@ -1,48 +1,6 @@
 <p-toast />
 
 <div class="grid grid-cols-12 gap-6">
-    <!-- En-tête : identité, périmètre et raccourcis du rôle -->
-    <section class="card col-span-12 mb-0" aria-labelledby="account-title">
-        <div class="flex flex-wrap items-start justify-between gap-6">
-            <div class="flex items-center gap-4">
-                <div class="flex items-center justify-center rounded-full bg-primary-100 dark:bg-primary-400/10" style="width: 3.5rem; height: 3.5rem" aria-hidden="true">
-                    <i class="pi pi-user text-primary !text-2xl"></i>
-                </div>
-                <div>
-                    <p class="m-0 text-sm font-medium text-muted-color">Mon espace</p>
-                    <h1 id="account-title" class="m-0 text-2xl font-semibold">Bonjour {{ auth.user()?.name }}</h1>
-                    <p class="mt-1 mb-0 text-muted-color">{{ auth.user()?.email }} · <p-tag [value]="auth.roleLabel()" severity="secondary" /></p>
-                </div>
-            </div>
-            <div class="flex flex-wrap gap-2">
-                @for (shortcut of shortcuts(); track shortcut.link) {
-                    <p-button [label]="shortcut.label" [icon]="shortcut.icon" [outlined]="!$first" [routerLink]="shortcut.link" />
-                }
-                <p-button label="Mon profil" icon="pi pi-user-edit" [outlined]="true" routerLink="/home/profile" />
-                @if (!unattached()) {
-                    <p-button icon="pi pi-refresh" severity="secondary" [text]="true" [loading]="loading()" ariaLabel="Actualiser" (onClick)="load()" />
-                }
-            </div>
-        </div>
-
-        @if (agent(); as profile) {
-            <div class="mt-6 flex flex-wrap items-center gap-3 border-t border-surface pt-4">
-                <label for="agent-availability" class="font-medium">Ma disponibilité</label>
-                <p-select
-                    inputId="agent-availability"
-                    [options]="statusOptions"
-                    optionLabel="label"
-                    optionValue="value"
-                    [ngModel]="profile.status"
-                    (ngModelChange)="setAvailability($event)"
-                    [disabled]="savingStatus()"
-                    class="w-56"
-                />
-                <span class="text-sm text-muted-color">Institut {{ profile.institut_name }} · {{ profile.interventions }} intervention(s)</span>
-            </div>
-        }
-    </section>
-
     @if (unattached()) {
         <section class="card col-span-12 mb-0" role="status">
             <div class="flex items-start gap-3">
@@ -69,7 +27,7 @@
         </div>
 
         <!-- Même rangée de cartes que le tableau de bord, sur le périmètre de l'utilisateur -->
-        <app-stats class="contents" [stats]="cards()" />
+        <app-stats class="contents" [stats]="cards()" [links]="statLinks()" />
 
         <div class="col-span-12 xl:col-span-8">
             <app-trend-chart [trendData]="trend()" />

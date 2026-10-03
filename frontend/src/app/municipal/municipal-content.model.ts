@@ -9,6 +9,40 @@ export interface MunicipalService {
     display_order: number;
     is_featured: boolean;
     usage_count: number;
+    /** Accueil physique (F45) : null tant que la mairie ne l'a pas renseigné. */
+    address: string | null;
+    latitude: number | null;
+    longitude: number | null;
+}
+
+export interface ServiceLocationIn {
+    address: string | null;
+    latitude: number | null;
+    longitude: number | null;
+}
+
+export type LocatedService = MunicipalService & { latitude: number; longitude: number };
+
+export function isLocated(service: MunicipalService): service is LocatedService {
+    return service.latitude !== null && service.longitude !== null;
+}
+
+/** Itinéraire vers le service, ouvert dans l'application de cartes du téléphone ou du navigateur. */
+export function directionsUrl(service: LocatedService): string {
+    return `https://www.google.com/maps/dir/?api=1&destination=${service.latitude},${service.longitude}`;
+}
+
+/** Distance à vol d'oiseau en kilomètres (formule de haversine). */
+export function distanceKm(from: { latitude: number; longitude: number }, to: { latitude: number; longitude: number }): number {
+    const rad = (deg: number) => (deg * Math.PI) / 180;
+    const dLat = rad(to.latitude - from.latitude);
+    const dLon = rad(to.longitude - from.longitude);
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(rad(from.latitude)) * Math.cos(rad(to.latitude)) * Math.sin(dLon / 2) ** 2;
+    return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+export function formatDistance(km: number): string {
+    return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} km`;
 }
 
 export interface MunicipalPublication {

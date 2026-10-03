@@ -1,5 +1,5 @@
 @if (canView()) {
-    <div class="relative inline-block">
+    <div #notificationMenu class="relative inline-block">
         <button
             type="button"
             class="layout-topbar-action relative"
@@ -19,9 +19,9 @@
         </button>
 
         @if (showPanel()) {
-            <div class="absolute right-0 z-50 mt-3 w-80 overflow-hidden rounded-xl border border-surface-200 bg-surface-0 shadow-xl dark:border-surface-700 dark:bg-surface-900">
+            <div class="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-80 overflow-hidden rounded-xl border border-surface-200 bg-surface-0 shadow-xl dark:border-surface-700 dark:bg-surface-900">
                 <div class="flex items-center justify-between border-b border-surface-200 bg-surface-50 px-4 py-3 dark:border-surface-700 dark:bg-surface-800">
-                    <span class="text-sm font-semibold text-surface-900 dark:text-surface-0">Nouvelles demandes</span>
+                    <span class="text-sm font-semibold text-surface-900 dark:text-surface-0">Notifications</span>
                     @if (unreadCount() > 0) {
                         <button type="button" class="text-xs font-medium text-primary hover:underline" (click)="markAllAsRead($event)">
                             Tout marquer comme lu
@@ -34,7 +34,7 @@
                 }
 
                 <div class="max-h-80 divide-y divide-surface-100 overflow-y-auto dark:divide-surface-800">
-                    @for (notification of recentNotifications(); track notification.key) {
+                    @for (notification of allNotifications(); track notification.key) {
                         <button
                             type="button"
                             class="flex w-full cursor-pointer items-start gap-3 border-0 p-3 text-left transition-colors hover:bg-surface-50 dark:hover:bg-surface-800"
@@ -42,13 +42,13 @@
                             (click)="open(notification)"
                         >
                             <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emphasis">
-                                <i [class]="notification.kind === 'new_wave' ? 'pi pi-megaphone text-amber-500' : 'pi pi-inbox text-blue-500'"></i>
+                                <i [class]="notification.typeLabel === 'Publication' ? 'pi pi-megaphone text-amber-500' : 'pi pi-inbox text-blue-500'"></i>
                             </span>
 
                             <span class="min-w-0 flex-1">
                                 <span class="block truncate text-sm font-medium text-surface-900 dark:text-surface-0">{{ notification.title }}</span>
                                 <span class="mt-0.5 block text-xs text-muted-color">{{ notification.message }}</span>
-                                <span class="mt-1 block text-xs text-muted-color">{{ notification.created_at | date: 'dd/MM HH:mm' }}</span>
+                                <span class="mt-1 block text-xs text-muted-color">{{ notification.typeLabel }} · {{ notification.created_at | date: 'dd/MM HH:mm' }}</span>
                             </span>
 
                             @if (!notification.is_read) {
@@ -57,7 +57,7 @@
                         </button>
                     } @empty {
                         <div class="p-6 text-center text-sm text-muted-color">
-                            Aucune nouvelle demande
+                            Aucune notification
                         </div>
                     }
                 </div>

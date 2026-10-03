@@ -29,6 +29,17 @@ export class AppLayout {
         };
     });
 
+    /**
+     * Le lien d’évitement déplace le focus sur le contenu principal sans passer par le routeur
+     * (un simple « #main-content » serait résolu par rapport au <base href> et rechargerait la page).
+     */
+    skipToContent(event: Event): void {
+        event.preventDefault();
+        const main = document.getElementById('main-content');
+        main?.focus();
+        main?.scrollIntoView({ block: 'start' });
+    }
+
     constructor() {
         // Prevent the page from scrolling behind the open mobile menu.
         effect(() => {

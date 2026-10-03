@@ -4,48 +4,118 @@
 <section class="municipal-page">
     <p class="eyebrow">Informations utiles</p>
     <h1>Services municipaux</h1>
-    <p class="intro">Trouvez le bon interlocuteur, ses horaires et les informations pratiques pour vos démarches.</p>
+    <p class="intro">Trouvez le bon interlocuteur, où il vous accueille, ses horaires, et comment vous y rendre.</p>
 
-    <form role="search" aria-label="Rechercher un service municipal" class="mb-5">
-        <label for="service-search" class="mb-2 block font-semibold">Rechercher par nom ou catégorie</label>
-        <input id="service-search" type="search" class="w-full rounded border border-surface bg-transparent p-3" [ngModel]="search()" (ngModelChange)="search.set($event)" name="service-search" aria-label="Nom ou catégorie du service" />
-    </form>
+    <div class="mb-5 flex flex-wrap items-end gap-3">
+        <form role="search" aria-label="Rechercher un service municipal" class="min-w-[16rem] flex-1">
+            <label for="service-search" class="mb-2 block font-semibold">Rechercher par nom, catégorie ou adresse</label>
+            <input id="service-search" type="search" class="w-full rounded border border-surface bg-transparent p-3" [ngModel]="search()" (ngModelChange)="search.set($event)" name="service-search" />
+        </form>
+        <button type="button" class="locate-button" [disabled]="locating()" (click)="locateMe()">
+            <i class="pi pi-compass" aria-hidden="true"></i> {{ locating() ? 'Localisation…' : 'Services près de moi' }}
+        </button>
+    </div>
     <p class="sr-only" aria-live="polite">{{ visibleServices().length }} service(s) trouvé(s).</p>
+    @if (locateMessage(); as message) {
+        <p role="status" class="mb-4">{{ message }}</p>
+    }
 
     @if (error(); as message) {
         <p role="alert" class="mb-4 text-red-600">{{ message }}</p>
     }
 
+    @if (locatedServices().length) {
+        <section #mapSection class="mb-6" aria-labelledby="map-heading">
+            <h2 id="map-heading" class="mb-3 text-xl font-semibold">Où nous trouver</h2>
+            <app-services-map [services]="locatedServices()" [position]="position()" />
+        </section>
+    }
+
     <div class="service-grid">
         @for (service of visibleServices(); track service.id) {
-            <article class="service-card">
+            <article class="service-card" [attr.aria-labelledby]="'service-' + service.id">
                 <p-card>
-                    <ng-template #title><i [class]="'pi ' + service.icon" aria-hidden="true"></i> {{ service.name }}</ng-template>
+                    <ng-template #title
+                        ><span [id]="'service-' + service.id"><i [class]="'pi ' + service.icon" aria-hidden="true"></i> {{ service.name }}</span></ng-template
+                    >
                     <p>{{ service.description }}</p>
                     <dl>
-                        <dt>Contact</dt>
-                        <dd>{{ service.contact_details }}</dd>
+                        <dt>Adresse</dt>
+                        <dd>
+                            @if (service.address) {
+                                {{ service.address }}
+                                @if (distance(service); as away) {
+                                    <span class="distance">· à {{ away }}</span>
+                                }
+                            } @else {
+                                <span class="text-muted-color">Lieu d’accueil non renseigné</span>
+                            }
+                        </dd>
                         <dt>Horaires</dt>
                         <dd>{{ service.opening_hours }}</dd>
+                        <dt>Contact</dt>
+                        <dd>{{ service.contact_details }}</dd>
                     </dl>
-                    <button type="button" class="card-action" [attr.aria-label]="'Contacter le service ' + service.name" [disabled]="openingService() !== null" (click)="startService(service)">
-                        Contacter ce service <i class="pi pi-arrow-right" aria-hidden="true"></i>
-                    </button>
+                    <div class="card-actions">
+                        @if (isLocated(service)) {
+                            <a class="card-action" [href]="directionsUrl(service)" target="_blank" rel="noopener">
+                                <i class="pi pi-directions" aria-hidden="true"></i> Itinéraire<span class="sr-only"> vers {{ service.name }} (nouvel onglet)</span>
+                            </a>
+                            <button type="button" class="card-action" (click)="showOnMap(service)">
+                                <i class="pi pi-map-marker" aria-hidden="true"></i> Voir sur la carte<span class="sr-only"> : {{ service.name }}</span>
+                            </button>
+                        }
+                        <button type="button" class="card-action" [disabled]="openingService() !== null" (click)="startService(service)">
+                            Contacter ce service<span class="sr-only"> : {{ service.name }}</span> <i class="pi pi-arrow-right" aria-hidden="true"></i>
+                        </button>
+                    </div>
 
                     @if (auth.hasRole('manager', 'admin')) {
                         <div class="service-admin mt-4 flex flex-wrap items-end gap-3 border-t border-surface pt-3">
                             <label class="flex items-center gap-2">
                                 <input type="checkbox" [checked]="service.is_featured" [disabled]="saving() === service.id" (change)="onFeaturedChange(service, $event)" />
-                                <span>Mettre en avant</span>
+                                <span>Mettre en avant<span class="sr-only"> {{ service.name }}</span></span>
                             </label>
                             <label class="flex items-center gap-2">
-                                <span>Ordre</span>
+                                <span>Ordre<span class="sr-only"> de {{ service.name }}</span></span>
                                 <input #orderInput type="number" min="0" class="w-20 rounded border border-surface bg-transparent p-2" [value]="service.display_order" [disabled]="saving() === service.id" />
                             </label>
                             <button type="button" class="rounded border border-surface px-3 py-2 focus-visible:outline-2" [disabled]="saving() === service.id" (click)="updateFeatured(service, service.is_featured, +orderInput.value)">
-                                Enregistrer
+                                Enregistrer<span class="sr-only"> la mise en avant de {{ service.name }}</span>
                             </button>
+                            @if (editingLocation() !== service.id) {
+                                <button type="button" class="rounded border border-surface px-3 py-2 focus-visible:outline-2" (click)="editLocation(service)">
+                                    Modifier le lieu d’accueil<span class="sr-only"> de {{ service.name }}</span>
+                                </button>
+                            }
                         </div>
+                        @if (editingLocation() === service.id) {
+                            <fieldset class="location-form mt-3 grid gap-3 rounded border border-surface p-3" [disabled]="saving() === service.id">
+                                <legend class="px-1 font-semibold">Lieu d’accueil de {{ service.name }}</legend>
+                                <label class="grid gap-1">
+                                    <span>Adresse *</span>
+                                    <input type="text" class="rounded border border-surface bg-transparent p-2" maxlength="255" required [(ngModel)]="locationForm.address" [name]="'address-' + service.id" />
+                                </label>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <label class="grid gap-1">
+                                        <span>Latitude *</span>
+                                        <input type="number" step="0.000001" min="-90" max="90" class="rounded border border-surface bg-transparent p-2" required [(ngModel)]="locationForm.latitude" [name]="'latitude-' + service.id" />
+                                    </label>
+                                    <label class="grid gap-1">
+                                        <span>Longitude *</span>
+                                        <input type="number" step="0.000001" min="-180" max="180" class="rounded border border-surface bg-transparent p-2" required [(ngModel)]="locationForm.longitude" [name]="'longitude-' + service.id" />
+                                    </label>
+                                </div>
+                                <p class="m-0 text-sm text-muted-color">Astuce : sur openstreetmap.org, clic droit sur le lieu puis « Afficher l’adresse » donne les coordonnées.</p>
+                                <div class="flex flex-wrap gap-2">
+                                    <button type="button" class="rounded bg-primary px-3 py-2 text-primary-contrast" (click)="saveLocation(service)">Enregistrer le lieu</button>
+                                    @if (service.address) {
+                                        <button type="button" class="rounded border border-surface px-3 py-2" (click)="saveLocation(service, true)">Retirer le lieu</button>
+                                    }
+                                    <button type="button" class="rounded px-3 py-2" (click)="editingLocation.set(null)">Annuler</button>
+                                </div>
+                            </fieldset>
+                        }
                     }
                 </p-card>
             </article>

@@ -12,6 +12,7 @@ from src.features.citizen_request.use_cases.prioritization import (
 )
 from src.features.citizen_request.use_cases.read import (
     get_request,
+    list_activity,
     list_request_events,
     list_requests,
 )
@@ -27,6 +28,7 @@ __all__ = [
     "get_dashboard",
     "get_public_dashboard",
     "get_request",
+    "list_activity",
     "list_map_points",
     "list_request_events",
     "list_requests",
