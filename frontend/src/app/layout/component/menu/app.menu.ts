@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterModule } from '@angular/router';
+import { AuthService } from '@/app/auth/auth.service';
 import { MenuItem } from 'primeng/api';
 
 import { AppMenuitem } from '../menuitem/app.menuitem';
@@ -70,7 +71,11 @@ const MENU_MODEL: MenuItem[] = [
 export class AppMenu {
     model: MenuItem[] = [];
 
+    private readonly auth = inject(AuthService);
+
     ngOnInit() {
-        this.model = MENU_MODEL;
+        this.model = this.auth.user()?.role === 'agent'
+            ? [{ label: 'Espace agent', items: [{ label: 'Mes interventions', icon: 'pi pi-fw pi-inbox', routerLink: ['/home/agent'] }] }]
+            : MENU_MODEL;
     }
 }

@@ -67,6 +67,17 @@ class DemandePageOut(BaseModel):
     pages: int
 
 
+class AgentDemandeSummaryOut(BaseModel):
+    """Compteurs des demandes attribuées à l'agent connecté."""
+
+    total: int
+    nouveau: int
+    en_cours: int
+    en_attente: int
+    resolu: int
+    rejete: int
+
+
 class EventOut(BaseModel):
     """Entrée de timeline. Pour `assigned`, le payload contient aussi `agent_name`."""
 
