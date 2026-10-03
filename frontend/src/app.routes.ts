@@ -15,6 +15,7 @@ export const appRoutes: Routes = [
             { path: 'dashboard', component: Dashboard, canActivate: [roleGuard], data: { roles: ['admin', 'manager'] } },
             { path: 'users', canActivate: [roleGuard], data: { roles: ['admin'] }, loadComponent: () => import('./app/users/users').then((m) => m.Users) },
             { path: 'requests', loadComponent: () => import('./app/requests/requests').then((m) => m.Requests), canActivate: [roleGuard], data: { roles: ['admin', 'manager', 'agent', 'citizen'] } },
+            { path: 'agent', canActivate: [roleGuard], data: { roles: ['agent'] }, loadComponent: () => import('./app/agent-workspace/agent-workspace').then((m) => m.AgentWorkspace) },
             { path: 'agents', canActivate: [roleGuard], data: { roles: ['manager', 'admin'] }, loadComponent: () => import('./app/agents/agents').then((m) => m.Agents) },
             { path: 'municipal', loadComponent: () => import('./app/municipal/municipal-home').then((m) => m.MunicipalHome), canActivate: [roleGuard], data: { roles: ['admin', 'manager', 'agent', 'citizen'] } },
             { path: 'municipal/services', loadComponent: () => import('./app/municipal/municipal-services').then((m) => m.MunicipalServices), canActivate: [roleGuard], data: { roles: ['admin', 'manager', 'agent', 'citizen'] } },

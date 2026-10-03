@@ -31,6 +31,7 @@ from src.domain.demande.events import DemandeEvent, DemandeEventRepository
 from src.domain.pagination import Page
 from src.domain.user import ForbiddenError, Role, User, UserRepository
 from src.features.demande.schemas import (
+    AgentDemandeSummaryOut,
     AssignDemandeIn,
     CreateDemandeIn,
     DemandeOut,
@@ -182,6 +183,29 @@ def list_demandes_endpoint(
     )
 
     return list_demandes(query, repo)
+
+
+@router.get("/agent/summary", response_model=AgentDemandeSummaryOut)
+def agent_demande_summary_endpoint(
+    user: User = Depends(require_roles(Role.AGENT)),
+    repo: DemandeRepository = Depends(get_demande_repo),
+) -> AgentDemandeSummaryOut:
+    """Compteurs de suivi limités aux demandes attribuées à l'agent connecté."""
+    _, agent_id = _apply_scope(user, None, None)
+    assert agent_id is not None  # _apply_scope refuse les comptes agent sans fiche associée.
+
+    def count(status: Status | None = None) -> int:
+        page = repo.search(DemandeQuery(agent_id=agent_id, status=status, page_size=1))
+        return page.total
+
+    return AgentDemandeSummaryOut(
+        total=count(),
+        nouveau=count(Status.NOUVEAU),
+        en_cours=count(Status.EN_COURS),
+        en_attente=count(Status.EN_ATTENTE),
+        resolu=count(Status.RESOLU),
+        rejete=count(Status.REJETE),
+    )
 
 
 @router.get("/map", response_model=list[MapPointOut])
