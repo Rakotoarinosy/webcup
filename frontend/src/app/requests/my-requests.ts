@@ -16,11 +16,12 @@ import {
     CitizenRequest,
     CitizenRequestPage,
     CitizenRequestQuery,
-    CreateCitizenRequestIn,
     REQUEST_CATEGORIES,
     REQUEST_STATUSES,
     RequestCategory,
-    RequestStatus
+    RequestEvent,
+    RequestStatus,
+    eventLabel
 } from './request.model';
 import { CitizenRequestService } from './request.service';
 import { apiErrorMessage } from '@/app/users/user.service';
@@ -56,6 +57,10 @@ export class MyRequests implements OnInit {
     protected readonly pages = signal(1);
     protected readonly statusFilter = signal<RequestStatus | null>(null);
     protected readonly selectedRequest = signal<CitizenRequest | null>(null);
+    protected readonly statusHistory = signal<RequestEvent[]>([]);
+    protected readonly eventLabel = eventLabel;
+    protected readonly historyLoading = signal(false);
+    protected readonly historyError = signal<string | null>(null);
     protected readonly notifications = signal<CitizenNotification[]>([]);
     protected readonly actionable = signal<CitizenRequest[]>([]);
     protected readonly attentionError = signal<string | null>(null);
@@ -94,8 +99,7 @@ export class MyRequests implements OnInit {
             page,
             page_size: PAGE_SIZE,
             sort_by: 'created_at',
-            sort_order: 'desc',
-            mine: true
+            sort_order: 'desc'
         };
         const status = this.statusFilter();
         if (status) query.status = status;
@@ -123,23 +127,16 @@ export class MyRequests implements OnInit {
 
     protected create(): void {
         if (this.submitting()) return;
-        const citizenId = this.auth.user()?.id;
-        if (!citizenId) {
+        if (!this.auth.user()) {
             this.error.set('Connectez-vous pour envoyer une demande.');
             return;
         }
 
-        const payload: CreateCitizenRequestIn = {
-            ...this.form,
-            priority: 'Normale',
-            status: 'Nouveau',
-            citizen_id: citizenId,
-            assigned_agent_id: null
-        };
+        // Statut, priorité et service destinataire sont décidés par la mairie, pas par le citoyen.
         this.submitting.set(true);
         this.error.set(null);
         this.requestsApi
-            .create(payload)
+            .submit({ ...this.form })
             .pipe(finalize(() => this.submitting.set(false)))
             .subscribe({
                 next: (request) => {
@@ -164,6 +161,9 @@ export class MyRequests implements OnInit {
     }
 
     private loadDetail(id: string): void {
+        this.statusHistory.set([]);
+        this.historyLoading.set(true);
+        this.historyError.set(null);
         this.loading.set(true);
         this.error.set(null);
         this.requestsApi
@@ -178,6 +178,13 @@ export class MyRequests implements OnInit {
                     this.error.set(error instanceof HttpErrorResponse && error.status === 404 ? 'Cette demande est introuvable.' : apiErrorMessage(error));
                 }
             });
+        this.requestsApi
+            .events(id)
+            .pipe(finalize(() => this.historyLoading.set(false)))
+            .subscribe({
+                next: (history) => this.statusHistory.set(history),
+                error: (error: unknown) => this.historyError.set(apiErrorMessage(error))
+            });
     }
 
     private loadAttention(): void {
@@ -188,8 +195,7 @@ export class MyRequests implements OnInit {
                 page_size: PAGE_SIZE,
                 status: 'En attente',
                 sort_by: 'created_at',
-                sort_order: 'desc',
-                mine: true
+                sort_order: 'desc'
             })
         }).subscribe({
             next: ({ notifications, pending }) => {

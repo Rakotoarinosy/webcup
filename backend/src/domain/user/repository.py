@@ -25,9 +25,12 @@ class UserRepository(ABC):
     @abstractmethod
     def delete(self, user_id: str) -> None: ...
 
-    # Déclaré en dernier : le nom `list` masque le builtin dans le corps de la classe.
+    # L'annotation est évaluée avant que cette méthode ne masque le builtin `list`.
     @abstractmethod
     def list(self) -> list[User]: ...
+
+    @abstractmethod
+    def list_citizens(self, search: str | None = None) -> "list[User]": ...
 
 
 class RefreshTokenRepository(ABC):

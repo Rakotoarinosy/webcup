@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/app/agents/agent.model.ts"],
+  "sourcesContent": ["export const AGENT_STATUSES = ['available', 'in_intervention', 'unavailable', 'offline'] as const;\n\nexport type AgentStatus = (typeof AGENT_STATUSES)[number];\n\n/** Libellés affichés : l'API renvoie les statuts en anglais. */\nexport const AGENT_STATUS_LABELS: Record<AgentStatus, string> = {\n    available: 'Disponible',\n    in_intervention: 'En intervention',\n    unavailable: 'Indisponible',\n    offline: 'Hors ligne'\n};\n\n/** Profil agent (AgentOut) : nom et email viennent du compte, l'institut de son rattachement. */\nexport interface Agent {\n    id: string;\n    user_id: string;\n    name: string;\n    email: string;\n    institut_id: string;\n    institut_name: string;\n    status: AgentStatus;\n    is_active: boolean;\n    interventions: number;\n    created_at: string;\n}\n\n/** Profil d'un compte existant de rôle « agent ». Un manager crée toujours dans son institut. */\nexport interface CreateAgentProfileIn {\n    user_id: string;\n    institut_id?: string | null;\n    status: AgentStatus;\n}\n\nexport interface AgentQuery {\n    search?: string;\n    institut_id?: string;\n    status?: AgentStatus;\n    is_active?: boolean;\n}\n"],
+  "mappings": ";AAAO,IAAM,iBAAiB,CAAC,aAAa,mBAAmB,eAAe,SAAS;AAKhF,IAAM,sBAAmD;EAC5D,WAAW;EACX,iBAAiB;EACjB,aAAa;EACb,SAAS;;",
+  "names": []
+}

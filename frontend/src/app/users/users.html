@@ -1,80 +1,102 @@
 <p-toast />
+<p-confirmdialog [style]="{ width: 'min(28rem, 95vw)' }" />
 
-<div class="card">
-    <!-- Toolbar -->
-    <p-toolbar styleClass="mb-6">
-        <ng-template #start>
-            <p-button label="Nouvel utilisateur" icon="pi pi-plus" (onClick)="openNew()" />
-        </ng-template>
+<section class="card" aria-labelledby="citizen-accounts-heading">
+    <header class="mb-5 flex flex-wrap items-start justify-between gap-4">
+        <div>
+            <h1 id="citizen-accounts-heading" class="m-0 text-xl font-semibold">Comptes citoyens</h1>
+            <p class="mt-1 mb-0 text-sm text-muted-color">Rechercher, consulter et mettre à jour les informations des comptes citoyens.</p>
+        </div>
+        <p-button label="Actualiser" icon="pi pi-refresh" severity="secondary" [outlined]="true" [loading]="loading()" (onClick)="loadUsers()" />
+    </header>
 
-        <ng-template #end>
-            <p-button icon="pi pi-refresh" severity="secondary" [text]="true" [loading]="loading()" (onClick)="loadUsers()" ariaLabel="Recharger" />
-        </ng-template>
-    </p-toolbar>
+    <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <p-iconfield class="w-full md:w-96">
+            <p-inputicon styleClass="pi pi-search" />
+            <input
+                pInputText
+                type="search"
+                class="w-full"
+                aria-label="Rechercher un compte citoyen par nom ou email"
+                placeholder="Rechercher par nom ou email..."
+                [(ngModel)]="searchText"
+                (ngModelChange)="loadUsers($event)"
+            />
+        </p-iconfield>
+        <span class="text-sm text-muted-color" aria-live="polite">{{ users().length }} compte(s)</span>
+    </div>
 
-    <!-- Users table -->
-    <p-table #dt [value]="users()" [loading]="loading()" [rows]="10" [paginator]="users().length > 10" [globalFilterFields]="['name', 'email']" [rowHover]="true" dataKey="id">
-        <ng-template #caption>
-            <div class="flex items-center justify-between">
-                <div>
-                    <h5 class="m-0">Utilisateurs</h5>
-                    <span class="text-muted-color text-sm">Données servies par le backend : GET /api/v1/users</span>
-                </div>
-                <p-iconfield>
-                    <p-inputicon styleClass="pi pi-search" />
-                    <input pInputText type="text" (input)="onGlobalFilter(dt, $event)" placeholder="Rechercher..." />
-                </p-iconfield>
-            </div>
-        </ng-template>
-
+    <p-table [value]="users()" [loading]="loading()" [paginator]="users().length > 10" [rows]="10" [rowHover]="true" dataKey="id" [tableStyle]="{ 'min-width': '42rem' }">
         <ng-template #header>
             <tr>
-                <th pSortableColumn="name">Nom <p-sortIcon field="name" /></th>
+                <th pSortableColumn="name">Citoyen <p-sortIcon field="name" /></th>
                 <th pSortableColumn="email">Email <p-sortIcon field="email" /></th>
-                <th pSortableColumn="created_at">Créé le <p-sortIcon field="created_at" /></th>
-                <th style="width: 8rem"></th>
+                <th>État du compte</th>
+                <th pSortableColumn="created_at">Inscription <p-sortIcon field="created_at" /></th>
+                <th style="width: 12rem">Actions</th>
             </tr>
         </ng-template>
 
         <ng-template #body let-user>
-            <tr>
-                <td>{{ user.name }}</td>
+            <tr [class.opacity-60]="!user.is_active">
+                <td class="font-medium">{{ user.name }}</td>
                 <td>{{ user.email }}</td>
-                <td>{{ user.created_at | date: 'dd/MM/yyyy HH:mm' }}</td>
-                <td class="text-right">
-                    <p-button icon="pi pi-pencil" [rounded]="true" [outlined]="true" class="mr-2" (onClick)="openEdit(user)" ariaLabel="Modifier" />
-                    <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (onClick)="confirmDelete(user)" ariaLabel="Supprimer" />
+                <td>
+                    @if (user.is_active) {
+                        <p-tag value="Actif" severity="success" />
+                    } @else {
+                        <p-tag value="Désactivé" severity="danger" />
+                    }
+                </td>
+                <td>{{ user.created_at | date: 'dd/MM/yyyy' }}</td>
+                <td>
+                    <div class="flex gap-1">
+                        <p-button icon="pi pi-eye" [rounded]="true" [text]="true" ariaLabel="Voir le compte" (onClick)="openDetails(user)" />
+                        <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" ariaLabel="Modifier le profil" (onClick)="openEdit(user)" />
+                        @if (user.is_active) {
+                            <p-button icon="pi pi-ban" severity="danger" [rounded]="true" [text]="true" ariaLabel="Désactiver le compte" (onClick)="confirmActivationChange(user)" />
+                        } @else {
+                            <p-button icon="pi pi-replay" severity="success" [rounded]="true" [text]="true" ariaLabel="Activer le compte" (onClick)="confirmActivationChange(user)" />
+                        }
+                    </div>
                 </td>
             </tr>
         </ng-template>
 
         <ng-template #emptymessage>
             <tr>
-                <td colspan="4" class="text-center py-8 text-muted-color">Aucun utilisateur. Cliquez sur « Nouvel utilisateur » pour en créer un.</td>
+                <td colspan="5" class="py-8 text-center text-muted-color">
+                    {{ searchText ? 'Aucun compte citoyen ne correspond à cette recherche.' : 'Aucun compte citoyen à afficher.' }}
+                </td>
             </tr>
         </ng-template>
     </p-table>
-</div>
+</section>
 
-<!-- Create / edit dialog -->
-<p-dialog [(visible)]="dialogVisible" [header]="editedUser() ? 'Modifier l\'utilisateur' : 'Nouvel utilisateur'" [modal]="true" [style]="{ width: '28rem' }">
-    <form #userForm="ngForm" id="userForm" class="flex flex-col gap-6" (ngSubmit)="save()">
-        <div>
-            <label for="name" class="block font-bold mb-3">Nom</label>
-            <input pInputText id="name" name="name" [(ngModel)]="form.name" required maxlength="255" class="w-full" autofocus />
-        </div>
-        <div>
-            <label for="email" class="block font-bold mb-3">Email</label>
-            <input pInputText id="email" name="email" type="email" [(ngModel)]="form.email" required email class="w-full" />
-        </div>
-    </form>
-
-    <ng-template #footer>
-        <!-- Boutons natifs : `form="userForm"` soumet le formulaire depuis le pied du dialog. -->
-        <button pButton type="button" label="Annuler" icon="pi pi-times" [text]="true" (click)="dialogVisible.set(false)"></button>
-        <button pButton type="submit" form="userForm" label="Enregistrer" icon="pi pi-check" [loading]="saving()" [disabled]="!userForm.valid || saving()"></button>
-    </ng-template>
+<p-dialog [visible]="detailsVisible()" (visibleChange)="detailsVisible.set($event)" header="Détail du compte citoyen" [modal]="true" [style]="{ width: 'min(34rem, 95vw)' }">
+    @if (selectedUser(); as user) {
+        <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div><dt class="text-sm text-muted-color">Nom</dt><dd class="m-0 font-medium">{{ user.name }}</dd></div>
+            <div><dt class="text-sm text-muted-color">Email</dt><dd class="m-0 font-medium">{{ user.email }}</dd></div>
+            <div><dt class="text-sm text-muted-color">État</dt><dd class="m-0"><p-tag [value]="user.is_active ? 'Actif' : 'Désactivé'" [severity]="user.is_active ? 'success' : 'danger'" /></dd></div>
+            <div><dt class="text-sm text-muted-color">Inscription</dt><dd class="m-0">{{ user.created_at | date: 'dd/MM/yyyy HH:mm' }}</dd></div>
+        </dl>
+    }
 </p-dialog>
 
-<!-- Delete confirmation -->
-<p-confirmdialog [style]="{ width: '28rem' }" />
+<p-dialog [visible]="editVisible()" (visibleChange)="editVisible.set($event)" header="Modifier le profil citoyen" [modal]="true" [style]="{ width: 'min(32rem, 95vw)' }">
+    <form #accountForm="ngForm" id="citizenAccountForm" class="flex flex-col gap-5" (ngSubmit)="save(accountForm)">
+        <div>
+            <label for="citizen-name" class="mb-2 block font-semibold">Nom</label>
+            <input pInputText id="citizen-name" name="name" [(ngModel)]="form.name" required maxlength="255" class="w-full" />
+        </div>
+        <div>
+            <label for="citizen-email" class="mb-2 block font-semibold">Email</label>
+            <input pInputText id="citizen-email" name="email" type="email" [(ngModel)]="form.email" required email maxlength="320" class="w-full" />
+        </div>
+    </form>
+    <ng-template #footer>
+        <button pButton type="button" label="Annuler" icon="pi pi-times" [text]="true" (click)="editVisible.set(false)"></button>
+        <button pButton type="submit" form="citizenAccountForm" label="Enregistrer" icon="pi pi-check" [loading]="saving()" [disabled]="!accountForm.valid || saving()"></button>
+    </ng-template>
+</p-dialog>

@@ -2,7 +2,8 @@
 
 Usage : `make seed` (ou `python -m src.infrastructure.persistence.seed`).
 Prérequis : `make migrate`. Le script est rejouable : il supprime d'abord les données qu'il a
-lui-même créées (citoyens et agents en @seed.test, et leurs demandes), puis les recrée.
+lui-même créées (comptes en @seed.test, leurs profils agents, instituts et demandes), puis les recrée.
+Les comptes seed n'ont pas de mot de passe : ils servent de données, pas de comptes de connexion.
 Tirage aléatoire à graine fixe : les mêmes données à chaque exécution (hors dates, relatives à
 aujourd'hui pour que le dashboard « 7 derniers jours » soit toujours rempli).
 """
@@ -17,7 +18,9 @@ from src.domain.citizen_request import RequestCategory, RequestPriority, Request
 from src.infrastructure.persistence.database import SessionLocal, engine
 from src.infrastructure.persistence.models import (
     AgentModel,
+    CitizenRequestEventModel,
     CitizenRequestModel,
+    InstitutModel,
     UserModel,
     new_id,
 )
@@ -43,14 +46,28 @@ CITIZENS = [
     "Onja Ratsimbazafy",
 ]
 
-# (nom, département, statut, actif) : un agent désactivé pour tester ce cas.
+# (nom de l'institut, catégories reçues). « Autre » reste sans institut : traitée par l'admin.
+INSTITUTS = [
+    ("Service de la voirie", (RequestCategory.ROADS, RequestCategory.PUBLIC_LIGHTING)),
+    ("Service des eaux", (RequestCategory.WATER,)),
+    ("Propreté urbaine", (RequestCategory.WASTE, RequestCategory.GREEN_SPACES)),
+    ("Sécurité publique", (RequestCategory.SAFETY,)),
+]
+# (nom, institut, statut, actif) : un agent désactivé pour tester ce cas.
 AGENTS = [
-    ("Jean Rakoto", "Voirie", "available", True),
-    ("Sarah Andry", "Eau", "in_intervention", True),
-    ("Marc Rabe", "Éclairage public", "available", True),
-    ("Sitraka Rabearivelo", "Déchets", "in_intervention", True),
-    ("Andry Ramaroson", "Sécurité", "unavailable", True),
-    ("Volana Rakotovao", "Espaces verts", "offline", False),
+    ("Jean Rakoto", "Service de la voirie", "available", True),
+    ("Marc Rabe", "Service de la voirie", "available", True),
+    ("Sarah Andry", "Service des eaux", "in_intervention", True),
+    ("Sitraka Rabearivelo", "Propreté urbaine", "in_intervention", True),
+    ("Volana Rakotovao", "Propreté urbaine", "offline", False),
+    ("Andry Ramaroson", "Sécurité publique", "unavailable", True),
+]
+# Un responsable par institut : (nom, institut).
+MANAGERS = [
+    ("Hery Rasolofo", "Service de la voirie"),
+    ("Nathalie Rakotobe", "Service des eaux"),
+    ("Fidy Andriamihaja", "Propreté urbaine"),
+    ("Lova Razafimahatratra", "Sécurité publique"),
 ]
 
 # (adresse, latitude, longitude) : centres approximatifs des quartiers d'Antananarivo.
@@ -251,7 +268,7 @@ def _slug(name: str) -> str:
 
 def _clear_seed_data(db: Session) -> None:
     seed_user_ids = select(UserModel.id).where(UserModel.email.like(f"%@{SEED_EMAIL_DOMAIN}"))
-    seed_agent_ids = select(AgentModel.id).where(AgentModel.email.like(f"%@{SEED_EMAIL_DOMAIN}"))
+    seed_agent_ids = select(AgentModel.id).where(AgentModel.user_id.in_(seed_user_ids))
     db.execute(
         delete(CitizenRequestModel).where(
             or_(
@@ -260,30 +277,55 @@ def _clear_seed_data(db: Session) -> None:
             )
         )
     )
-    db.execute(delete(AgentModel).where(AgentModel.email.like(f"%@{SEED_EMAIL_DOMAIN}")))
+    db.execute(delete(AgentModel).where(AgentModel.user_id.in_(seed_user_ids)))
+    seed_institut_names = [name for name, _ in INSTITUTS]
+    db.execute(
+        delete(CitizenRequestModel).where(
+            CitizenRequestModel.institut_id.in_(
+                select(InstitutModel.id).where(InstitutModel.name.in_(seed_institut_names))
+            )
+        )
+    )
+    db.execute(delete(InstitutModel).where(InstitutModel.name.in_(seed_institut_names)))
     db.execute(delete(UserModel).where(UserModel.email.like(f"%@{SEED_EMAIL_DOMAIN}")))
+    # Instituts restés sans agent ni manager (ex. créés par la migration à partir des anciens
+    # départements des agents seed) : ils bloqueraient les catégories des instituts seed.
+    staffed = select(AgentModel.institut_id)
+    db.execute(
+        delete(InstitutModel).where(
+            InstitutModel.manager_id.is_(None), InstitutModel.id.not_in(staffed)
+        )
+    )
 
 
 def _build_request(
-    rng: random.Random, now: datetime, citizen_ids: list[str], agent_ids: list[str]
+    rng: random.Random,
+    now: datetime,
+    citizen_ids: list[str],
+    agents_by_institut: dict[str, list[str]],
+    institut_by_category: dict[RequestCategory, str],
 ) -> CitizenRequestModel:
     category = _pick(rng, CATEGORY_WEIGHTS)
     title, description = rng.choice(SCENARIOS[category])
     location, latitude, longitude = rng.choice(LOCATIONS)
     status = _pick(rng, STATUS_WEIGHTS)
+    institut_id = institut_by_category.get(category)
 
     # 60 % des demandes sur les 7 derniers jours pour alimenter la courbe du dashboard.
     max_days = 7 if rng.random() < 0.6 else 45
     created_at = now - timedelta(days=rng.uniform(0, max_days))
 
-    # Toute demande prise en charge a un agent ; 20 % des nouvelles sont déjà pré-attribuées.
+    # Toute demande prise en charge a un agent de son institut (un agent actif, comme l'impose
+    # le domaine). Une demande « Autre » sans institut reste « Nouveau », en attente de l'admin.
+    candidates = agents_by_institut.get(institut_id, []) if institut_id else []
+    if not candidates:
+        status = rng.choice([RequestStatus.NEW, RequestStatus.REJECTED])
     is_handled = status in (
         RequestStatus.IN_PROGRESS,
         RequestStatus.PENDING,
         RequestStatus.RESOLVED,
     )
-    is_preassigned = status is RequestStatus.NEW and rng.random() < 0.2
-    assigned_agent_id = rng.choice(agent_ids) if is_handled or is_preassigned else None
+    assigned_agent_id = rng.choice(candidates) if is_handled else None
 
     resolved_at = None
     if status is RequestStatus.RESOLVED:
@@ -299,38 +341,66 @@ def _build_request(
         status=status.value,
         citizen_id=rng.choice(citizen_ids),
         created_at=created_at,
+        updated_at=resolved_at or created_at,
         location=location,
         # Petit décalage (~300 m) pour que les demandes d'un même quartier ne se superposent pas.
         latitude=latitude + rng.uniform(-0.003, 0.003),
         longitude=longitude + rng.uniform(-0.003, 0.003),
         assigned_agent_id=assigned_agent_id,
         resolved_at=resolved_at,
+        institut_id=institut_id,
     )
 
 
 def _build_resolved_today(
-    rng: random.Random, now: datetime, citizen_ids: list[str], agent_ids: list[str], count: int
+    rng: random.Random,
+    now: datetime,
+    citizen_ids: list[str],
+    agents_by_institut: dict[str, list[str]],
+    institut_by_category: dict[RequestCategory, str],
+    count: int,
 ) -> list[CitizenRequestModel]:
-    """Quelques demandes résolues aujourd'hui, pour la tuile « interventions du jour »."""
+    """Quelques demandes résolues aujourd'hui, pour la tuile « résolues aujourd'hui »."""
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     requests = []
-    for _ in range(count):
-        request = _build_request(rng, now, citizen_ids, agent_ids)
+    while len(requests) < count:
+        request = _build_request(rng, now, citizen_ids, agents_by_institut, institut_by_category)
+        candidates = agents_by_institut.get(request.institut_id or "", [])
+        if not candidates:
+            continue
         request.status = RequestStatus.RESOLVED.value
-        request.assigned_agent_id = rng.choice(agent_ids)
+        request.assigned_agent_id = rng.choice(candidates)
         request.resolved_at = today_start + (now - today_start) * rng.uniform(0.1, 1.0)
         request.created_at = request.resolved_at - timedelta(days=rng.uniform(0.5, 5))
+        request.updated_at = request.resolved_at
         requests.append(request)
 
     return requests
+
+
+def _created_event(request: CitizenRequestModel) -> CitizenRequestEventModel:
+    return CitizenRequestEventModel(
+        id=new_id(),
+        request_id=request.id,
+        type="created",
+        actor_id=request.citizen_id,
+        payload={
+            "title": request.title,
+            "category": request.category,
+            "priority": request.priority,
+        },
+        created_at=request.created_at,
+    )
 
 
 def seed(db: Session) -> dict[str, int]:
     tables = set(inspect(db.get_bind()).get_table_names())
     required = {
         UserModel.__tablename__,
+        InstitutModel.__tablename__,
         AgentModel.__tablename__,
         CitizenRequestModel.__tablename__,
+        CitizenRequestEventModel.__tablename__,
     }
     missing = required - tables
     if missing:
@@ -340,41 +410,72 @@ def seed(db: Session) -> dict[str, int]:
     now = datetime.now(UTC)
     _clear_seed_data(db)
 
-    citizens = [
-        UserModel(
+    def account(name: str, role: str, active: bool = True) -> UserModel:
+        return UserModel(
             id=new_id(),
             email=f"{_slug(name)}@{SEED_EMAIL_DOMAIN}",
             name=name,
-            created_at=now - timedelta(days=rng.randint(30, 365)),
+            role=role,
+            is_active=active,
+            created_at=now - timedelta(days=rng.randint(30, 730)),
         )
-        for name in CITIZENS
-    ]
+
+    citizens = [account(name, "citizen") for name in CITIZENS]
+    managers = {institut: account(name, "manager") for name, institut in MANAGERS}
+    agent_users = [account(name, "agent") for name, *_ in AGENTS]
+    db.add_all([*citizens, *managers.values(), *agent_users])
+    db.flush()
+
+    instituts = {
+        name: InstitutModel(
+            id=new_id(),
+            name=name,
+            description="",
+            categories=sorted(category.value for category in categories),
+            manager_id=managers[name].id,
+            is_active=True,
+            created_at=now - timedelta(days=365),
+        )
+        for name, categories in INSTITUTS
+    }
+    db.add_all(instituts.values())
+    db.flush()
+
     agents = [
         AgentModel(
             id=new_id(),
-            email=f"{_slug(name)}@{SEED_EMAIL_DOMAIN}",
-            name=name,
-            department=department,
+            user_id=user.id,
+            institut_id=instituts[institut].id,
             status=status,
             is_active=is_active,
-            created_at=now - timedelta(days=rng.randint(90, 730)),
+            created_at=user.created_at,
         )
-        for name, department, status, is_active in AGENTS
+        for user, (_, institut, status, is_active) in zip(agent_users, AGENTS, strict=True)
     ]
-    db.add_all(citizens)
     db.add_all(agents)
     db.flush()
 
     citizen_ids = [user.id for user in citizens]
-    # On n'attribue des demandes qu'aux agents actifs, comme l'impose l'API.
-    agent_ids = [agent.id for agent in agents if agent.is_active]
-    requests = [_build_request(rng, now, citizen_ids, agent_ids) for _ in range(REQUEST_COUNT)]
-    requests += _build_resolved_today(rng, now, citizen_ids, agent_ids, count=5)
+    # On n'attribue des demandes qu'aux agents actifs de l'institut, comme l'impose le domaine.
+    agents_by_institut: dict[str, list[str]] = {}
+    for agent in agents:
+        if agent.is_active:
+            agents_by_institut.setdefault(agent.institut_id, []).append(agent.id)
+    institut_by_category = {
+        category: instituts[name].id for name, categories in INSTITUTS for category in categories
+    }
+    context = (citizen_ids, agents_by_institut, institut_by_category)
+    requests = [_build_request(rng, now, *context) for _ in range(REQUEST_COUNT)]
+    requests += _build_resolved_today(rng, now, *context, count=5)
     db.add_all(requests)
+    db.flush()
+    db.add_all(_created_event(request) for request in requests)
     db.commit()
 
     return {
         "citoyens": len(citizens),
+        "instituts": len(instituts),
+        "managers": len(managers),
         "agents": len(agents),
         "demandes citoyennes": len(requests),
     }

@@ -18,6 +18,11 @@ export class MunicipalContentService {
         return this.http.get<MunicipalService[]>(`${this.baseUrl}/services/featured`);
     }
 
+    popularServices(limit = 6): Observable<MunicipalService[]> {
+        const params = new HttpParams().set('limit', Math.min(Math.max(limit, 1), 6));
+        return this.http.get<MunicipalService[]>(`${this.baseUrl}/services/popular`, { params });
+    }
+
     updateFeaturedService(id: string, isFeatured: boolean, displayOrder: number): Observable<MunicipalService> {
         return this.http.patch<MunicipalService>(`${this.baseUrl}/services/${encodeURIComponent(id)}/featured`, {
             is_featured: isFeatured,

@@ -4,14 +4,21 @@ import { Observable } from 'rxjs';
 
 import { environment } from '@/environments/environment';
 import {
+    AssignRequestIn,
     CitizenRequest,
     CitizenRequestPage,
     CitizenRequestQuery,
-    CreateCitizenRequestIn,
+    DashboardStats,
+    EditRequestIn,
+    MapPoint,
     RequestAnalysis,
-    UpdateCitizenRequestIn
+    RequestCategory,
+    RequestEvent,
+    RequestStatus,
+    SubmitRequestIn
 } from './request.model';
 
+/** Client HTTP des demandes citoyennes : /api/v1/requests et /api/v1/dashboard. */
 @Injectable({ providedIn: 'root' })
 export class CitizenRequestService {
     private readonly http = inject(HttpClient);
@@ -37,9 +44,6 @@ export class CitizenRequestService {
         if (query.status) {
             params = params.set('status', query.status);
         }
-        if (query.mine) {
-            params = params.set('mine', true);
-        }
 
         return this.http.get<CitizenRequestPage>(this.baseUrl, { params });
     }
@@ -48,12 +52,24 @@ export class CitizenRequestService {
         return this.http.get<CitizenRequest>(`${this.baseUrl}/${id}`);
     }
 
-    create(payload: CreateCitizenRequestIn): Observable<CitizenRequest> {
+    events(id: string): Observable<RequestEvent[]> {
+        return this.http.get<RequestEvent[]>(`${this.baseUrl}/${id}/events`);
+    }
+
+    submit(payload: SubmitRequestIn): Observable<CitizenRequest> {
         return this.http.post<CitizenRequest>(this.baseUrl, payload);
     }
 
-    update(id: string, payload: UpdateCitizenRequestIn): Observable<CitizenRequest> {
-        return this.http.put<CitizenRequest>(`${this.baseUrl}/${id}`, payload);
+    edit(id: string, payload: EditRequestIn): Observable<CitizenRequest> {
+        return this.http.patch<CitizenRequest>(`${this.baseUrl}/${id}`, payload);
+    }
+
+    changeStatus(id: string, status: RequestStatus): Observable<CitizenRequest> {
+        return this.http.post<CitizenRequest>(`${this.baseUrl}/${id}/status`, { status });
+    }
+
+    assign(id: string, payload: AssignRequestIn): Observable<CitizenRequest> {
+        return this.http.post<CitizenRequest>(`${this.baseUrl}/${id}/assign`, payload);
     }
 
     analyze(id: string): Observable<RequestAnalysis> {
@@ -62,5 +78,21 @@ export class CitizenRequestService {
 
     delete(id: string): Observable<void> {
         return this.http.delete<void>(`${this.baseUrl}/${id}`);
+    }
+
+    map(filters: { status?: RequestStatus; category?: RequestCategory; activeOnly?: boolean; limit?: number } = {}): Observable<MapPoint[]> {
+        let params = new HttpParams().set('active_only', filters.activeOnly ?? true).set('limit', filters.limit ?? 500);
+        if (filters.status) {
+            params = params.set('status', filters.status);
+        }
+        if (filters.category) {
+            params = params.set('category', filters.category);
+        }
+
+        return this.http.get<MapPoint[]>(`${this.baseUrl}/map`, { params });
+    }
+
+    dashboard(days = 7): Observable<DashboardStats> {
+        return this.http.get<DashboardStats>(`${environment.apiUrl}/dashboard`, { params: { days } });
     }
 }

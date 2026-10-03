@@ -22,3 +22,8 @@ class AgentAlreadyExistsError(DomainError):
 class AgentInactiveError(DomainError):  # → 400
     def __init__(self, agent_id: str) -> None:
         super().__init__(f"Agent '{agent_id}' is deactivated and cannot be assigned")
+
+
+class InvalidAgentAccountError(DomainError):  # → 400
+    def __init__(self, user_id: str) -> None:
+        super().__init__(f"User '{user_id}' must be an active account with the agent role")

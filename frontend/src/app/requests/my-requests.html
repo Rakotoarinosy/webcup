@@ -7,7 +7,7 @@
                 <h2 class="m-0 text-lg font-semibold">Votre demande a bien été envoyée</h2>
                 <p class="mb-0 mt-2">
                     Référence <strong>#{{ request.id.slice(0, 8) }}</strong> · envoyée le
-                    <strong>{{ request.created_at | date: 'dd/MM/yyyy à HH:mm' }}</strong> · statut initial
+                    <strong>{{ request.created_at | date: 'dd/MM/yyyy à HH:mm' }}</strong> · statut actuel
                     <strong>{{ request.status }}</strong>. Vous n’avez pas besoin de la renvoyer.
                 </p>
             </div>
@@ -24,10 +24,29 @@
             <p>{{ request.description }}</p>
             <dl>
                 <dt>Référence</dt><dd>#{{ request.id.slice(0, 8) }}</dd>
-                <dt>Statut</dt><dd>{{ request.status }}</dd>
+                <dt>Statut actuel</dt><dd><strong>{{ request.status }}</strong></dd>
                 <dt>Créée le</dt><dd>{{ request.created_at | date: 'dd/MM/yyyy à HH:mm' }}</dd>
                 <dt>Lieu</dt><dd>{{ request.location }}</dd>
             </dl>
+            <section aria-labelledby="request-timeline-title" class="mt-8">
+                <h2 id="request-timeline-title" class="text-lg font-semibold">Étapes de traitement</h2>
+                @if (historyLoading()) {
+                    <p role="status">Chargement des étapes…</p>
+                } @else if (historyError(); as message) {
+                    <p role="alert" class="text-red-600">L’historique des étapes n’a pas pu être chargé : {{ message }}</p>
+                } @else if (statusHistory().length) {
+                    <ol aria-label="Étapes de votre demande, de la plus ancienne à la plus récente" class="space-y-4">
+                        @for (step of statusHistory(); track step.id) {
+                            <li class="border-l-2 border-primary pl-4">
+                                <h3 class="m-0 font-semibold">{{ eventLabel(step) }}</h3>
+                                <time class="text-sm text-muted-color" [attr.datetime]="step.created_at">{{ step.created_at | date: 'dd/MM/yyyy à HH:mm' }}</time>
+                            </li>
+                        }
+                    </ol>
+                } @else {
+                    <p>Aucune étape de traitement n’est encore enregistrée.</p>
+                }
+            </section>
         }
     </section>
 } @else {

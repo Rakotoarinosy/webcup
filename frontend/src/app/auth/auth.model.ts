@@ -13,8 +13,10 @@ export interface AuthUser {
     email: string;
     name: string;
     role: Role;
-    agent_id: string | null;
     created_at: string;
+    /** Dérivés du profil (jamais stockés sur le compte) : profil agent, et institut de l'agent ou géré. */
+    agent_id: string | null;
+    institut_id: string | null;
 }
 
 /** Réponse de /auth/login et /auth/refresh (TokenOut). */

@@ -1,4 +1,4 @@
-"""Schémas Pydantic de la gestion des utilisateurs (réservée à l'ADMIN)."""
+"""Pydantic schemas for user and citizen-account operations."""
 
 from datetime import datetime
 
@@ -13,18 +13,26 @@ class CreateUserIn(BaseModel):
     name: str = Field(min_length=1, max_length=255)
     password: Password
     role: Role = Role.CITIZEN
-    agent_id: str | None = None
 
 
 class UpdateUserIn(BaseModel):
-    """Mise à jour partielle. `agent_id: null` explicite détache la fiche agent."""
+    """Mise à jour partielle : null ou absent signifie « ne pas toucher »."""
 
     email: Email | None = None
     name: str | None = Field(default=None, min_length=1, max_length=255)
     role: Role | None = None
     is_active: bool | None = None
-    agent_id: str | None = None
     password: Password | None = None  # réinitialisation par un admin
+
+
+class UpdateCitizenAccountIn(BaseModel):
+    """Champs modifiables par les équipes de gestion des comptes citoyens."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    email: Email | None = None
+    name: str | None = Field(default=None, min_length=1, max_length=255)
+    is_active: bool | None = None
 
 
 class UserOut(BaseModel):
@@ -35,5 +43,4 @@ class UserOut(BaseModel):
     name: str
     role: Role
     is_active: bool
-    agent_id: str | None
     created_at: datetime

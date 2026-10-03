@@ -12,17 +12,17 @@
         <p class="error-message" role="alert">{{ message }}</p>
     }
 
-    @if (summary(); as stats) {
+    @if (stats(); as s) {
         <section class="summary" aria-label="Résumé de mes demandes">
             <article aria-live="polite">
-                <span>Demandes à prendre en charge</span>
+                <span>Demandes à traiter</span>
                 <strong>{{ pendingCount() }}</strong>
                 @if (pendingCount() === 0) { <span class="description">Aucune demande ne nécessite une prise en charge.</span> }
             </article>
-            <article><span>Total attribué</span><strong>{{ stats.total }}</strong></article>
-            <article class="needs-action"><span>À traiter</span><strong>{{ stats.en_cours }}</strong></article>
-            <article><span>En attente</span><strong>{{ stats.en_attente }}</strong></article>
-            <article><span>Résolues</span><strong>{{ stats.resolu }}</strong></article>
+            <article><span>Total attribué</span><strong>{{ s.total }}</strong></article>
+            <article class="needs-action"><span>En cours</span><strong>{{ count('En cours') }}</strong></article>
+            <article><span>En attente</span><strong>{{ count('En attente') }}</strong></article>
+            <article><span>Résolues</span><strong>{{ count('Résolu') }}</strong></article>
         </section>
     }
 
@@ -32,7 +32,7 @@
                 <h2 id="requests-heading">Demandes reçues</h2>
                 <p>Les demandes en cours demandent une action de votre part.</p>
             </div>
-            <span class="action-count" aria-live="polite">{{ actionRequired().length }} à traiter sur cette page</span>
+            <span class="action-count" aria-live="polite">{{ actionRequired().length }} en cours sur cette page</span>
         </div>
 
         @if (loading() && !items().length) {
@@ -50,27 +50,45 @@
                             <th scope="col">Priorité</th>
                             <th scope="col">État</th>
                             <th scope="col">Échéance prévue</th>
-                            <th scope="col">Action</th>
+                            <th scope="col">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         @for (item of items(); track item.id) {
-                            <tr [class.action-row]="item.status === 'en_cours'">
+                            <tr [class.action-row]="item.status === 'En cours'">
                                 <td>
                                     <strong>{{ item.title }}</strong>
                                     <span class="description">{{ item.description }}</span>
-                                    @if (item.address) { <span class="address">{{ item.address }}</span> }
+                                    <span class="address">{{ item.location }}</span>
+                                    <button type="button" class="link-button" [attr.aria-expanded]="timelineFor() === item.id" (click)="toggleTimeline(item)">
+                                        {{ timelineFor() === item.id ? 'Masquer l’historique' : 'Voir l’historique' }}
+                                    </button>
+                                    @if (timelineFor() === item.id) {
+                                        <ol class="timeline" aria-label="Historique de la demande">
+                                            @for (event of timeline(); track event.id) {
+                                                <li>{{ eventLabel(event) }} · <time [attr.datetime]="event.created_at">{{ event.created_at | date: 'dd/MM/yyyy HH:mm' }}</time></li>
+                                            } @empty {
+                                                <li>Chargement…</li>
+                                            }
+                                        </ol>
+                                    }
                                 </td>
-                                <td>{{ categoryLabel(item.category) }}</td>
-                                <td>{{ priorityLabel(item.priority) }}</td>
-                                <td><span class="status" [attr.data-status]="item.status">{{ statusLabel(item.status) }}</span></td>
+                                <td>{{ item.category }}</td>
+                                <td>{{ item.priority }}</td>
+                                <td><span class="status" [attr.data-status]="statusKey(item.status)">{{ item.status }}</span></td>
                                 <td>{{ item.scheduled_at ? (item.scheduled_at | date: 'medium') : 'Non planifiée' }}</td>
                                 <td>
-                                    @if (item.status === 'en_cours') {
-                                        <button type="button" class="resolve-button" [disabled]="resolving() === item.id" [attr.aria-label]="'Marquer comme résolue : ' + item.title" (click)="resolve(item)">
-                                            {{ resolving() === item.id ? 'Enregistrement…' : 'Résoudre' }}
+                                    @for (action of actions(item); track action.target) {
+                                        <button
+                                            type="button"
+                                            [class]="action.target === 'Résolu' ? 'resolve-button' : 'secondary-button'"
+                                            [disabled]="saving() === item.id"
+                                            [attr.aria-label]="action.label + ' : ' + item.title"
+                                            (click)="move(item, action.target)"
+                                        >
+                                            {{ saving() === item.id ? 'Enregistrement…' : action.label }}
                                         </button>
-                                    } @else {
+                                    } @empty {
                                         <span class="no-action">Aucune action</span>
                                     }
                                 </td>

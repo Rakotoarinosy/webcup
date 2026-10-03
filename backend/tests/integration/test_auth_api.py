@@ -67,8 +67,9 @@ async def test_roles_are_reloaded_on_each_request(
     repo.update(replace(user, role=role))
     assert (await client.get(f"{AUTH}/me", headers=headers)).json()["role"] == role.value
     assert (await client.get("/api/v1/users", headers=headers)).status_code == (
-        200 if role is Role.ADMIN else 403
+        200 if role in {Role.ADMIN, Role.MANAGER, Role.AGENT} else 403
     )
+    # Un manager sans institut obtient une liste vide ; agent et citoyen sont refusés.
     assert (await client.get("/api/v1/agents", headers=headers)).status_code == (
         200 if role in {Role.ADMIN, Role.MANAGER} else 403
     )
@@ -77,104 +78,9 @@ async def test_roles_are_reloaded_on_each_request(
     assert (await client.post(f"{AUTH}/refresh")).status_code == 401
 
 
-async def test_citizen_scope_and_sensitive_actions(client: httpx.AsyncClient) -> None:
-    first, payload = await signup(client)
-    headers = await signin(client, payload)
-    second, second_payload = await signup(client, "other@test.mg")
-    other_headers = await signin(client, second_payload)
-    response = await client.post(
-        "/api/v1/demandes",
-        headers=headers,
-        json={
-            "title": "Broken light",
-            "description": "Street light is broken",
-            "category": "eclairage_public",
-            "citizen_id": second["id"],
-            "priority": "critique",
-            "address": "Main street",
-        },
-    )
-    assert response.status_code == 201
-    demande = response.json()
-    assert demande["citizen_id"] == first["id"] and demande["priority"] == "moyenne"
-    url = f"/api/v1/demandes/{demande['id']}"
-    assert (await client.get(url, headers=other_headers)).status_code == 403
-    assert (await client.get(url + "/events", headers=other_headers)).status_code == 403
-    assert (
-        await client.get(
-            "/api/v1/demandes", headers=other_headers, params={"citizen_id": first["id"]}
-        )
-    ).json()["total"] == 0
-    assert (await client.patch(url, headers=headers, json={"priority": "haute"})).status_code == 403
-    for action in ("accept", "reject", "resolve"):
-        assert (await client.post(url + "/" + action, headers=headers)).status_code == 403
-    assert (
-        await client.patch(url, headers=headers, json={"title": "Updated light"})
-    ).status_code == 200
-    assert (await client.delete(url, headers=other_headers)).status_code == 403
-    assert (await client.delete(url, headers=headers)).status_code == 204
-
-
-@pytest.mark.parametrize("path", ["/auth/me", "/users", "/agents", "/demandes"])
+@pytest.mark.parametrize("path", ["/auth/me", "/users", "/agents", "/requests", "/dashboard"])
 async def test_anonymous_access_is_rejected(client: httpx.AsyncClient, path: str) -> None:
     assert (await client.get("/api/v1" + path)).status_code == 401
-
-
-async def test_agent_can_only_resolve_assigned_demande(admin_client: httpx.AsyncClient) -> None:
-    admin_headers = dict(admin_client.headers)
-    first = (
-        await admin_client.post(
-            "/api/v1/agents",
-            json={"name": "First", "email": "first@test.mg", "department": "Voirie"},
-        )
-    ).json()
-    second = (
-        await admin_client.post(
-            "/api/v1/agents",
-            json={"name": "Second", "email": "second@test.mg", "department": "Voirie"},
-        )
-    ).json()
-    citizen, _ = await signup(admin_client)
-    accounts = []
-    for index, agent in enumerate((first, second)):
-        payload = {
-            "name": "Agent",
-            "email": f"agent{index}@test.mg",
-            "password": PASSWORD,
-            "role": "agent",
-            "agent_id": agent["id"],
-        }
-        assert (
-            await admin_client.post("/api/v1/users", headers=admin_headers, json=payload)
-        ).status_code == 201
-        accounts.append(await signin(admin_client, payload))
-    demande = (
-        await admin_client.post(
-            "/api/v1/demandes",
-            headers=admin_headers,
-            json={
-                "title": "Road repair",
-                "description": "Pothole",
-                "category": "voirie",
-                "citizen_id": citizen["id"],
-                "address": "Main street",
-            },
-        )
-    ).json()
-    url = f"/api/v1/demandes/{demande['id']}"
-    assert (
-        await admin_client.post(
-            url + "/assign",
-            headers=admin_headers,
-            json={"agent_id": first["id"], "scheduled_at": "2026-10-05T09:00:00"},
-        )
-    ).status_code == 200
-    assert (await admin_client.get(url, headers=accounts[1])).status_code == 403
-    assert (await admin_client.post(url + "/resolve", headers=accounts[1])).status_code == 403
-    assert (await admin_client.post(url + "/accept", headers=accounts[0])).status_code == 403
-    assert (await admin_client.post(url + "/resolve", headers=accounts[0])).json()[
-        "status"
-    ] == "resolu"
 
 
 async def test_refresh_replay_revokes_the_session(client: httpx.AsyncClient) -> None:
@@ -191,8 +97,10 @@ async def test_refresh_replay_revokes_the_session(client: httpx.AsyncClient) -> 
     ).status_code == 401
 
 
-async def test_last_admin_cannot_be_disabled(admin_client: httpx.AsyncClient) -> None:
+async def test_admin_account_is_outside_citizen_management_scope(
+    admin_client: httpx.AsyncClient,
+) -> None:
     profile = (await admin_client.get(f"{AUTH}/me")).json()
     response = await admin_client.patch(f"/api/v1/users/{profile['id']}", json={"is_active": False})
-    assert response.status_code == 400
-    assert response.json()["error"] == "LastAdminError"
+    assert response.status_code == 404
+    assert (await admin_client.get(f"{AUTH}/me")).status_code == 200

@@ -12,11 +12,9 @@ from src.bootstrap import ensure_bootstrap_admin, start_terra_sync
 from src.features.agent.router import router as agent_router
 from src.features.auth.router import router as auth_router
 from src.features.citizen_request.router import dashboard_router, request_router
-from src.features.dashboard.router import router as analytics_dashboard_router
-from src.features.demande.router import router as demande_router
+from src.features.institut.router import router as institut_router
 from src.features.municipal_content.router import router as municipal_content_router
 from src.features.notification.router import router as notification_router
-from src.features.priority.router import router as priority_router
 from src.features.search.router import router as search_router
 from src.features.terra_request.router import router as terra_request_router
 from src.features.user.router import router as user_router
@@ -28,14 +26,12 @@ API_PREFIX = "/api/v1"
 FEATURE_ROUTERS: list[APIRouter] = [
     auth_router,
     user_router,
+    institut_router,
     agent_router,
-    demande_router,
     request_router,
     dashboard_router,
-    analytics_dashboard_router,
     notification_router,
     search_router,
-    priority_router,
     municipal_content_router,
     terra_request_router,
 ]

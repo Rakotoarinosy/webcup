@@ -1,9 +1,9 @@
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { environment } from '@/environments/environment';
-import { CreateUserIn, UpdateUserIn, User } from './user.model';
+import { CreateUserIn, Role, UpdateAccountIn, UpdateUserIn, User } from './user.model';
 
 /** Client HTTP du domaine `user` : /api/v1/users. */
 @Injectable({ providedIn: 'root' })
@@ -12,24 +12,36 @@ export class UserService {
 
     private readonly baseUrl = `${environment.apiUrl}/users`;
 
-    list(): Observable<User[]> {
-        return this.http.get<User[]>(this.baseUrl);
+    list(search?: string): Observable<User[]> {
+        let params = new HttpParams();
+        if (search?.trim()) params = params.set('search', search.trim());
+        return this.http.get<User[]>(this.baseUrl, { params });
     }
 
     get(id: string): Observable<User> {
         return this.http.get<User>(`${this.baseUrl}/${id}`);
     }
 
-    create(payload: CreateUserIn): Observable<User> {
-        return this.http.post<User>(this.baseUrl, payload);
-    }
-
     update(id: string, payload: UpdateUserIn): Observable<User> {
         return this.http.patch<User>(`${this.baseUrl}/${id}`, payload);
     }
 
-    delete(id: string): Observable<void> {
-        return this.http.delete<void>(`${this.baseUrl}/${id}`);
+    /** Tous les comptes, filtrables par rôle et par nom / email (admin). */
+    listAccounts(role?: Role, search?: string): Observable<User[]> {
+        let params = new HttpParams();
+        if (role) params = params.set('role', role);
+        if (search?.trim()) params = params.set('search', search.trim());
+        return this.http.get<User[]>(`${this.baseUrl}/manage`, { params });
+    }
+
+    /** Modification complète d'un compte par l'admin : rôle, activation, mot de passe. */
+    updateAccount(id: string, payload: UpdateAccountIn): Observable<User> {
+        return this.http.patch<User>(`${this.baseUrl}/manage/${id}`, payload);
+    }
+
+    /** Création d'un compte avec un rôle (admin). */
+    createAccount(payload: CreateUserIn): Observable<User> {
+        return this.http.post<User>(this.baseUrl, payload);
     }
 }
 

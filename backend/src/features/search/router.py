@@ -2,19 +2,20 @@
 
   GET /search?q=éclairage&limit=5   → résultats mélangés, avec un champ « kind » pour les regrouper.
 
-Périmètre selon le rôle : ADMIN / MANAGER cherchent partout ; un CITIZEN ou un AGENT ne trouve
-que ses propres demandes (et interventions), jamais les autres citoyens ni l'annuaire des agents.
+Périmètre selon le rôle (features/search/use_cases.py) : mêmes demandes que les listes ;
+l'annuaire des citoyens et des agents est réservé à l'admin et aux managers.
 """
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from src.domain.search import SearchRepository, SearchScope
-from src.domain.user import ForbiddenError, Role, User
+from src.domain.citizen_request import Actor
+from src.domain.search import SearchRepository
 from src.features.search.schemas import SearchHitOut, SearchOut
+from src.features.search.use_cases import global_search
 from src.infrastructure.persistence.database import get_db
 from src.infrastructure.persistence.search_repository import SqlAlchemySearchRepository
-from src.infrastructure.security.deps import get_current_user
+from src.infrastructure.security.deps import get_current_actor
 
 router = APIRouter(prefix="/search", tags=["search"])
 
@@ -23,25 +24,14 @@ def get_search_repo(db: Session = Depends(get_db)) -> SearchRepository:
     return SqlAlchemySearchRepository(db)
 
 
-def _scope_for(user: User) -> SearchScope:
-    if user.role is Role.CITIZEN:
-        return SearchScope(citizen_id=user.id)
-    if user.role is Role.AGENT:
-        if user.agent_id is None:
-            raise ForbiddenError("This account is not linked to an agent profile")
-        return SearchScope(agent_id=user.agent_id)
-
-    return SearchScope(directory=True)
-
-
 @router.get("", response_model=SearchOut)
 def search_endpoint(
     q: str = Query(min_length=2, max_length=100),
     limit: int = Query(default=5, ge=1, le=20, description="Résultats maximum par catégorie"),
-    user: User = Depends(get_current_user),
+    actor: Actor = Depends(get_current_actor),
     repo: SearchRepository = Depends(get_search_repo),
 ) -> SearchOut:
-    hits = repo.search(q, _scope_for(user), limit_per_kind=limit)
+    hits = global_search(q, actor, repo, limit_per_kind=limit)
 
     return SearchOut(
         query=q,

@@ -5,6 +5,7 @@ export type ThemeMode = 'light' | 'dark' | 'system';
 
 // Même clé que le script inline de index.html, qui applique le thème avant le démarrage d'Angular.
 export const THEME_STORAGE_KEY = 'theme-mode';
+export const HIGH_CONTRAST_STORAGE_KEY = 'high-contrast';
 
 const DARK_QUERY = '(prefers-color-scheme: dark)';
 
@@ -15,6 +16,14 @@ function readStoredThemeMode(): ThemeMode {
     } catch {
         // Stockage indisponible (navigation privée stricte, cookies bloqués…) : on suit le système.
         return 'system';
+    }
+}
+
+function readStoredHighContrast(): boolean {
+    try {
+        return localStorage.getItem(HIGH_CONTRAST_STORAGE_KEY) === 'true';
+    } catch {
+        return false;
     }
 }
 
@@ -48,6 +57,8 @@ interface LayoutState {
 })
 export class LayoutService {
     readonly themeMode = signal<ThemeMode>(readStoredThemeMode());
+
+    readonly highContrast = signal(readStoredHighContrast());
 
     private readonly systemDark = signal(systemPrefersDark());
 
@@ -108,6 +119,16 @@ export class LayoutService {
         });
 
         effect(() => {
+            const enabled = this.highContrast();
+            document.documentElement.classList.toggle('app-high-contrast', enabled);
+            try {
+                localStorage.setItem(HIGH_CONTRAST_STORAGE_KEY, String(enabled));
+            } catch {
+                // Préférence non sauvegardée, mais le contraste reste appliqué pour la session.
+            }
+        });
+
+        effect(() => {
             const config = this.layoutConfig();
 
             if (!this.initialized || !config) {
@@ -146,6 +167,10 @@ export class LayoutService {
 
     setThemeMode(mode: ThemeMode): void {
         this.themeMode.set(mode);
+    }
+
+    setHighContrast(enabled: boolean): void {
+        this.highContrast.set(enabled);
     }
 
     onMenuToggle() {

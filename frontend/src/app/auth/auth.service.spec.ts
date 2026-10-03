@@ -5,7 +5,7 @@ import { Router, provideRouter } from '@angular/router';
 import { AUTH_URL, AuthService } from './auth.service';
 import { AuthUser, TokenResponse } from './auth.model';
 
-const USER: AuthUser = { id: 'id', name: 'Rina', email: 'rina@test.mg', role: 'citizen', agent_id: null, created_at: '' };
+const USER: AuthUser = { id: 'id', name: 'Rina', email: 'rina@test.mg', role: 'citizen', agent_id: null, institut_id: null, created_at: '' };
 const SESSION: TokenResponse = { access_token: 'access-token', token_type: 'bearer', expires_in: 900, user: USER };
 
 describe('AuthService session lifecycle', () => {

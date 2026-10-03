@@ -1,4 +1,21 @@
 <div class="flex flex-col gap-4">
+    <section class="flex flex-col gap-2" aria-labelledby="high-contrast-label">
+        <span id="high-contrast-label" class="text-sm text-muted-color font-semibold">Affichage</span>
+        <button
+            type="button"
+            class="high-contrast-toggle flex items-center justify-between gap-3 rounded-border border border-surface p-3 text-left"
+            role="switch"
+            [attr.aria-checked]="layoutService.highContrast()"
+            (click)="layoutService.setHighContrast(!layoutService.highContrast())"
+        >
+            <span>
+                <span class="block font-semibold">Contraste renforcé</span>
+                <span class="block text-sm text-muted-color">Texte, contours et focus plus visibles</span>
+            </span>
+            <span aria-hidden="true" class="font-semibold">{{ layoutService.highContrast() ? 'Activé' : 'Désactivé' }}</span>
+        </button>
+    </section>
+
     <!-- Primary color -->
     <div>
         <span class="text-sm text-muted-color font-semibold">Primary</span>

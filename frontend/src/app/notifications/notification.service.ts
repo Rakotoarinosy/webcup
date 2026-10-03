@@ -9,7 +9,7 @@ export interface CitizenNotification {
     kind: string;
     title: string;
     message: string;
-    demande_id: string;
+    request_id: string;
     created_at: string;
     is_read: boolean;
 }

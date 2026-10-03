@@ -1,11 +1,10 @@
 """Interface de persistance du domaine des demandes citoyennes."""
 
 from abc import ABC, abstractmethod
-from datetime import datetime
 
+from src.domain.citizen_request.analytics import RequestScope
 from src.domain.citizen_request.entities import (
     CitizenRequest,
-    DashboardAggregates,
     RequestCategory,
     RequestPriority,
     RequestSortBy,
@@ -28,10 +27,11 @@ class CitizenRequestRepository(ABC):
         category: RequestCategory | None,
         priority: RequestPriority | None,
         status: RequestStatus | None,
-        citizen_id: str | None,
+        scope: RequestScope,
         sort_by: RequestSortBy,
         sort_order: SortOrder,
-    ) -> tuple[list[CitizenRequest], int]: ...
+    ) -> tuple[list[CitizenRequest], int]:
+        """`scope` (voir access.scope_for) restreint toujours le résultat ; vide si `scope.is_empty`."""
 
     @abstractmethod
     def list_by_agent(self, agent_id: str) -> list[CitizenRequest]:
@@ -45,13 +45,3 @@ class CitizenRequestRepository(ABC):
 
     @abstractmethod
     def delete(self, request_id: str) -> None: ...
-
-    @abstractmethod
-    def dashboard_aggregates(
-        self,
-        *,
-        trend_start: datetime,
-        trend_end: datetime,
-        today_start: datetime,
-        today_end: datetime,
-    ) -> DashboardAggregates: ...

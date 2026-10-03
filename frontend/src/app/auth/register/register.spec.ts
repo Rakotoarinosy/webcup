@@ -10,7 +10,7 @@ describe('Registration flow', () => {
     beforeEach(() => {
         auth = jasmine.createSpyObj<AuthService>('AuthService', ['register', 'logout', 'homeUrl']);
         auth.homeUrl.and.returnValue('/home/account');
-        auth.register.and.returnValue(of({ id: 'id', email: 'r@test.mg', name: 'Rina', role: 'citizen', agent_id: null, created_at: '' }));
+        auth.register.and.returnValue(of({ id: 'id', email: 'r@test.mg', name: 'Rina', role: 'citizen', agent_id: null, institut_id: null, created_at: '' }));
         TestBed.configureTestingModule({ imports: [Register], providers: [provideRouter([]), { provide: AuthService, useValue: auth }] });
         TestBed.overrideComponent(Register, { set: { template: '' } });
         component = TestBed.createComponent(Register).componentInstance;

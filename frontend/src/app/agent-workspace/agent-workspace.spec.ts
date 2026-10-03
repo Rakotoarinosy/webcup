@@ -1,24 +1,25 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 
-import { AgentWorkspaceService } from './agent-workspace.service';
+import { CitizenRequestService } from '@/app/requests/request.service';
 import { AgentWorkspace } from './agent-workspace';
 
 describe('AgentWorkspace pending counter', () => {
     let fixture: ComponentFixture<AgentWorkspace>;
-    let summary: { total: number; nouveau: number; en_cours: number; en_attente: number; resolu: number; rejete: number };
+    let byStatus: Record<string, number>;
 
     beforeEach(async () => {
-        summary = { total: 4, nouveau: 2, en_cours: 1, en_attente: 1, resolu: 0, rejete: 0 };
+        byStatus = { Nouveau: 0, 'En cours': 2, 'En attente': 1, Résolu: 0, Rejeté: 0 };
         await TestBed.configureTestingModule({
             imports: [AgentWorkspace],
             providers: [
                 {
-                    provide: AgentWorkspaceService,
+                    provide: CitizenRequestService,
                     useValue: {
-                        list: () => of({ items: [], total: 0, page: 1, page_size: 20, pages: 1 }),
-                        summary: () => of(summary),
-                        resolve: () => of({})
+                        list: () => of({ items: [], total: 0, page: 1, page_size: 20, total_pages: 1 }),
+                        dashboard: () => of({ total: 3, by_status: byStatus }),
+                        changeStatus: () => of({}),
+                        events: () => of([])
                     }
                 }
             ]
@@ -28,13 +29,13 @@ describe('AgentWorkspace pending counter', () => {
         await fixture.whenStable();
     });
 
-    it('shows new and waiting requests in the pending count', () => {
-        expect(fixture.nativeElement.textContent).toContain('Demandes à prendre en charge');
+    it('counts in-progress and waiting requests as to be handled', () => {
+        expect(fixture.nativeElement.textContent).toContain('Demandes à traiter');
         expect(fixture.nativeElement.textContent).toContain('3');
     });
 
     it('uses a neutral message when nothing is waiting', async () => {
-        summary = { total: 0, nouveau: 0, en_cours: 0, en_attente: 0, resolu: 0, rejete: 0 };
+        byStatus = { Nouveau: 0, 'En cours': 0, 'En attente': 0, Résolu: 0, Rejeté: 0 };
         const refreshButton = [...fixture.nativeElement.querySelectorAll('button')].find((button) => button.textContent.includes('Actualiser')) as HTMLButtonElement;
         refreshButton.click();
         fixture.detectChanges();

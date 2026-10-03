@@ -19,7 +19,10 @@ export class AppMenu {
         const items: MenuItem[] = [{ label: 'Mon espace', icon: 'pi pi-fw pi-user', routerLink: ['/home/account'] }];
 
         if (this.auth.hasRole('agent')) {
-            items.push({ label: 'Mes interventions', icon: 'pi pi-fw pi-inbox', routerLink: ['/home/agent'] });
+            items.push(
+                { label: 'Mes interventions', icon: 'pi pi-fw pi-inbox', routerLink: ['/home/agent'] },
+                { label: 'Comptes citoyens', icon: 'pi pi-fw pi-users', routerLink: ['/home/users'] }
+            );
         }
         if (this.auth.hasRole('citizen')) {
             items.push({ label: 'Mes demandes', icon: 'pi pi-fw pi-list', routerLink: ['/home/my-requests'] });
@@ -27,14 +30,27 @@ export class AppMenu {
         if (this.auth.hasRole('manager', 'admin')) {
             items.push(
                 { label: 'Tableau de bord', icon: 'pi pi-fw pi-home', routerLink: ['/home/dashboard'] },
-                { label: 'Agents', icon: 'pi pi-fw pi-id-card', routerLink: ['/home/agents'] }
+                { label: 'Demandes citoyennes', icon: 'pi pi-fw pi-inbox', routerLink: ['/home/requests'] }
             );
         }
         if (this.auth.hasRole('admin')) {
+            // L'admin gère tous les comptes depuis « Utilisateurs » (citoyens compris).
             items.push(
-                { label: 'Demandes historiques', icon: 'pi pi-fw pi-inbox', routerLink: ['/home/requests'] },
-                { label: 'Utilisateurs', icon: 'pi pi-fw pi-users', routerLink: ['/home/users'] }
+                {
+                    label: 'Utilisateurs',
+                    icon: 'pi pi-fw pi-users',
+                    path: '/home/accounts',
+                    items: [
+                        { label: 'Citoyens', icon: 'pi pi-fw pi-user', routerLink: ['/home/accounts/citizens'] },
+                        { label: 'Agents', icon: 'pi pi-fw pi-wrench', routerLink: ['/home/accounts/agents'] },
+                        { label: 'Managers', icon: 'pi pi-fw pi-briefcase', routerLink: ['/home/accounts/managers'] },
+                        { label: 'Administrateurs', icon: 'pi pi-fw pi-shield', routerLink: ['/home/accounts/admins'] }
+                    ]
+                },
+                { label: 'Instituts', icon: 'pi pi-fw pi-building', routerLink: ['/home/instituts'] }
             );
+        } else if (this.auth.hasRole('manager')) {
+            items.push({ label: 'Comptes citoyens', icon: 'pi pi-fw pi-users', routerLink: ['/home/users'] });
         }
         items.push({ label: 'Accueil', icon: 'pi pi-fw pi-globe', routerLink: ['/'] });
 

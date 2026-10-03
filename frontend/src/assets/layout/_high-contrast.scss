@@ -1,0 +1,128 @@
+:root.app-high-contrast {
+    --primary-color: #003b80;
+    --primary-contrast-color: #ffffff;
+    --text-color: #111111;
+    --text-color-secondary: #303030;
+    --surface-ground: #ffffff;
+    --surface-card: #ffffff;
+    --surface-hover: #e8e8e8;
+    --surface-overlay: #ffffff;
+    --surface-border: #222222;
+
+    --p-primary-color: #003b80;
+    --p-primary-contrast-color: #ffffff;
+    --p-primary-hover-color: #00285a;
+    --p-primary-active-color: #001a3d;
+    --p-text-color: #111111;
+    --p-text-muted-color: #303030;
+    --p-content-background: #ffffff;
+    --p-content-hover-background: #e8e8e8;
+    --p-content-border-color: #333333;
+    --p-overlay-popover-background: #ffffff;
+    --p-form-field-background: #ffffff;
+    --p-form-field-color: #111111;
+    --p-form-field-border-color: #333333;
+    --p-form-field-placeholder-color: #505050;
+    --p-focus-ring-color: #003b80;
+    --p-highlight-background: #003b80;
+    --p-highlight-color: #ffffff;
+
+    color-scheme: light;
+    font-size: 16px;
+    line-height: 1.5;
+
+    a {
+        color: #003b80;
+        text-decoration: underline;
+        text-decoration-thickness: 0.08em;
+        text-underline-offset: 0.15em;
+    }
+
+    button,
+    input,
+    select,
+    textarea,
+    [role='button'],
+    [role='switch'],
+    [role='combobox'],
+    .p-button,
+    .p-inputtext,
+    .p-select,
+    .p-selectbutton .p-button {
+        border-color: #333333;
+    }
+
+    :focus-visible,
+    .p-focus {
+        outline: 3px solid #003b80 !important;
+        outline-offset: 3px !important;
+        box-shadow: none !important;
+    }
+}
+
+:root.app-dark.app-high-contrast {
+    --primary-color: #ffeb3b;
+    --primary-contrast-color: #000000;
+    --text-color: #ffffff;
+    --text-color-secondary: #eeeeee;
+    --surface-ground: #000000;
+    --surface-card: #000000;
+    --surface-hover: #292929;
+    --surface-overlay: #000000;
+    --surface-border: #ffffff;
+
+    --p-primary-color: #ffeb3b;
+    --p-primary-contrast-color: #000000;
+    --p-primary-hover-color: #fff176;
+    --p-primary-active-color: #fdd835;
+    --p-text-color: #ffffff;
+    --p-text-muted-color: #eeeeee;
+    --p-content-background: #000000;
+    --p-content-hover-background: #292929;
+    --p-content-border-color: #ffffff;
+    --p-overlay-popover-background: #000000;
+    --p-form-field-background: #000000;
+    --p-form-field-color: #ffffff;
+    --p-form-field-border-color: #ffffff;
+    --p-form-field-placeholder-color: #eeeeee;
+    --p-focus-ring-color: #ffeb3b;
+    --p-highlight-background: #ffeb3b;
+    --p-highlight-color: #000000;
+
+    color-scheme: dark;
+
+    a {
+        color: #80d8ff;
+    }
+
+    :focus-visible,
+    .p-focus {
+        outline-color: #ffeb3b !important;
+    }
+}
+
+:root.app-high-contrast {
+    body {
+        background-color: var(--surface-ground);
+        color: var(--text-color);
+    }
+
+    button,
+    input,
+    select,
+    textarea,
+    [role='button'],
+    [role='switch'],
+    [role='combobox'],
+    .p-button,
+    .p-inputtext,
+    .p-select,
+    .p-selectbutton .p-button {
+        border-width: 2px;
+    }
+
+    .high-contrast-toggle {
+        color: var(--text-color);
+        background: var(--surface-card);
+    }
+}

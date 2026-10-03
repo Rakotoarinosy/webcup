@@ -1,56 +1,71 @@
-"""Schémas HTTP des demandes citoyennes et du dashboard."""
+"""Schémas HTTP des demandes citoyennes, de leur journal, de la priorisation et du dashboard."""
 
 from datetime import date, datetime
+from typing import Any, Self
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from src.domain.agent import AgentStatus
-from src.domain.citizen_request import RequestCategory, RequestPriority, RequestStatus
+from src.domain.citizen_request import (
+    RequestCategory,
+    RequestEventType,
+    RequestPriority,
+    RequestStatus,
+)
+from src.domain.citizen_request.priority import DEFAULT_URGENCY, URGENCY_MAX, URGENCY_MIN
+
+# ─── Entrées ────────────────────────────────────────────────────────
 
 
-class CreateCitizenRequestIn(BaseModel):
+class SubmitRequestIn(BaseModel):
+    """Statut, priorité, institut et agent ne sont jamais choisis à la soumission."""
+
     title: str = Field(min_length=1, max_length=255)
     description: str = Field(min_length=1, max_length=10_000)
     category: RequestCategory
-    priority: RequestPriority = RequestPriority.NORMAL
-    status: RequestStatus = RequestStatus.NEW
-    citizen_id: str = Field(min_length=1, max_length=36)
     location: str = Field(min_length=1, max_length=500)
     latitude: float | None = Field(default=None, ge=-90, le=90)
     longitude: float | None = Field(default=None, ge=-180, le=180)
-    assigned_agent_id: str | None = Field(default=None, min_length=1, max_length=36)
+    # Saisie pour le compte d'un citoyen (manager, admin) ; ignoré pour un citoyen.
+    citizen_id: str | None = Field(default=None, min_length=1, max_length=36)
+    urgency: int = Field(default=DEFAULT_URGENCY, ge=URGENCY_MIN, le=URGENCY_MAX)
+    affected_citizens: int = Field(default=1, ge=1, le=1_000_000)
 
 
-class UpdateCitizenRequestIn(BaseModel):
+class EditRequestIn(BaseModel):
+    """Mise à jour partielle. `category` et `priority` sont réservés au gestionnaire."""
+
     title: str | None = Field(default=None, min_length=1, max_length=255)
     description: str | None = Field(default=None, min_length=1, max_length=10_000)
-    category: RequestCategory | None = None
-    priority: RequestPriority | None = None
-    status: RequestStatus | None = None
-    citizen_id: str | None = Field(default=None, min_length=1, max_length=36)
     location: str | None = Field(default=None, min_length=1, max_length=500)
     latitude: float | None = Field(default=None, ge=-90, le=90)
     longitude: float | None = Field(default=None, ge=-180, le=180)
-    assigned_agent_id: str | None = Field(default=None, min_length=1, max_length=36)
+    category: RequestCategory | None = None
+    priority: RequestPriority | None = None
 
-    @model_validator(mode="before")
-    @classmethod
-    def reject_null_required_fields(cls, value: object) -> object:
-        if isinstance(value, dict):
-            required_fields = {
-                "title",
-                "description",
-                "category",
-                "priority",
-                "status",
-                "citizen_id",
-                "location",
-            }
-            for field in required_fields.intersection(value):
-                if value[field] is None:
-                    raise ValueError(f"{field} cannot be null")
 
-        return value
+class AssignRequestIn(BaseModel):
+    agent_id: str = Field(min_length=1, max_length=36)
+    scheduled_at: datetime | None = None
+
+
+class ChangeStatusIn(BaseModel):
+    status: RequestStatus
+
+
+class PriorityInputsIn(BaseModel):
+    urgency: int | None = Field(default=None, ge=URGENCY_MIN, le=URGENCY_MAX)
+    affected_citizens: int | None = Field(default=None, ge=1, le=1_000_000)
+
+    @model_validator(mode="after")
+    def at_least_one(self) -> Self:
+        if self.urgency is None and self.affected_citizens is None:
+            raise ValueError("Provide urgency and/or affected_citizens")
+
+        return self
+
+
+# ─── Sorties ────────────────────────────────────────────────────────
 
 
 class CitizenRequestOut(BaseModel):
@@ -63,11 +78,17 @@ class CitizenRequestOut(BaseModel):
     priority: RequestPriority
     status: RequestStatus
     citizen_id: str
-    created_at: datetime
+    institut_id: str | None
+    assigned_agent_id: str | None
     location: str
     latitude: float | None
     longitude: float | None
-    assigned_agent_id: str | None
+    urgency: int
+    affected_citizens: int
+    priority_score: int
+    created_at: datetime
+    updated_at: datetime
+    scheduled_at: datetime | None
     resolved_at: datetime | None
 
 
@@ -79,23 +100,84 @@ class CitizenRequestPageOut(BaseModel):
     total_pages: int
 
 
-class DashboardCategoryCountOut(BaseModel):
+class RequestEventOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    request_id: str
+    type: RequestEventType
+    actor_id: str | None
+    actor_name: str | None
+    payload: dict[str, Any]
+    created_at: datetime
+
+
+class PriorityItemOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    title: str
     category: RequestCategory
-    count: int
+    status: RequestStatus
+    priority: RequestPriority
+    priority_score: int
+    urgency: int
+    affected_citizens: int
+    created_at: datetime
+    assigned_agent_id: str | None
+    location: str
+    is_late: bool
 
 
-class DashboardDailyCountOut(BaseModel):
-    date: date
-    count: int
+class PriorityQueueOut(BaseModel):
+    items: list[PriorityItemOut]
+    total: int
+    page: int
+    page_size: int
 
 
-class DashboardOut(BaseModel):
-    open_requests: int
-    in_progress_requests: int
-    resolved_requests: int
-    today_interventions: int
-    category_distribution: list[DashboardCategoryCountOut]
-    requests_last_7_days: list[DashboardDailyCountOut]
+class MapPointOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    title: str
+    category: RequestCategory
+    priority: RequestPriority
+    status: RequestStatus
+    latitude: float
+    longitude: float
+    created_at: datetime
+    location: str
+    assigned_agent_id: str | None
+    agent_name: str | None
+
+
+class DailyCountOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    day: date
+    created: int
+    resolved: int
+
+
+class DashboardStatsOut(BaseModel):
+    """Même forme pour tous les rôles ; les chiffres ne couvrent que le périmètre de l'appelant."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    total: int
+    open: int
+    in_progress: int
+    resolved: int
+    rejected: int
+    resolution_rate: float
+    interventions_today: int
+    resolved_today: int
+    pending_count: int
+    by_status: dict[RequestStatus, int]
+    by_category: dict[RequestCategory, int]
+    by_priority: dict[RequestPriority, int]
+    daily: list[DailyCountOut]
 
 
 class RecommendedAgentOut(BaseModel):
@@ -103,7 +185,7 @@ class RecommendedAgentOut(BaseModel):
 
     id: str
     name: str
-    department: str
+    institut_name: str
     status: AgentStatus
     interventions: int
 

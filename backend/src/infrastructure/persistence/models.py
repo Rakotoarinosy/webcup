@@ -51,9 +51,6 @@ class UserModel(Base):
         String(20), index=True, default="citizen", server_default="citizen"
     )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true())
-    agent_id: Mapped[str | None] = mapped_column(
-        String(36), ForeignKey("agents.id", ondelete="SET NULL"), nullable=True, unique=True
-    )
     failed_login_attempts: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
@@ -73,47 +70,40 @@ class RefreshTokenModel(Base):
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
+# ─── institut ───────────────────────────────────────────────────────
+
+
+class InstitutModel(Base):
+    __tablename__ = "instituts"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    name: Mapped[str] = mapped_column(String(255), unique=True)
+    description: Mapped[str] = mapped_column(Text, default="", server_default="")
+    # Valeurs de RequestCategory. L'unicité entre instituts actifs est vérifiée par le use case.
+    categories: Mapped[list[str]] = mapped_column(JSON, default=list)
+    manager_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True, unique=True
+    )
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true())
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
 # ─── agent ──────────────────────────────────────────────────────────
 
 
 class AgentModel(Base):
+    """Profil agent : l'identité (nom, email) vit sur users."""
+
     __tablename__ = "agents"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
-    email: Mapped[str] = mapped_column(String(320), unique=True, index=True)
-    name: Mapped[str] = mapped_column(String(255))
-    department: Mapped[str] = mapped_column(String(255), default="")
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), unique=True
+    )
+    institut_id: Mapped[str] = mapped_column(String(36), ForeignKey("instituts.id"), index=True)
     status: Mapped[str] = mapped_column(String(32), default="available", index=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
-
-
-# ─── demande historique / legacy ─────────────────────────────────────
-
-
-class DemandeModel(Base):
-    __tablename__ = "demandes"
-
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
-    title: Mapped[str] = mapped_column(String(255), nullable=False)
-    description: Mapped[str] = mapped_column(Text, nullable=False)
-    category: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
-    priority: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
-    status: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
-    citizen_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("users.id"), nullable=False, index=True
-    )
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
-    address: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    latitude: Mapped[float | None] = mapped_column(Float, nullable=True)
-    longitude: Mapped[float | None] = mapped_column(Float, nullable=True)
-    agent_id: Mapped[str | None] = mapped_column(
-        String(36), ForeignKey("agents.id", ondelete="SET NULL"), nullable=True, index=True
-    )
-    scheduled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-
-    __table_args__ = (Index("ix_demandes_status_created_at", "status", "created_at"),)
 
 
 # ─── demandes citoyennes ─────────────────────────────────────────────
@@ -133,33 +123,42 @@ class CitizenRequestModel(Base):
     )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     location: Mapped[str] = mapped_column(String(500), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     latitude: Mapped[float | None] = mapped_column(Float, nullable=True)
     longitude: Mapped[float | None] = mapped_column(Float, nullable=True)
     assigned_agent_id: Mapped[str | None] = mapped_column(
         String(36), ForeignKey("agents.id", ondelete="SET NULL"), nullable=True, index=True
     )
     resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    scheduled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    urgency: Mapped[int] = mapped_column(Integer, default=3, server_default="3")
+    affected_citizens: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
+    priority_score: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    institut_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("instituts.id", ondelete="SET NULL"), nullable=True, index=True
+    )
 
     __table_args__ = (Index("ix_citizen_requests_status_created_at", "status", "created_at"),)
 
 
-# ─── historique des demandes ─────────────────────────────────────────
+class CitizenRequestEventModel(Base):
+    """Journal d'événements des demandes : timeline, notifications, historique."""
 
-
-class DemandeEventModel(Base):
-    __tablename__ = "demande_events"
+    __tablename__ = "citizen_request_events"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
-    demande_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("demandes.id", ondelete="CASCADE"), index=True
+    request_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("citizen_requests.id", ondelete="CASCADE")
     )
     type: Mapped[str] = mapped_column(String(40), index=True)
     # Pas de FK sur l'acteur : l'historique survit à la suppression d'un utilisateur.
     actor_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
     actor_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     payload: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=utc_now, index=True
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    __table_args__ = (
+        Index("ix_citizen_request_events_request_created", "request_id", "created_at"),
     )
 
 

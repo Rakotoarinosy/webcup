@@ -15,6 +15,9 @@ class MunicipalContentRepository(ABC):
     def list_featured_services(self) -> list[MunicipalService]: ...
 
     @abstractmethod
+    def list_popular_services(self, limit: int) -> list[MunicipalService]: ...
+
+    @abstractmethod
     def get_service(self, service_id: str) -> MunicipalService | None: ...
 
     @abstractmethod

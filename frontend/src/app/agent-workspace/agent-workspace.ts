@@ -1,8 +1,21 @@
 import { DatePipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { finalize, forkJoin } from 'rxjs';
-import { AgentDemandeSummary, AgentWorkspaceService, AssignedDemande, DemandeStatus } from './agent-workspace.service';
 
+import { CitizenRequest, DashboardStats, RequestEvent, RequestStatus, STATUS_TRANSITIONS, eventLabel } from '@/app/requests/request.model';
+import { CitizenRequestService } from '@/app/requests/request.service';
+import { apiErrorMessage } from '@/app/users/user.service';
+
+const PAGE_SIZE = 20;
+// Un agent fait avancer le traitement ; rejeter une demande reste une décision du manager.
+const AGENT_TARGETS: RequestStatus[] = ['En cours', 'En attente', 'Résolu'];
+const ACTION_LABELS: Partial<Record<RequestStatus, string>> = {
+    'En cours': 'Reprendre',
+    'En attente': 'Mettre en attente',
+    Résolu: 'Résoudre'
+};
+
+/** « Mes interventions » : le serveur ne renvoie que les demandes attribuées à l'agent connecté. */
 @Component({
     selector: 'app-agent-workspace',
     imports: [DatePipe],
@@ -10,20 +23,23 @@ import { AgentDemandeSummary, AgentWorkspaceService, AssignedDemande, DemandeSta
     styleUrl: './agent-workspace.scss'
 })
 export class AgentWorkspace {
-    private readonly api = inject(AgentWorkspaceService);
+    private readonly api = inject(CitizenRequestService);
 
-    protected readonly items = signal<AssignedDemande[]>([]);
-    protected readonly summary = signal<AgentDemandeSummary | null>(null);
+    protected readonly items = signal<CitizenRequest[]>([]);
+    protected readonly stats = signal<DashboardStats | null>(null);
     protected readonly page = signal(1);
     protected readonly pages = signal(1);
     protected readonly loading = signal(true);
     protected readonly error = signal<string | null>(null);
-    protected readonly resolving = signal<string | null>(null);
-    protected readonly actionRequired = computed(() => this.items().filter((item) => item.status === 'en_cours'));
-    protected readonly pendingCount = computed(() => {
-        const stats = this.summary();
-        return stats ? stats.nouveau + stats.en_attente : 0;
-    });
+    protected readonly saving = signal<string | null>(null);
+    protected readonly timelineFor = signal<string | null>(null);
+    protected readonly timeline = signal<RequestEvent[]>([]);
+    protected readonly eventLabel = eventLabel;
+
+    protected readonly actionRequired = computed(() => this.items().filter((item) => item.status === 'En cours'));
+    protected readonly count = (status: RequestStatus) => this.stats()?.by_status[status] ?? 0;
+    /** Demandes encore ouvertes qui attendent une action de l'agent. */
+    protected readonly pendingCount = computed(() => this.count('En cours') + this.count('En attente'));
 
     constructor() {
         this.refresh();
@@ -32,14 +48,17 @@ export class AgentWorkspace {
     protected refresh(): void {
         this.loading.set(true);
         this.error.set(null);
-        forkJoin({ page: this.api.list(this.page()), summary: this.api.summary() })
+        forkJoin({
+            page: this.api.list({ page: this.page(), page_size: PAGE_SIZE, sort_by: 'created_at', sort_order: 'desc' }),
+            stats: this.api.dashboard()
+        })
             .pipe(finalize(() => this.loading.set(false)))
             .subscribe({
-                next: ({ page, summary }) => {
+                next: ({ page, stats }) => {
                     this.items.set(page.items);
                     this.page.set(page.page);
-                    this.pages.set(Math.max(1, page.pages));
-                    this.summary.set(summary);
+                    this.pages.set(Math.max(1, page.total_pages));
+                    this.stats.set(stats);
                 },
                 error: () => this.error.set('Impossible de charger vos demandes. Réessayez dans quelques instants.')
             });
@@ -51,24 +70,43 @@ export class AgentWorkspace {
         this.refresh();
     }
 
-    protected resolve(item: AssignedDemande): void {
-        if (this.resolving()) return;
-        this.resolving.set(item.id);
-        this.api.resolve(item.id).pipe(finalize(() => this.resolving.set(null))).subscribe({
-            next: () => this.refresh(),
-            error: () => this.error.set(`La demande « ${item.title} » n’a pas pu être résolue.`)
+    protected actions(item: CitizenRequest): { target: RequestStatus; label: string }[] {
+        return STATUS_TRANSITIONS[item.status]
+            .filter((target) => AGENT_TARGETS.includes(target))
+            .map((target) => ({ target, label: ACTION_LABELS[target] ?? target }));
+    }
+
+    protected move(item: CitizenRequest, target: RequestStatus): void {
+        if (this.saving()) return;
+        this.saving.set(item.id);
+        this.api
+            .changeStatus(item.id, target)
+            .pipe(finalize(() => this.saving.set(null)))
+            .subscribe({
+                next: () => this.refresh(),
+                error: (error: unknown) => this.error.set(`« ${item.title} » : ${apiErrorMessage(error)}`)
+            });
+    }
+
+    protected toggleTimeline(item: CitizenRequest): void {
+        if (this.timelineFor() === item.id) {
+            this.timelineFor.set(null);
+            return;
+        }
+        this.timelineFor.set(item.id);
+        this.timeline.set([]);
+        this.api.events(item.id).subscribe({
+            next: (events) => this.timeline.set(events),
+            error: (error: unknown) => this.error.set(apiErrorMessage(error))
         });
     }
 
-    protected statusLabel(status: DemandeStatus): string {
-        return ({ nouveau: 'Nouvelle', en_cours: 'En cours', en_attente: 'En attente', resolu: 'Résolue', rejete: 'Rejetée' })[status];
-    }
-
-    protected priorityLabel(priority: string): string {
-        return ({ faible: 'Faible', moyenne: 'Moyenne', haute: 'Haute', critique: 'Critique' })[priority] ?? priority;
-    }
-
-    protected categoryLabel(category: string): string {
-        return category.replaceAll('_', ' ').replace(/^./, (letter) => letter.toLocaleUpperCase('fr'));
+    /** Clé CSS stable du statut (« En cours » → « en_cours »). */
+    protected statusKey(status: RequestStatus): string {
+        return status
+            .normalize('NFD')
+            .replace(/[̀-ͯ]/g, '')
+            .toLowerCase()
+            .replace(' ', '_');
     }
 }

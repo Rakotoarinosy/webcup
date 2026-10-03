@@ -17,6 +17,8 @@ class SearchScope:
 
     citizen_id: str | None = None
     agent_id: str | None = None
+    institut_id: str | None = None
+    is_empty: bool = False  # agent ou manager non rattaché : aucun résultat
     directory: bool = False  # peut chercher parmi les citoyens et les agents
 
 

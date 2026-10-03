@@ -21,6 +21,7 @@ from src.features.municipal_content.use_cases import (
     list_featured_municipal_services,
     list_municipal_publications,
     list_municipal_services,
+    list_popular_municipal_services,
     send_contact_message,
     start_municipal_service,
     update_municipal_service_catalog,
@@ -50,6 +51,14 @@ def list_featured_services_endpoint(
     repo: MunicipalContentRepository = Depends(get_municipal_content_repo),
 ) -> list[MunicipalService]:
     return list_featured_municipal_services(repo)
+
+
+@router.get("/services/popular", response_model=list[MunicipalServiceOut])
+def list_popular_services_endpoint(
+    limit: int = Query(default=6, ge=1, le=6),
+    repo: MunicipalContentRepository = Depends(get_municipal_content_repo),
+) -> list[MunicipalService]:
+    return list_popular_municipal_services(limit, repo)
 
 
 @router.post("/services/{service_id}/start", response_model=MunicipalServiceOut)

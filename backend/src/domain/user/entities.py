@@ -21,8 +21,6 @@ class User:
     password_hash: str
     role: Role = Role.CITIZEN
     is_active: bool = True
-    # Pour un utilisateur AGENT : lien vers sa fiche agent (« Mes interventions »).
-    agent_id: str | None = None
     failed_login_attempts: int = 0
     locked_until: datetime | None = None
 

@@ -17,52 +17,70 @@ import { TextareaModule } from 'primeng/textarea';
 import { ToastModule } from 'primeng/toast';
 import { ToolbarModule } from 'primeng/toolbar';
 import { TooltipModule } from 'primeng/tooltip';
-import { EMPTY, Subject, catchError, debounceTime, distinctUntilChanged, finalize, switchMap, tap } from 'rxjs';
+import { EMPTY, Observable, Subject, catchError, debounceTime, distinctUntilChanged, finalize, of, switchMap, tap } from 'rxjs';
 
 import { Agent } from '@/app/agents/agent.model';
 import { AgentService } from '@/app/agents/agent.service';
+import { AuthService } from '@/app/auth/auth.service';
+import { Institut } from '@/app/instituts/institut.model';
+import { InstitutService } from '@/app/instituts/institut.service';
 import { User } from '@/app/users/user.model';
 import { apiErrorMessage, UserService } from '@/app/users/user.service';
 import {
     CitizenRequest,
     CitizenRequestQuery,
-    CreateCitizenRequestIn,
+    EditRequestIn,
+    eventLabel,
+    isOpen,
     RequestAnalysis,
+    RequestEvent,
     REQUEST_CATEGORIES,
     REQUEST_PRIORITIES,
     REQUEST_STATUSES,
+    requestPrioritySeverity,
     requestStatusSeverity,
     RequestCategory,
     RequestPriority,
     RequestSortBy,
-    RequestStatus
+    RequestStatus,
+    STATUS_TRANSITIONS
 } from './request.model';
 import { CitizenRequestService } from './request.service';
 
-interface RequestForm {
+/** Création pour le compte d'un citoyen : statut, priorité et institut sont décidés par le serveur. */
+interface SubmitForm {
     title: string;
     description: string;
     category: RequestCategory;
-    priority: RequestPriority;
-    status: RequestStatus;
-    citizen_id: string;
     location: string;
-    assigned_agent_id: string | null;
+    citizen_id: string;
 }
 
-const EMPTY_FORM: RequestForm = {
-    title: '',
-    description: '',
-    category: 'Autre',
-    priority: 'Normale',
-    status: 'Nouveau',
-    citizen_id: '',
-    location: '',
-    assigned_agent_id: null
-};
+/** Modification du contenu : statut et agent ont leurs propres actions. */
+interface EditForm {
+    title: string;
+    description: string;
+    location: string;
+    category: RequestCategory;
+    priority: RequestPriority;
+}
+
+const EMPTY_SUBMIT: SubmitForm = { title: '', description: '', category: 'Autre', location: '', citizen_id: '' };
 
 const SORT_FIELDS: RequestSortBy[] = ['created_at', 'title', 'category', 'priority', 'status'];
 
+const STATUS_ACTION_LABELS: Record<RequestStatus, string> = {
+    Nouveau: 'Nouveau',
+    'En cours': 'Prendre en charge',
+    'En attente': 'Mettre en attente',
+    Résolu: 'Marquer résolue',
+    Rejeté: 'Rejeter'
+};
+
+/**
+ * Demandes citoyennes pour l'encadrement : un manager voit et gère celles de son institut,
+ * l'admin toutes. Le périmètre et les droits sont appliqués par l'API.
+ */
 @Component({
     selector: 'app-requests',
     imports: [
@@ -90,26 +108,22 @@ export class Requests implements OnInit {
     private readonly requestService = inject(CitizenRequestService);
     private readonly userService = inject(UserService);
     private readonly agentService = inject(AgentService);
+    private readonly institutService = inject(InstitutService);
     private readonly messageService = inject(MessageService);
     private readonly confirmationService = inject(ConfirmationService);
     private readonly destroyRef = inject(DestroyRef);
     private readonly requestQueries = new Subject<CitizenRequestQuery>();
     private readonly searchChanges = new Subject<string>();
+    protected readonly auth = inject(AuthService);
 
     readonly requests = signal<CitizenRequest[]>([]);
     readonly users = signal<User[]>([]);
     readonly userNames = computed(() => new Map(this.users().map((user) => [user.id, user.name])));
-    readonly userOptions = computed(() =>
-        this.users().map((user) => ({ label: `${user.name} (${user.email})`, value: user.id }))
-    );
+    readonly userOptions = computed(() => this.users().map((user) => ({ label: `${user.name} (${user.email})`, value: user.id })));
     readonly agents = signal<Agent[]>([]);
     readonly agentNames = computed(() => new Map(this.agents().map((agent) => [agent.id, agent.name])));
-    // Seuls les agents actifs peuvent recevoir une demande.
-    readonly agentOptions = computed(() =>
-        this.agents()
-            .filter((agent) => agent.is_active)
-            .map((agent) => ({ label: `${agent.name} (${agent.department})`, value: agent.id }))
-    );
+    readonly instituts = signal<Institut[]>([]);
+    readonly institutNames = computed(() => new Map(this.instituts().map((institut) => [institut.id, institut.name])));
     readonly total = signal(0);
     readonly loading = signal(false);
     readonly saving = signal(false);
@@ -117,6 +131,10 @@ export class Requests implements OnInit {
     readonly categories: RequestCategory[] = [...REQUEST_CATEGORIES];
     readonly priorities: RequestPriority[] = [...REQUEST_PRIORITIES];
     readonly statuses: RequestStatus[] = [...REQUEST_STATUSES];
+    readonly statusSeverity = requestStatusSeverity;
+    readonly prioritySeverity = requestPrioritySeverity;
+    readonly eventLabel = eventLabel;
+    readonly isOpen = isOpen;
 
     first = 0;
     pageSize = 10;
@@ -127,11 +145,21 @@ export class Requests implements OnInit {
     priorityFilter: RequestPriority | null = null;
     statusFilter: RequestStatus | null = null;
 
-    formDialogVisible = false;
-    detailsDialogVisible = false;
+    submitDialogVisible = false;
+    submitForm: SubmitForm = { ...EMPTY_SUBMIT };
+
+    editDialogVisible = false;
     editedRequest: CitizenRequest | null = null;
-    selectedRequest: CitizenRequest | null = null;
-    form: RequestForm = { ...EMPTY_FORM };
+    editForm: EditForm | null = null;
+
+    detailsDialogVisible = false;
+    readonly selectedRequest = signal<CitizenRequest | null>(null);
+    readonly timeline = signal<RequestEvent[]>([]);
+
+    assignDialogVisible = false;
+    assignedRequest: CitizenRequest | null = null;
+    assignAgentId: string | null = null;
+    assignScheduledAt = '';
 
     // Analyse IA : suggestion affichée dans une fenêtre, appliquée seulement sur validation.
     analysisDialogVisible = false;
@@ -162,22 +190,23 @@ export class Requests implements OnInit {
             )
             .subscribe();
 
-        this.searchChanges
-            .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
-            .subscribe(() => this.resetAndLoad());
+        this.searchChanges.pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef)).subscribe(() => this.resetAndLoad());
     }
 
     ngOnInit(): void {
-        this.loadUsers();
-        this.loadAgents();
+        this.userService.list().subscribe({ next: (users) => this.users.set(users), error: (error: unknown) => this.showError(error) });
+        this.agentService.list().subscribe({ next: (agents) => this.agents.set(agents), error: (error: unknown) => this.showError(error) });
+        this.institutService.list().subscribe({ next: (instituts) => this.instituts.set(instituts), error: (error: unknown) => this.showError(error) });
     }
+
+    // ─── Liste ──────────────────────────────────────────────────────
 
     onLazyLoad(event: TableLazyLoadEvent): void {
         this.first = event.first ?? this.first;
         this.pageSize = event.rows ?? this.pageSize;
 
-        if (typeof event.sortField === 'string' && this.isSortField(event.sortField)) {
-            this.sortBy = event.sortField;
+        if (typeof event.sortField === 'string' && SORT_FIELDS.includes(event.sortField as RequestSortBy)) {
+            this.sortBy = event.sortField as RequestSortBy;
         }
         if (event.sortOrder === 1 || event.sortOrder === -1) {
             this.sortOrder = event.sortOrder === 1 ? 'asc' : 'desc';
@@ -203,31 +232,130 @@ export class Requests implements OnInit {
         this.resetAndLoad();
     }
 
-    openNew(): void {
-        this.editedRequest = null;
-        this.form = { ...EMPTY_FORM };
-        this.formDialogVisible = true;
+    loadRequests(): void {
+        this.requestQueries.next({
+            page: Math.floor(this.first / this.pageSize) + 1,
+            page_size: this.pageSize,
+            search: this.searchText.trim() || undefined,
+            category: this.categoryFilter ?? undefined,
+            priority: this.priorityFilter ?? undefined,
+            status: this.statusFilter ?? undefined,
+            sort_by: this.sortBy,
+            sort_order: this.sortOrder
+        });
     }
+
+    // ─── Création pour un citoyen ───────────────────────────────────
+
+    openSubmit(): void {
+        this.submitForm = { ...EMPTY_SUBMIT };
+        this.submitDialogVisible = true;
+    }
+
+    submit(form: NgForm): void {
+        if (form.invalid || this.saving()) {
+            form.control.markAllAsTouched();
+            return;
+        }
+        const payload = {
+            ...this.submitForm,
+            title: this.submitForm.title.trim(),
+            description: this.submitForm.description.trim(),
+            location: this.submitForm.location.trim()
+        };
+        this.run(this.requestService.submit(payload), 'Demande enregistrée', () => (this.submitDialogVisible = false));
+    }
+
+    // ─── Modification du contenu ────────────────────────────────────
 
     openEdit(request: CitizenRequest): void {
         this.editedRequest = request;
-        this.form = {
-            title: request.title,
-            description: request.description,
-            category: request.category,
-            priority: request.priority,
-            status: request.status,
-            citizen_id: request.citizen_id,
-            location: request.location,
-            assigned_agent_id: request.assigned_agent_id
-        };
-        this.formDialogVisible = true;
+        this.editForm = { title: request.title, description: request.description, location: request.location, category: request.category, priority: request.priority };
+        this.editDialogVisible = true;
     }
 
-    openDetails(request: CitizenRequest): void {
-        this.selectedRequest = request;
-        this.detailsDialogVisible = true;
+    saveEdit(form: NgForm): void {
+        const request = this.editedRequest;
+        const values = this.editForm;
+        if (!request || !values || form.invalid || this.saving()) {
+            form.control.markAllAsTouched();
+            return;
+        }
+        // Seuls les champs modifiés partent : l'historique ne garde que de vrais changements.
+        const changes: EditRequestIn = {};
+        if (values.title.trim() !== request.title) changes.title = values.title.trim();
+        if (values.description.trim() !== request.description) changes.description = values.description.trim();
+        if (values.location.trim() !== request.location) changes.location = values.location.trim();
+        if (values.category !== request.category) changes.category = values.category;
+        if (values.priority !== request.priority) changes.priority = values.priority;
+
+        const rerouted = changes.category !== undefined;
+        this.run(this.requestService.edit(request.id, changes), rerouted ? 'Demande modifiée et transmise à l\'institut de la nouvelle catégorie' : 'Demande modifiée', () => (this.editDialogVisible = false));
     }
+
+    // ─── Détail, historique et cycle de vie ─────────────────────────
+
+    openDetails(request: CitizenRequest): void {
+        this.selectedRequest.set(request);
+        this.timeline.set([]);
+        this.detailsDialogVisible = true;
+        this.requestService.events(request.id).subscribe({
+            next: (events) => this.timeline.set(events),
+            error: (error: unknown) => this.showError(error)
+        });
+    }
+
+    statusActions(request: CitizenRequest): { target: RequestStatus; label: string; danger: boolean }[] {
+        return STATUS_TRANSITIONS[request.status].map((target) => ({ target, label: STATUS_ACTION_LABELS[target], danger: target === 'Rejeté' }));
+    }
+
+    changeStatus(request: CitizenRequest, target: RequestStatus): void {
+        const apply = () =>
+            this.run(this.requestService.changeStatus(request.id, target), `Statut : ${target}`, (updated) => {
+                if (this.detailsDialogVisible) this.openDetails(updated);
+            });
+
+        if (target === 'Rejeté') {
+            this.confirmationService.confirm({
+                message: `Rejeter la demande « ${request.title} » ? Ce statut est définitif.`,
+                header: 'Rejeter la demande',
+                icon: 'pi pi-exclamation-triangle',
+                acceptLabel: 'Rejeter',
+                rejectLabel: 'Annuler',
+                acceptButtonProps: { severity: 'danger' },
+                rejectButtonProps: { severity: 'secondary', outlined: true },
+                accept: apply
+            });
+            return;
+        }
+        apply();
+    }
+
+    // ─── Attribution ────────────────────────────────────────────────
+
+    /** Agents actifs de l'institut de la demande (tous les actifs pour une demande sans institut). */
+    agentOptions(request: CitizenRequest | null): { label: string; value: string }[] {
+        return this.agents()
+            .filter((agent) => agent.is_active && (!request?.institut_id || agent.institut_id === request.institut_id))
+            .map((agent) => ({ label: `${agent.name} — ${agent.institut_name}`, value: agent.id }));
+    }
+
+    openAssign(request: CitizenRequest): void {
+        this.assignedRequest = request;
+        this.assignAgentId = request.assigned_agent_id;
+        this.assignScheduledAt = request.scheduled_at ? request.scheduled_at.slice(0, 16) : '';
+        this.detailsDialogVisible = false;
+        this.assignDialogVisible = true;
+    }
+
+    saveAssign(): void {
+        const request = this.assignedRequest;
+        if (!request || !this.assignAgentId || this.saving()) return;
+        const payload = { agent_id: this.assignAgentId, scheduled_at: this.assignScheduledAt ? new Date(this.assignScheduledAt).toISOString() : null };
+        this.run(this.requestService.assign(request.id, payload), 'Demande attribuée', () => (this.assignDialogVisible = false));
+    }
+
+    // ─── Analyse IA ─────────────────────────────────────────────────
 
     analyze(request: CitizenRequest): void {
         this.analyzedRequest = request;
@@ -246,59 +374,35 @@ export class Requests implements OnInit {
             });
     }
 
-    /** Applique catégorie, priorité et agent suggérés à la demande analysée. */
+    /** Applique catégorie et priorité suggérées, puis attribue l'agent recommandé si la demande est ouverte. */
     applyAnalysis(): void {
         const request = this.analyzedRequest;
         const analysis = this.analysis();
-        if (!request || !analysis || this.applyingAnalysis()) {
-            return;
-        }
+        if (!request || !analysis || this.applyingAnalysis()) return;
+
+        const changes: EditRequestIn = {};
+        if (analysis.category !== request.category) changes.category = analysis.category;
+        if (analysis.priority !== request.priority) changes.priority = analysis.priority;
+        const agent = analysis.recommended_agent;
 
         this.applyingAnalysis.set(true);
         this.requestService
-            .update(request.id, {
-                category: analysis.category,
-                priority: analysis.priority,
-                ...(analysis.recommended_agent ? { assigned_agent_id: analysis.recommended_agent.id } : {})
-            })
-            .pipe(finalize(() => this.applyingAnalysis.set(false)))
+            .edit(request.id, changes)
+            .pipe(
+                switchMap((updated) => (agent && isOpen(updated.status) ? this.requestService.assign(updated.id, { agent_id: agent.id }) : of(updated))),
+                finalize(() => this.applyingAnalysis.set(false))
+            )
             .subscribe({
                 next: () => {
                     this.analysisDialogVisible = false;
-                    this.showSuccess('Suggestions de l\'IA appliquées');
+                    this.showSuccess("Suggestions de l'IA appliquées");
                     this.loadRequests();
                 },
                 error: (error: unknown) => this.showError(error)
             });
     }
 
-    save(form: NgForm): void {
-        if (form.invalid || this.saving()) {
-            form.control.markAllAsTouched();
-            return;
-        }
-
-        const payload: CreateCitizenRequestIn = {
-            ...this.form,
-            title: this.form.title.trim(),
-            description: this.form.description.trim(),
-            location: this.form.location.trim()
-        };
-        const edited = this.editedRequest;
-        const request = edited
-            ? this.requestService.update(edited.id, payload)
-            : this.requestService.create(payload);
-
-        this.saving.set(true);
-        request.pipe(finalize(() => this.saving.set(false))).subscribe({
-            next: () => {
-                this.formDialogVisible = false;
-                this.showSuccess(edited ? 'Demande modifiée' : 'Demande créée');
-                this.loadRequests();
-            },
-            error: (error: unknown) => this.showError(error)
-        });
-    }
+    // ─── Suppression ────────────────────────────────────────────────
 
     confirmDelete(request: CitizenRequest): void {
         this.confirmationService.confirm({
@@ -309,64 +413,44 @@ export class Requests implements OnInit {
             rejectLabel: 'Annuler',
             acceptButtonProps: { severity: 'danger' },
             rejectButtonProps: { severity: 'secondary', outlined: true },
-            accept: () => this.delete(request)
+            accept: () =>
+                this.requestService.delete(request.id).subscribe({
+                    next: () => {
+                        if (this.requests().length === 1 && this.first > 0) {
+                            this.first = Math.max(0, this.first - this.pageSize);
+                        }
+                        this.showSuccess('Demande supprimée');
+                        this.loadRequests();
+                    },
+                    error: (error: unknown) => this.showError(error)
+                })
         });
     }
 
+    // ─── Affichage ──────────────────────────────────────────────────
+
     userName(id: string): string {
-        return this.userNames().get(id) ?? id;
+        return this.userNames().get(id) ?? id.slice(0, 8);
     }
 
     agentName(id: string | null): string {
-        if (id === null) {
-            return 'Non assigné';
-        }
-
-        return this.agentNames().get(id) ?? id;
+        return id === null ? 'Non assigné' : (this.agentNames().get(id) ?? 'Agent inconnu');
     }
 
-    statusSeverity(status: RequestStatus): 'success' | 'info' | 'warn' | 'danger' | 'secondary' {
-        return requestStatusSeverity(status);
+    institutName(id: string | null): string {
+        return id === null ? 'Administration' : (this.institutNames().get(id) ?? '—');
     }
 
-    prioritySeverity(priority: RequestPriority): 'warn' | 'danger' | 'secondary' {
-        switch (priority) {
-            case 'Basse':
-                return 'secondary';
-            case 'Normale':
-                return 'warn';
-            case 'Haute':
-            case 'Urgente':
-                return 'danger';
-        }
-    }
-
-    private loadUsers(): void {
-        this.userService.list().subscribe({
-            next: (users) => this.users.set(users),
+    private run(action: Observable<CitizenRequest>, success: string, done: (updated: CitizenRequest) => void): void {
+        this.saving.set(true);
+        action.pipe(finalize(() => this.saving.set(false))).subscribe({
+            next: (updated) => {
+                done(updated);
+                this.showSuccess(success);
+                this.loadRequests();
+            },
             error: (error: unknown) => this.showError(error)
         });
-    }
-
-    private loadAgents(): void {
-        this.agentService.list().subscribe({
-            next: (agents) => this.agents.set(agents),
-            error: (error: unknown) => this.showError(error)
-        });
-    }
-
-    loadRequests(): void {
-        const query: CitizenRequestQuery = {
-            page: Math.floor(this.first / this.pageSize) + 1,
-            page_size: this.pageSize,
-            search: this.searchText.trim() || undefined,
-            category: this.categoryFilter ?? undefined,
-            priority: this.priorityFilter ?? undefined,
-            status: this.statusFilter ?? undefined,
-            sort_by: this.sortBy,
-            sort_order: this.sortOrder
-        };
-        this.requestQueries.next(query);
     }
 
     private resetAndLoad(): void {
@@ -374,34 +458,12 @@ export class Requests implements OnInit {
         this.loadRequests();
     }
 
-    private isSortField(value: string): value is RequestSortBy {
-        return SORT_FIELDS.includes(value as RequestSortBy);
-    }
-
-    private delete(request: CitizenRequest): void {
-        this.requestService.delete(request.id).subscribe({
-            next: () => {
-                if (this.requests().length === 1 && this.first > 0) {
-                    this.first = Math.max(0, this.first - this.pageSize);
-                }
-                this.showSuccess('Demande supprimée');
-                this.loadRequests();
-            },
-            error: (error: unknown) => this.showError(error)
-        });
-    }
-
     private showSuccess(detail: string): void {
         this.messageService.add({ severity: 'success', summary: 'Succès', detail, life: 3000 });
     }
 
     private showError(error: unknown): void {
-        this.messageService.add({
-            severity: 'error',
-            summary: 'Erreur',
-            detail: apiErrorMessage(error),
-            life: 5000
-        });
+        this.messageService.add({ severity: 'error', summary: 'Erreur', detail: apiErrorMessage(error), life: 5000 });
     }
 }
 
@@ -414,7 +476,7 @@ function analysisErrorMessage(error: unknown): string {
             return "L'IA est momentanément indisponible. Réessayez dans quelques instants.";
         }
         if (error.status === 403) {
-            return "L'analyse IA est réservée aux gestionnaires.";
+            return "L'analyse IA est réservée au responsable de l'institut de la demande.";
         }
     }
 

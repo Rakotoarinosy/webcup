@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule, NgForm } from '@angular/forms';
 import { ConfirmationService, MessageService } from 'primeng/api';
@@ -15,16 +15,32 @@ import { TagModule } from 'primeng/tag';
 import { ToastModule } from 'primeng/toast';
 import { ToolbarModule } from 'primeng/toolbar';
 import { TooltipModule } from 'primeng/tooltip';
-import { EMPTY, Subject, catchError, debounceTime, distinctUntilChanged, finalize, switchMap, tap } from 'rxjs';
+import { EMPTY, Observable, Subject, catchError, debounceTime, distinctUntilChanged, finalize, of, switchMap, tap } from 'rxjs';
 
-import { CitizenRequest, REQUEST_CATEGORIES, requestStatusSeverity } from '@/app/requests/request.model';
-import { apiErrorMessage } from '@/app/users/user.service';
-import { Agent, AGENT_STATUS_LABELS, AGENT_STATUSES, AgentQuery, AgentStatus, CreateAgentIn } from './agent.model';
+import { AuthService } from '@/app/auth/auth.service';
+import { Institut } from '@/app/instituts/institut.model';
+import { InstitutService } from '@/app/instituts/institut.service';
+import { CitizenRequest, requestStatusSeverity } from '@/app/requests/request.model';
+import { User } from '@/app/users/user.model';
+import { apiErrorMessage, UserService } from '@/app/users/user.service';
+import { Agent, AGENT_STATUS_LABELS, AGENT_STATUSES, AgentQuery, AgentStatus } from './agent.model';
 import { AgentService } from './agent.service';
 
 type ActivityFilter = 'active' | 'inactive' | 'all';
+type AccountMode = 'existing' | 'new';
 
-const EMPTY_FORM: CreateAgentIn = { name: '', email: '', department: '', status: 'available' };
+/** Un agent = un compte de rôle « agent » + un profil rattaché à un institut. */
+interface AgentForm {
+    mode: AccountMode;
+    user_id: string | null;
+    name: string;
+    email: string;
+    password: string;
+    institut_id: string | null;
+    status: AgentStatus;
+}
+
+const EMPTY_FORM: AgentForm = { mode: 'existing', user_id: null, name: '', email: '', password: '', institut_id: null, status: 'available' };
 
 @Component({
     selector: 'app-agents',
@@ -35,6 +51,9 @@ const EMPTY_FORM: CreateAgentIn = { name: '', email: '', department: '', status:
 })
 export class Agents implements OnInit {
     private readonly agentService = inject(AgentService);
+    private readonly institutService = inject(InstitutService);
+    private readonly userService = inject(UserService);
+    protected readonly auth = inject(AuthService);
     private readonly messageService = inject(MessageService);
     private readonly confirmationService = inject(ConfirmationService);
     private readonly destroyRef = inject(DestroyRef);
@@ -47,8 +66,20 @@ export class Agents implements OnInit {
     readonly interventions = signal<CitizenRequest[]>([]);
     readonly interventionsLoading = signal(false);
 
-    // Les départements reprennent les catégories de demandes, mais la saisie libre reste possible.
-    readonly departments: string[] = [...REQUEST_CATEGORIES];
+    readonly instituts = signal<Institut[]>([]);
+    readonly institutOptions = computed(() => this.instituts().filter((i) => i.is_active).map((i) => ({ label: i.name, value: i.id })));
+    /** Comptes « agent » sans profil : seuls candidats à un nouveau profil (admin). */
+    readonly agentAccounts = signal<User[]>([]);
+    readonly accountOptions = computed(() => {
+        const linked = new Set(this.agents().map((agent) => agent.user_id));
+        return this.agentAccounts()
+            .filter((user) => !linked.has(user.id))
+            .map((user) => ({ label: `${user.name} (${user.email})`, value: user.id }));
+    });
+    readonly modeOptions: { label: string; value: AccountMode }[] = [
+        { label: 'Compte existant', value: 'existing' },
+        { label: 'Nouveau compte', value: 'new' }
+    ];
     readonly statusOptions = AGENT_STATUSES.map((status) => ({ label: AGENT_STATUS_LABELS[status], value: status }));
     readonly activityOptions: { label: string; value: ActivityFilter }[] = [
         { label: 'Agents actifs', value: 'active' },
@@ -58,15 +89,17 @@ export class Agents implements OnInit {
     readonly requestStatusSeverity = requestStatusSeverity;
 
     searchText = '';
-    departmentFilter: string | null = null;
+    institutFilter: string | null = null;
     statusFilter: AgentStatus | null = null;
     activityFilter: ActivityFilter = 'active';
 
     formDialogVisible = false;
     interventionsDialogVisible = false;
-    editedAgent: Agent | null = null;
+    moveDialogVisible = false;
     selectedAgent: Agent | null = null;
-    form: CreateAgentIn = { ...EMPTY_FORM };
+    movedAgent: Agent | null = null;
+    moveInstitutId: string | null = null;
+    form: AgentForm = { ...EMPTY_FORM };
 
     constructor() {
         this.agentQueries
@@ -91,12 +124,16 @@ export class Agents implements OnInit {
 
     ngOnInit(): void {
         this.loadAgents();
+        this.institutService.list().subscribe({ next: (instituts) => this.instituts.set(instituts), error: (error: unknown) => this.showError(error) });
+        if (this.auth.hasRole('admin')) {
+            this.loadAccounts();
+        }
     }
 
     loadAgents(): void {
         this.agentQueries.next({
             search: this.searchText.trim() || undefined,
-            department: this.departmentFilter ?? undefined,
+            institut_id: this.institutFilter ?? undefined,
             status: this.statusFilter ?? undefined,
             is_active: this.activityFilter === 'all' ? undefined : this.activityFilter === 'active'
         });
@@ -109,21 +146,14 @@ export class Agents implements OnInit {
 
     clearFilters(): void {
         this.searchText = '';
-        this.departmentFilter = null;
+        this.institutFilter = null;
         this.statusFilter = null;
         this.activityFilter = 'active';
         this.loadAgents();
     }
 
     openNew(): void {
-        this.editedAgent = null;
-        this.form = { ...EMPTY_FORM };
-        this.formDialogVisible = true;
-    }
-
-    openEdit(agent: Agent): void {
-        this.editedAgent = agent;
-        this.form = { name: agent.name, email: agent.email, department: agent.department, status: agent.status };
+        this.form = { ...EMPTY_FORM, mode: this.accountOptions().length ? 'existing' : 'new' };
         this.formDialogVisible = true;
     }
 
@@ -147,20 +177,54 @@ export class Agents implements OnInit {
             return;
         }
 
-        const payload: CreateAgentIn = {
-            ...this.form,
-            name: this.form.name.trim(),
-            email: this.form.email.trim(),
-            department: this.form.department.trim()
-        };
-        const edited = this.editedAgent;
-        const request = edited ? this.agentService.update(edited.id, payload) : this.agentService.create(payload);
+        const values = this.form;
+        // Nouveau compte : création du compte « agent », puis de son profil dans l'institut.
+        const account: Observable<string | null> =
+            values.mode === 'new'
+                ? this.userService.createAccount({ name: values.name.trim(), email: values.email.trim(), password: values.password, role: 'agent' }).pipe(switchMap((user) => of(user.id)))
+                : of(values.user_id);
 
         this.saving.set(true);
-        request.pipe(finalize(() => this.saving.set(false))).subscribe({
+        account
+            .pipe(
+                switchMap((userId) => this.agentService.create({ user_id: userId ?? '', institut_id: values.institut_id, status: values.status })),
+                finalize(() => this.saving.set(false))
+            )
+            .subscribe({
+                next: () => {
+                    this.formDialogVisible = false;
+                    this.showSuccess('Agent ajouté');
+                    this.loadAgents();
+                    this.loadAccounts();
+                },
+                error: (error: unknown) => this.showError(error)
+            });
+    }
+
+    changeStatus(agent: Agent, status: AgentStatus): void {
+        if (agent.status === status) return;
+        this.agentService.setStatus(agent.id, status).subscribe({
             next: () => {
-                this.formDialogVisible = false;
-                this.showSuccess(edited ? 'Agent modifié' : 'Agent ajouté');
+                this.showSuccess(`${agent.name} : ${AGENT_STATUS_LABELS[status]}`);
+                this.loadAgents();
+            },
+            error: (error: unknown) => this.showError(error)
+        });
+    }
+
+    openMove(agent: Agent): void {
+        this.movedAgent = agent;
+        this.moveInstitutId = agent.institut_id;
+        this.moveDialogVisible = true;
+    }
+
+    saveMove(): void {
+        const agent = this.movedAgent;
+        if (!agent || !this.moveInstitutId || this.moveInstitutId === agent.institut_id) return;
+        this.agentService.move(agent.id, this.moveInstitutId).subscribe({
+            next: (moved) => {
+                this.moveDialogVisible = false;
+                this.showSuccess(`${moved.name} rattaché à ${moved.institut_name}`);
                 this.loadAgents();
             },
             error: (error: unknown) => this.showError(error)
@@ -207,6 +271,11 @@ export class Agents implements OnInit {
             case 'offline':
                 return 'secondary';
         }
+    }
+
+    private loadAccounts(): void {
+        if (!this.auth.hasRole('admin')) return;
+        this.userService.listAccounts('agent').subscribe({ next: (users) => this.agentAccounts.set(users), error: (error: unknown) => this.showError(error) });
     }
 
     private showSuccess(detail: string): void {

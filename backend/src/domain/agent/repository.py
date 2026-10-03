@@ -11,9 +11,6 @@ class AgentRepository(ABC):
     def get_by_id(self, agent_id: str) -> Agent | None: ...
 
     @abstractmethod
-    def get_by_email(self, email: str) -> Agent | None: ...
-
-    @abstractmethod
     def search(self, query: AgentQuery) -> list[Agent]: ...
 
     @abstractmethod

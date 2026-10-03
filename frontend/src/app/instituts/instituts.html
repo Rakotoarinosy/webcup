@@ -1,0 +1,102 @@
+<p-toast />
+<p-confirmdialog [style]="{ width: '30rem' }" />
+
+<div class="card">
+    <p-toolbar styleClass="mb-5">
+        <ng-template #start>
+            <div>
+                <h1 class="m-0 text-xl font-semibold">Instituts</h1>
+                <p class="mt-1 mb-0 text-sm text-muted-color">Services qui reçoivent les demandes, par catégorie.</p>
+            </div>
+        </ng-template>
+        <ng-template #end>
+            <div class="flex gap-2">
+                <p-button label="Actualiser" icon="pi pi-refresh" severity="secondary" [outlined]="true" [loading]="loading()" (onClick)="load()" />
+                <p-button label="Nouvel institut" icon="pi pi-plus" (onClick)="openNew()" />
+            </div>
+        </ng-template>
+    </p-toolbar>
+
+    @if (uncovered().length) {
+        <div class="mb-5 flex items-start gap-3 rounded-border bg-orange-50 p-4 text-orange-800 dark:bg-orange-400/10 dark:text-orange-200" role="status">
+            <i class="pi pi-info-circle mt-1"></i>
+            <span>Aucun institut actif ne reçoit : <strong>{{ uncovered().join(', ') }}</strong>. Ces demandes sont traitées par l'administration.</span>
+        </div>
+    }
+
+    <p-table [value]="instituts()" [loading]="loading()" [tableStyle]="{ 'min-width': '52rem' }" [rowHover]="true" dataKey="id">
+        <ng-template #header>
+            <tr>
+                <th pSortableColumn="name" style="min-width: 14rem">Institut <p-sortIcon field="name" /></th>
+                <th style="min-width: 16rem">Catégories reçues</th>
+                <th style="min-width: 12rem">Responsable</th>
+                <th style="min-width: 8rem">État</th>
+                <th style="width: 8rem">Actions</th>
+            </tr>
+        </ng-template>
+        <ng-template #body let-institut>
+            <tr [class.opacity-60]="!institut.is_active">
+                <td>
+                    <div class="font-medium">{{ institut.name }}</div>
+                    @if (institut.description) {
+                        <div class="text-sm text-muted-color">{{ institut.description }}</div>
+                    }
+                </td>
+                <td>
+                    <div class="flex flex-wrap gap-1">
+                        @for (category of institut.categories; track category) {
+                            <p-tag [value]="category" severity="secondary" />
+                        } @empty {
+                            <span class="text-muted-color">—</span>
+                        }
+                    </div>
+                </td>
+                <td>{{ managerName(institut.manager_id) }}</td>
+                <td>
+                    <p-tag [value]="institut.is_active ? 'Actif' : 'Désactivé'" [severity]="institut.is_active ? 'success' : 'danger'" />
+                </td>
+                <td>
+                    <div class="flex gap-1">
+                        <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" ariaLabel="Modifier l'institut" pTooltip="Modifier" tooltipPosition="top" (onClick)="openEdit(institut)" />
+                        @if (institut.is_active) {
+                            <p-button icon="pi pi-ban" severity="danger" [rounded]="true" [text]="true" ariaLabel="Désactiver l'institut" pTooltip="Désactiver" tooltipPosition="top" (onClick)="toggleActive(institut)" />
+                        } @else {
+                            <p-button icon="pi pi-replay" severity="success" [rounded]="true" [text]="true" ariaLabel="Réactiver l'institut" pTooltip="Réactiver" tooltipPosition="top" (onClick)="toggleActive(institut)" />
+                        }
+                    </div>
+                </td>
+            </tr>
+        </ng-template>
+        <ng-template #emptymessage>
+            <tr>
+                <td colspan="5" class="py-8 text-center text-muted-color">Aucun institut. Toutes les demandes sont traitées par l'administration.</td>
+            </tr>
+        </ng-template>
+    </p-table>
+</div>
+
+<p-dialog [(visible)]="dialogVisible" [header]="edited ? 'Modifier l\'institut' : 'Nouvel institut'" [modal]="true" [style]="{ width: 'min(36rem, 95vw)' }">
+    <form #institutForm="ngForm" id="institutForm" class="grid grid-cols-1 gap-4" (ngSubmit)="save(institutForm)">
+        <div>
+            <label for="institut-name" class="mb-2 block font-semibold">Nom</label>
+            <input pInputText id="institut-name" name="name" [(ngModel)]="form.name" required maxlength="255" class="w-full" />
+        </div>
+        <div>
+            <label for="institut-description" class="mb-2 block font-semibold">Description <span class="font-normal text-muted-color">(facultatif)</span></label>
+            <textarea pTextarea id="institut-description" name="description" [(ngModel)]="form.description" maxlength="2000" rows="2" class="w-full"></textarea>
+        </div>
+        <div>
+            <label for="institut-categories" class="mb-2 block font-semibold">Catégories reçues</label>
+            <p-multiselect inputId="institut-categories" name="categories" [(ngModel)]="form.categories" [options]="categoryOptions()" optionLabel="label" optionValue="value" optionDisabled="disabled" display="chip" placeholder="Au moins une catégorie" class="w-full" appendTo="body" />
+            <small class="mt-1 block text-muted-color">Une catégorie déjà reçue par un autre institut actif est indisponible.</small>
+        </div>
+        <div>
+            <label for="institut-manager" class="mb-2 block font-semibold">Responsable</label>
+            <p-select inputId="institut-manager" name="manager_id" [(ngModel)]="form.manager_id" [options]="managerOptions()" optionLabel="label" optionValue="value" [showClear]="true" placeholder="Aucun" emptyMessage="Aucun compte manager disponible" class="w-full" appendTo="body" />
+        </div>
+    </form>
+    <ng-template #footer>
+        <button pButton type="button" label="Annuler" icon="pi pi-times" [text]="true" (click)="dialogVisible = false"></button>
+        <button pButton type="submit" form="institutForm" label="Enregistrer" icon="pi pi-check" [loading]="saving()" [disabled]="!institutForm.valid || !form.categories.length || saving()"></button>
+    </ng-template>
+</p-dialog>

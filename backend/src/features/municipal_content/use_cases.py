@@ -23,6 +23,12 @@ def list_featured_municipal_services(repo: MunicipalContentRepository) -> list[M
     return repo.list_featured_services()
 
 
+def list_popular_municipal_services(
+    limit: int, repo: MunicipalContentRepository
+) -> list[MunicipalService]:
+    return repo.list_popular_services(limit)
+
+
 def start_municipal_service(service_id: str, repo: MunicipalContentRepository) -> MunicipalService:
     service = repo.increment_service_usage(service_id)
     if service is None:

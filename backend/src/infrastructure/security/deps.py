@@ -2,6 +2,7 @@
 
 Réutilisables dans tous les routers :
     user: User = Depends(get_current_user)
+    actor: Actor = Depends(get_current_actor)              # rôle + profil agent / institut géré
     dependencies=[Depends(require_roles(Role.MANAGER))]   # ADMIN est toujours autorisé
 """
 
@@ -12,6 +13,7 @@ from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
+from src.domain.citizen_request import Actor
 from src.domain.user import (
     AccessTokenService,
     AuthPolicy,
@@ -23,8 +25,11 @@ from src.domain.user import (
     User,
     UserRepository,
 )
+from src.features.citizen_request.use_cases.actor import resolve_actor
 from src.infrastructure.config import get_settings
+from src.infrastructure.persistence.agent_repository import SqlAlchemyAgentRepository
 from src.infrastructure.persistence.database import get_db
+from src.infrastructure.persistence.institut_repository import SqlAlchemyInstitutRepository
 from src.infrastructure.persistence.refresh_token_repository import (
     SqlAlchemyRefreshTokenRepository,
 )
@@ -89,3 +94,21 @@ def require_roles(*roles: Role) -> Callable[..., User]:
         return user
 
     return dependency
+
+
+ActorResolver = Callable[[User], Actor]
+
+
+def get_actor_resolver(db: Session = Depends(get_db)) -> ActorResolver:
+    """Pour les réponses qui décrivent un autre utilisateur que celui du token (login, refresh)."""
+    agents = SqlAlchemyAgentRepository(db)
+    instituts = SqlAlchemyInstitutRepository(db)
+
+    return lambda user: resolve_actor(user, agents, instituts)
+
+
+def get_current_actor(
+    user: User = Depends(get_current_user),
+    resolve: ActorResolver = Depends(get_actor_resolver),
+) -> Actor:
+    return resolve(user)

@@ -38,7 +38,7 @@ Priorité :
 Résumé : une ou deux phrases factuelles qui reformulent le problème.
 
 Agent : choisis dans la liste fournie l'agent le plus adapté, dans cet ordre de préférence :
-1. son département correspond à la catégorie ;
+1. son institut correspond à la catégorie ;
 2. il est disponible (« available ») plutôt qu'en intervention, indisponible ou hors ligne ;
 3. il a le moins d'interventions en cours.
 Recopie EXACTEMENT son « id ». Si aucun agent ne convient, mets recommended_agent_id à null.
@@ -107,7 +107,7 @@ def _build_prompt(request: CitizenRequest, candidates: list[Agent]) -> str:
         {
             "id": agent.id,
             "nom": agent.name,
-            "departement": agent.department,
+            "institut": agent.institut_name,
             "statut": agent.status.value,
             "interventions": agent.interventions,
         }

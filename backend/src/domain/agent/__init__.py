@@ -3,6 +3,7 @@ from src.domain.agent.exceptions import (
     AgentAlreadyExistsError,
     AgentInactiveError,
     AgentNotFoundError,
+    InvalidAgentAccountError,
 )
 from src.domain.agent.queries import AgentQuery
 from src.domain.agent.repository import AgentRepository
@@ -15,4 +16,5 @@ __all__ = [
     "AgentQuery",
     "AgentRepository",
     "AgentStatus",
+    "InvalidAgentAccountError",
 ]

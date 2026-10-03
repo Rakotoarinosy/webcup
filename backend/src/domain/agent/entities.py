@@ -14,12 +14,20 @@ class AgentStatus(StrEnum):
 
 @dataclass
 class Agent:
+    """Profil agent d'un User de rôle AGENT, rattaché à exactement un Institut.
+
+    L'identité (nom, email, compte actif) vit sur User. `is_active` est l'activation du profil
+    dans l'institut : un manager peut retirer un agent de la répartition sans toucher au compte.
+    """
+
     id: str
-    email: str
-    name: str
-    department: str
+    user_id: str
+    institut_id: str
     created_at: datetime
     status: AgentStatus = AgentStatus.AVAILABLE
     is_active: bool = True
-    # Calculé à la lecture (nombre de demandes attribuées à l'agent), jamais stocké.
+    # Lus à la lecture (jointure User / Institut et comptage des demandes), jamais stockés ici.
+    name: str = ""
+    email: str = ""
+    institut_name: str = ""
     interventions: int = 0

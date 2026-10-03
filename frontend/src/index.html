@@ -20,6 +20,11 @@
                 if (dark) {
                     document.documentElement.classList.add('app-dark');
                 }
+                try {
+                    if (localStorage.getItem('high-contrast') === 'true') {
+                        document.documentElement.classList.add('app-high-contrast');
+                    }
+                } catch (e) {}
             })();
         </script>
     </head>

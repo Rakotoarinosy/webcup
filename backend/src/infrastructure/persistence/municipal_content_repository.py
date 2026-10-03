@@ -44,6 +44,22 @@ class SqlAlchemyMunicipalContentRepository(MunicipalContentRepository):
         )
         return [self._service(row) for row in rows]
 
+    def list_popular_services(self, limit: int) -> list[MunicipalService]:
+        rows = self.db.scalars(
+            select(MunicipalServiceModel)
+            .where(
+                MunicipalServiceModel.is_active.is_(True),
+                MunicipalServiceModel.usage_count > 0,
+            )
+            .order_by(
+                MunicipalServiceModel.usage_count.desc(),
+                MunicipalServiceModel.name.asc(),
+                MunicipalServiceModel.id.asc(),
+            )
+            .limit(limit)
+        )
+        return [self._service(row) for row in rows]
+
     def get_service(self, service_id: str) -> MunicipalService | None:
         row = self.db.get(MunicipalServiceModel, service_id)
         return self._service(row) if row and row.is_active else None

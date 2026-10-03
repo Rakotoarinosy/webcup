@@ -7,10 +7,10 @@ class NotificationOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     key: str
-    kind: str  # created / accepted / rejected / assigned / resolved / late
+    kind: str  # created / status_changed / rejected / assigned / resolved / late
     title: str
     message: str
-    demande_id: str
+    request_id: str
     created_at: datetime
     is_read: bool
 

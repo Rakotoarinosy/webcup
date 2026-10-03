@@ -1,12 +1,20 @@
-"""Implémentation SQLAlchemy de AgentRepository. Le mapping Model ↔ Entity reste privé à ce fichier."""
+"""Implémentation SQLAlchemy de AgentRepository. Le mapping Model ↔ Entity reste privé à ce fichier.
+
+Nom et email viennent du compte (users), le nom de l'institut de instituts : jointures à la lecture.
+"""
 
 from datetime import UTC
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import Select, func, or_, select
 from sqlalchemy.orm import Session
 
 from src.domain.agent import Agent, AgentQuery, AgentRepository, AgentStatus
-from src.infrastructure.persistence.models import AgentModel, CitizenRequestModel
+from src.infrastructure.persistence.models import (
+    AgentModel,
+    CitizenRequestModel,
+    InstitutModel,
+    UserModel,
+)
 
 
 class SqlAlchemyAgentRepository(AgentRepository):
@@ -14,51 +22,54 @@ class SqlAlchemyAgentRepository(AgentRepository):
         self.db = db
 
     def get_by_id(self, agent_id: str) -> Agent | None:
-        model = self.db.get(AgentModel, agent_id)
+        agents = self._fetch(_base().where(AgentModel.id == agent_id))
 
-        return self._to_entities([model])[0] if model else None
-
-    def get_by_email(self, email: str) -> Agent | None:
-        model = self.db.scalar(select(AgentModel).where(AgentModel.email == email))
-
-        return self._to_entities([model])[0] if model else None
+        return agents[0] if agents else None
 
     def search(self, query: AgentQuery) -> list[Agent]:
-        statement = select(AgentModel).order_by(AgentModel.name, AgentModel.id)
+        statement = _base().order_by(UserModel.name, AgentModel.id)
 
         if query.search:
             pattern = f"%{_escape_like(query.search.strip())}%"
             statement = statement.where(
                 or_(
-                    AgentModel.name.ilike(pattern, escape="\\"),
-                    AgentModel.email.ilike(pattern, escape="\\"),
+                    UserModel.name.ilike(pattern, escape="\\"),
+                    UserModel.email.ilike(pattern, escape="\\"),
                 )
-            )
-        if query.department:
-            statement = statement.where(
-                func.lower(AgentModel.department) == query.department.strip().lower()
             )
         if query.status:
             statement = statement.where(AgentModel.status == query.status.value)
         if query.is_active is not None:
             statement = statement.where(AgentModel.is_active == query.is_active)
+        if query.institut_id is not None:
+            statement = statement.where(AgentModel.institut_id == query.institut_id)
+        if query.user_id is not None:
+            statement = statement.where(AgentModel.user_id == query.user_id)
 
-        return self._to_entities(list(self.db.scalars(statement)))
+        return self._fetch(statement)
 
     def add(self, agent: Agent) -> Agent:
-        model = self._to_model(agent)
-        self.db.add(model)
+        self.db.add(_to_model(agent))
         self.db.commit()
 
-        return self._to_entities([model])[0]
+        return self.get_by_id(agent.id) or agent
 
     def update(self, agent: Agent) -> Agent:
-        model = self.db.merge(self._to_model(agent))
+        self.db.merge(_to_model(agent))
         self.db.commit()
 
-        return self._to_entities([model])[0]
+        return self.get_by_id(agent.id) or agent
 
-    # ─── Interventions (demandes citoyennes attribuées) ─────────────
+    # ─── Lecture ────────────────────────────────────────────────────
+
+    def _fetch(self, statement: Select) -> list[Agent]:
+        rows = self.db.execute(statement).all()
+        counts = self._count_interventions([row.AgentModel.id for row in rows])
+
+        return [
+            _to_entity(row.AgentModel, row.name, row.email, row.institut_name, counts)
+            for row in rows
+        ]
 
     def _count_interventions(self, agent_ids: list[str]) -> dict[str, int]:
         if not agent_ids:
@@ -71,36 +82,47 @@ class SqlAlchemyAgentRepository(AgentRepository):
 
         return {agent_id: count for agent_id, count in rows}
 
-    # ─── Mapping ────────────────────────────────────────────────────
 
-    def _to_entities(self, models: list[AgentModel]) -> list[Agent]:
-        counts = self._count_interventions([model.id for model in models])
-
-        return [self._to_entity(model, counts.get(model.id, 0)) for model in models]
-
-    def _to_entity(self, model: AgentModel, interventions: int) -> Agent:
-        return Agent(
-            id=model.id,
-            email=model.email,
-            name=model.name,
-            department=model.department,
-            # SQLite ne conserve pas le fuseau : on garantit un datetime UTC « aware » partout.
-            created_at=model.created_at.replace(tzinfo=model.created_at.tzinfo or UTC),
-            status=AgentStatus(model.status),
-            is_active=model.is_active,
-            interventions=interventions,
+def _base() -> Select:
+    return (
+        select(
+            AgentModel,
+            UserModel.name.label("name"),
+            UserModel.email.label("email"),
+            InstitutModel.name.label("institut_name"),
         )
+        .join(UserModel, UserModel.id == AgentModel.user_id)
+        .join(InstitutModel, InstitutModel.id == AgentModel.institut_id)
+    )
 
-    def _to_model(self, agent: Agent) -> AgentModel:
-        return AgentModel(
-            id=agent.id,
-            email=agent.email,
-            name=agent.name,
-            department=agent.department,
-            status=agent.status.value,
-            is_active=agent.is_active,
-            created_at=agent.created_at,
-        )
+
+def _to_entity(
+    model: AgentModel, name: str, email: str, institut_name: str, counts: dict[str, int]
+) -> Agent:
+    return Agent(
+        id=model.id,
+        user_id=model.user_id,
+        institut_id=model.institut_id,
+        # SQLite ne conserve pas le fuseau : on garantit un datetime UTC « aware » partout.
+        created_at=model.created_at.replace(tzinfo=model.created_at.tzinfo or UTC),
+        status=AgentStatus(model.status),
+        is_active=model.is_active,
+        name=name,
+        email=email,
+        institut_name=institut_name,
+        interventions=counts.get(model.id, 0),
+    )
+
+
+def _to_model(agent: Agent) -> AgentModel:
+    return AgentModel(
+        id=agent.id,
+        user_id=agent.user_id,
+        institut_id=agent.institut_id,
+        status=agent.status.value,
+        is_active=agent.is_active,
+        created_at=agent.created_at,
+    )
 
 
 def _escape_like(text: str) -> str:

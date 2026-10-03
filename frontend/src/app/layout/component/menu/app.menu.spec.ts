@@ -15,7 +15,10 @@ describe('Menu follows the authenticated role', () => {
             role.set(value);
             const labels = menu.model()[0].items!.map((item) => item.label);
             expect(labels).toContain('Mon espace');
+            // L'admin gère tous les comptes dans « Utilisateurs » ; agents et managers, les comptes citoyens.
+            expect(labels.includes('Comptes citoyens')).toBe(value === 'agent' || value === 'manager');
             expect(labels.includes('Utilisateurs')).toBe(value === 'admin');
+            expect(labels.includes('Instituts')).toBe(value === 'admin');
             expect(labels.includes('Agents')).toBe(value === 'manager' || value === 'admin');
             expect(labels).not.toContain('Transaction');
             expect(menu.model().some((group) => group.label === 'Terra Nova')).toBe(value !== 'citizen');

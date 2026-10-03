@@ -10,16 +10,14 @@ class FakeAgentRepository(AgentRepository):
     def get_by_id(self, agent_id: str) -> Agent | None:
         return self.items.get(agent_id)
 
-    def get_by_email(self, email: str) -> Agent | None:
-        return next((a for a in self.items.values() if a.email == email), None)
-
     def search(self, query: AgentQuery) -> list[Agent]:
         return [
             a
             for a in self.items.values()
-            if (query.department is None or a.department == query.department)
-            and (query.status is None or a.status == query.status)
+            if (query.status is None or a.status == query.status)
             and (query.is_active is None or a.is_active == query.is_active)
+            and (query.institut_id is None or a.institut_id == query.institut_id)
+            and (query.user_id is None or a.user_id == query.user_id)
         ]
 
     def add(self, agent: Agent) -> Agent:

@@ -4,9 +4,9 @@ import { Observable } from 'rxjs';
 
 import { CitizenRequest } from '@/app/requests/request.model';
 import { environment } from '@/environments/environment';
-import { Agent, AgentQuery, CreateAgentIn, UpdateAgentIn } from './agent.model';
+import { Agent, AgentQuery, AgentStatus, CreateAgentProfileIn } from './agent.model';
 
-/** Client HTTP du domaine `agent` : /api/v1/agents. */
+/** Client HTTP des profils agents : /api/v1/agents. Le périmètre est imposé par le serveur. */
 @Injectable({ providedIn: 'root' })
 export class AgentService {
     private readonly http = inject(HttpClient);
@@ -19,8 +19,8 @@ export class AgentService {
         if (query.search) {
             params = params.set('search', query.search);
         }
-        if (query.department) {
-            params = params.set('department', query.department);
+        if (query.institut_id) {
+            params = params.set('institut_id', query.institut_id);
         }
         if (query.status) {
             params = params.set('status', query.status);
@@ -36,12 +36,21 @@ export class AgentService {
         return this.http.get<Agent>(`${this.baseUrl}/${id}`);
     }
 
-    create(payload: CreateAgentIn): Observable<Agent> {
+    /** Profil de l'agent connecté. */
+    me(): Observable<Agent> {
+        return this.http.get<Agent>(`${this.baseUrl}/me`);
+    }
+
+    create(payload: CreateAgentProfileIn): Observable<Agent> {
         return this.http.post<Agent>(this.baseUrl, payload);
     }
 
-    update(id: string, payload: UpdateAgentIn): Observable<Agent> {
-        return this.http.patch<Agent>(`${this.baseUrl}/${id}`, payload);
+    setStatus(id: string, status: AgentStatus): Observable<Agent> {
+        return this.http.patch<Agent>(`${this.baseUrl}/${id}/status`, { status });
+    }
+
+    move(id: string, institutId: string): Observable<Agent> {
+        return this.http.post<Agent>(`${this.baseUrl}/${id}/move`, { institut_id: institutId });
     }
 
     deactivate(id: string): Observable<Agent> {

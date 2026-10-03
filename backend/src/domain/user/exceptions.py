@@ -27,7 +27,7 @@ class UserAlreadyExistsError(DomainError):
 
 class UserConflictError(DomainError):
     def __init__(self) -> None:
-        super().__init__("Email or agent link conflicts with existing data")
+        super().__init__("Email conflicts with existing data")
 
 
 class InvalidCredentialsError(DomainError):

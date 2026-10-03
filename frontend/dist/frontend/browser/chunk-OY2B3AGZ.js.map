@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/app/auth/auth.model.ts"],
+  "sourcesContent": ["export type Role = 'admin' | 'manager' | 'agent' | 'citizen';\n\nexport const ROLE_LABELS: Record<Role, string> = {\n    admin: 'Administrateur',\n    manager: 'Gestionnaire',\n    agent: 'Agent',\n    citizen: 'Citoyen'\n};\n\n/** Profil renvoyé par l'API (ProfileOut). */\nexport interface AuthUser {\n    id: string;\n    email: string;\n    name: string;\n    role: Role;\n    created_at: string;\n    /** Dérivés du profil (jamais stockés sur le compte) : profil agent, et institut de l'agent ou géré. */\n    agent_id: string | null;\n    institut_id: string | null;\n}\n\n/** Réponse de /auth/login et /auth/refresh (TokenOut). */\nexport interface TokenResponse {\n    access_token: string;\n    token_type: 'bearer';\n    expires_in: number;\n    user: AuthUser;\n}\n"],
+  "mappings": ";AAEO,IAAM,cAAoC;EAC7C,OAAO;EACP,SAAS;EACT,OAAO;EACP,SAAS;;",
+  "names": []
+}

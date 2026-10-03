@@ -2,7 +2,7 @@
 
 from datetime import UTC, datetime
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -66,6 +66,14 @@ class SqlAlchemyUserRepository(UserRepository):
 
         return [self._to_entity(model) for model in models]
 
+    def list_citizens(self, search: str | None = None) -> "list[User]":
+        stmt = select(UserModel).where(UserModel.role == Role.CITIZEN.value)
+        if search:
+            pattern = f"%{search}%"
+            stmt = stmt.where(or_(UserModel.name.ilike(pattern), UserModel.email.ilike(pattern)))
+        models = self.db.scalars(stmt.order_by(UserModel.created_at))
+        return [self._to_entity(model) for model in models]
+
     # ─── Interne ────────────────────────────────────────────────────
 
     def _commit(self) -> None:
@@ -84,7 +92,6 @@ class SqlAlchemyUserRepository(UserRepository):
             password_hash=model.password_hash,
             role=Role(model.role),
             is_active=model.is_active,
-            agent_id=model.agent_id,
             failed_login_attempts=model.failed_login_attempts,
             locked_until=_aware(model.locked_until),
         )
@@ -97,7 +104,6 @@ class SqlAlchemyUserRepository(UserRepository):
             password_hash=user.password_hash,
             role=user.role.value,
             is_active=user.is_active,
-            agent_id=user.agent_id,
             failed_login_attempts=user.failed_login_attempts,
             locked_until=user.locked_until,
             created_at=user.created_at,

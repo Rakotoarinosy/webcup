@@ -15,7 +15,7 @@ def test_register_creates_active_citizen_and_hashes_password() -> None:
     dto = RegisterIn(email="Ada@EXAMPLE.com", name="Ada", password="Motdepasse123")
     user = register(dto, repo, hasher)
     assert user.role is Role.CITIZEN and user.is_active
-    assert user.agent_id is None and user.email == "ada@example.com"
+    assert user.email == "ada@example.com"
     assert user.password_hash == "hashed-password"
     hasher.hash.assert_called_once_with(dto.password)
     with pytest.raises(UserAlreadyExistsError):

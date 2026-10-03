@@ -1,44 +1,103 @@
-<section class="card" aria-labelledby="account-title">
-    <p class="mb-2 font-semibold text-primary">Mon espace personnel</p>
-    <h1 id="account-title" class="mb-3 text-3xl font-bold">Bonjour {{ auth.user()?.name }}</h1>
-    <p>{{ auth.user()?.email }} · {{ auth.roleLabel() }}</p>
-    <p class="text-muted-color">Vous êtes connecté à votre compte Kotrana.</p>
-    @if (auth.hasRole('manager', 'admin')) {
-        <a routerLink="/home/dashboard" class="mt-3 inline-block font-semibold text-primary">Ouvrir le tableau de bord</a>
-    }
-</section>
-<section class="card" aria-labelledby="demande-title">
-    <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <h2 id="demande-title" class="m-0 text-2xl font-semibold">{{ title() }}</h2>
-        @if (agentLinked()) {
-            <button type="button" (click)="load(result()?.page ?? 1)" [disabled]="loading()" class="rounded-lg border border-surface px-4 py-2">Actualiser</button>
-        }
-    </div>
-    @if (!agentLinked()) {
-        <p>Votre compte agent n’est pas encore rattaché à une fiche d’intervention. Contactez un administrateur.</p>
-    } @else if (loading()) {
-        <p role="status">Chargement de vos demandes…</p>
-    } @else if (error()) {
-        <p role="alert" class="text-red-600">{{ error() }}</p>
-    } @else {
-        @for (demande of result()?.items ?? []; track demande.id) {
-            <article class="border-b border-surface py-5">
-                <div class="flex flex-wrap justify-between gap-3">
-                    <h3 class="m-0 text-lg font-semibold">{{ demande.title }}</h3>
-                    <span class="rounded-lg bg-emphasis px-3 py-1 text-sm">{{ statuses[demande.status] ?? demande.status }}</span>
+<p-toast />
+
+<div class="grid grid-cols-12 gap-6">
+    <!-- En-tête : identité, périmètre et raccourcis du rôle -->
+    <section class="card col-span-12 mb-0" aria-labelledby="account-title">
+        <div class="flex flex-wrap items-start justify-between gap-6">
+            <div class="flex items-center gap-4">
+                <div class="flex items-center justify-center rounded-full bg-primary-100 dark:bg-primary-400/10" style="width: 3.5rem; height: 3.5rem" aria-hidden="true">
+                    <i class="pi pi-user text-primary !text-2xl"></i>
                 </div>
-                <p class="whitespace-pre-line">{{ demande.description }}</p>
-                <p class="mb-0 text-sm text-muted-color">{{ demande.address }} · {{ demande.created_at | date: 'dd/MM/yyyy' }}</p>
-            </article>
-        } @empty {
-            <p>{{ auth.hasRole('agent') ? 'Aucune intervention ne vous est attribuée pour le moment.' : 'Aucune demande pour le moment.' }}</p>
+                <div>
+                    <p class="m-0 text-sm font-medium text-muted-color">Mon espace</p>
+                    <h1 id="account-title" class="m-0 text-2xl font-semibold">Bonjour {{ auth.user()?.name }}</h1>
+                    <p class="mt-1 mb-0 text-muted-color">{{ auth.user()?.email }} · <p-tag [value]="auth.roleLabel()" severity="secondary" /></p>
+                </div>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                @for (shortcut of shortcuts(); track shortcut.link) {
+                    <p-button [label]="shortcut.label" [icon]="shortcut.icon" [outlined]="!$first" [routerLink]="shortcut.link" />
+                }
+                @if (!unattached()) {
+                    <p-button icon="pi pi-refresh" severity="secondary" [text]="true" [loading]="loading()" ariaLabel="Actualiser" (onClick)="load()" />
+                }
+            </div>
+        </div>
+
+        @if (agent(); as profile) {
+            <div class="mt-6 flex flex-wrap items-center gap-3 border-t border-surface pt-4">
+                <label for="agent-availability" class="font-medium">Ma disponibilité</label>
+                <p-select
+                    inputId="agent-availability"
+                    [options]="statusOptions"
+                    optionLabel="label"
+                    optionValue="value"
+                    [ngModel]="profile.status"
+                    (ngModelChange)="setAvailability($event)"
+                    [disabled]="savingStatus()"
+                    class="w-56"
+                />
+                <span class="text-sm text-muted-color">Institut {{ profile.institut_name }} · {{ profile.interventions }} intervention(s)</span>
+            </div>
         }
-        @if ((result()?.pages ?? 0) > 1) {
-            <nav class="mt-6 flex items-center gap-4" aria-label="Pagination des demandes">
-                <button type="button" (click)="load(result()!.page - 1)" [disabled]="result()!.page <= 1" class="rounded-lg border border-surface px-4 py-2">Précédent</button>
-                <span>Page {{ result()?.page }} sur {{ result()?.pages }}</span>
-                <button type="button" (click)="load(result()!.page + 1)" [disabled]="result()!.page >= result()!.pages" class="rounded-lg border border-surface px-4 py-2">Suivant</button>
-            </nav>
+    </section>
+
+    @if (unattached()) {
+        <section class="card col-span-12 mb-0" role="status">
+            <div class="flex items-start gap-3">
+                <i class="pi pi-info-circle mt-1 text-orange-500"></i>
+                <div>
+                    <h2 class="m-0 text-lg font-semibold">Compte pas encore rattaché</h2>
+                    <p class="mt-2 mb-0 text-muted-color">
+                        @if (auth.hasRole('agent')) {
+                            Votre compte agent n'a pas de profil actif dans un institut. Un administrateur ou le responsable de votre institut doit vous y rattacher.
+                        } @else {
+                            Vous n'êtes responsable d'aucun institut actif. Un administrateur doit vous désigner comme responsable.
+                        }
+                    </p>
+                </div>
+            </div>
+        </section>
+    } @else {
+        @if (error(); as message) {
+            <p class="col-span-12 m-0 text-red-600" role="alert">{{ message }}</p>
         }
+
+        <div class="col-span-12">
+            <h2 class="m-0 text-lg font-semibold">{{ scopeLabel() }}</h2>
+        </div>
+
+        <!-- Même rangée de cartes que le tableau de bord, sur le périmètre de l'utilisateur -->
+        <app-stats class="contents" [stats]="cards()" />
+
+        <div class="col-span-12 xl:col-span-8">
+            <app-trend-chart [trendData]="trend()" />
+        </div>
+        <div class="col-span-12 xl:col-span-4">
+            <app-category-chart [categoryData]="categories()" />
+        </div>
+
+        <section class="card col-span-12 mb-0" aria-labelledby="recent-title">
+            <div class="mb-4 flex items-center justify-between">
+                <h2 id="recent-title" class="m-0 text-xl font-semibold">Dernières demandes</h2>
+                @if (stats(); as s) {
+                    <span class="text-sm text-muted-color">{{ s.total }} au total · {{ s.resolution_rate }} % résolues</span>
+                }
+            </div>
+            @for (request of recent(); track request.id) {
+                <a [routerLink]="requestLink(request)" class="flex flex-wrap items-center justify-between gap-3 border-t border-surface py-3 text-color no-underline hover:bg-emphasis">
+                    <div>
+                        <div class="font-medium">{{ request.title }}</div>
+                        <div class="text-sm text-muted-color">{{ request.category }} · {{ request.location }} · {{ request.created_at | date: 'dd/MM/yyyy' }}</div>
+                    </div>
+                    <div class="flex gap-2">
+                        <p-tag [value]="request.priority" [severity]="prioritySeverity(request.priority)" />
+                        <p-tag [value]="request.status" [severity]="statusSeverity(request.status)" />
+                    </div>
+                </a>
+            } @empty {
+                <p class="m-0 text-muted-color">{{ loading() ? 'Chargement…' : 'Aucune demande pour le moment.' }}</p>
+            }
+        </section>
     }
-</section>
+</div>

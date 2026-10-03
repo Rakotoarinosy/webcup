@@ -1,6 +1,6 @@
 import { DatePipe } from '@angular/common';
-import { Component, inject, OnInit, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { Component, inject, signal } from '@angular/core';
+import { FormsModule, NgForm } from '@angular/forms';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
@@ -8,128 +8,133 @@ import { DialogModule } from 'primeng/dialog';
 import { IconFieldModule } from 'primeng/iconfield';
 import { InputIconModule } from 'primeng/inputicon';
 import { InputTextModule } from 'primeng/inputtext';
-import { Table, TableModule } from 'primeng/table';
+import { TableModule } from 'primeng/table';
+import { TagModule } from 'primeng/tag';
 import { ToastModule } from 'primeng/toast';
-import { ToolbarModule } from 'primeng/toolbar';
 
-import { CreateUserIn, User } from './user.model';
 import { apiErrorMessage, UserService } from './user.service';
+import { UpdateUserIn, User } from './user.model';
 
-const EMPTY_FORM: CreateUserIn = { email: '', name: '' };
-
-/** Page de démo branchée sur le backend : CRUD complet sur /api/v1/users. */
 @Component({
     selector: 'app-users',
-    imports: [DatePipe, FormsModule, ButtonModule, ConfirmDialogModule, DialogModule, IconFieldModule, InputIconModule, InputTextModule, TableModule, ToastModule, ToolbarModule],
+    imports: [
+        DatePipe,
+        FormsModule,
+        ButtonModule,
+        ConfirmDialogModule,
+        DialogModule,
+        IconFieldModule,
+        InputIconModule,
+        InputTextModule,
+        TableModule,
+        TagModule,
+        ToastModule
+    ],
     templateUrl: './users.html',
     styleUrl: './users.scss',
     providers: [MessageService, ConfirmationService]
 })
-export class Users implements OnInit {
+export class Users {
     private readonly userService = inject(UserService);
-
     private readonly messageService = inject(MessageService);
-
     private readonly confirmationService = inject(ConfirmationService);
 
     readonly users = signal<User[]>([]);
-
     readonly loading = signal(false);
-
     readonly saving = signal(false);
+    readonly detailsVisible = signal(false);
+    readonly editVisible = signal(false);
+    readonly selectedUser = signal<User | null>(null);
 
-    readonly dialogVisible = signal(false);
+    searchText = '';
+    form: UpdateUserIn = { name: '', email: '' };
 
-    /** Utilisateur en cours d'édition ; null = création. */
-    readonly editedUser = signal<User | null>(null);
-
-    form: CreateUserIn = { ...EMPTY_FORM };
-
-    ngOnInit() {
+    constructor() {
         this.loadUsers();
     }
 
-    loadUsers() {
+    loadUsers(search = this.searchText): void {
         this.loading.set(true);
-        this.userService.list().subscribe({
+        this.userService.list(search).subscribe({
             next: (users) => {
                 this.users.set(users);
                 this.loading.set(false);
             },
-            error: (error) => {
+            error: (error: unknown) => {
                 this.loading.set(false);
                 this.showError(error);
             }
         });
     }
 
-    openNew() {
-        this.editedUser.set(null);
-        this.form = { ...EMPTY_FORM };
-        this.dialogVisible.set(true);
+    openDetails(user: User): void {
+        this.selectedUser.set(user);
+        this.detailsVisible.set(true);
+        this.userService.get(user.id).subscribe({
+            next: (account) => this.selectedUser.set(account),
+            error: (error: unknown) => this.showError(error)
+        });
     }
 
-    openEdit(user: User) {
-        this.editedUser.set(user);
-        this.form = { email: user.email, name: user.name };
-        this.dialogVisible.set(true);
+    openEdit(user: User): void {
+        this.selectedUser.set(user);
+        this.form = { name: user.name, email: user.email };
+        this.editVisible.set(true);
     }
 
-    save() {
-        const edited = this.editedUser();
-        const request = edited ? this.userService.update(edited.id, this.form) : this.userService.create(this.form);
+    save(form: NgForm): void {
+        const user = this.selectedUser();
+        if (!user || form.invalid || this.saving()) return;
 
         this.saving.set(true);
-        request.subscribe({
+        this.userService.update(user.id, this.form).subscribe({
             next: (saved) => {
-                this.upsertLocally(saved);
-                this.showSuccess(edited ? 'Utilisateur modifié' : 'Utilisateur créé');
+                this.replaceUser(saved);
                 this.saving.set(false);
-                this.dialogVisible.set(false);
+                this.editVisible.set(false);
+                this.messageService.add({ severity: 'success', summary: 'Compte modifié', detail: 'Les informations du compte ont été enregistrées.' });
             },
-            error: (error) => {
+            error: (error: unknown) => {
                 this.saving.set(false);
                 this.showError(error);
             }
         });
     }
 
-    confirmDelete(user: User) {
+    confirmActivationChange(user: User): void {
+        const action = user.is_active ? 'Désactiver' : 'Activer';
         this.confirmationService.confirm({
-            message: `Supprimer ${user.name} (${user.email}) ?`,
-            header: 'Confirmation',
+            header: `${action} le compte`,
+            message: `Voulez-vous ${action.toLowerCase()} le compte de ${user.name} ?`,
             icon: 'pi pi-exclamation-triangle',
-            acceptLabel: 'Supprimer',
+            acceptLabel: action,
             rejectLabel: 'Annuler',
-            acceptButtonProps: { severity: 'danger' },
+            acceptButtonProps: { severity: user.is_active ? 'danger' : 'success' },
             rejectButtonProps: { severity: 'secondary', outlined: true },
-            accept: () => this.delete(user)
+            accept: () => this.setActivation(user, !user.is_active)
         });
     }
 
-    onGlobalFilter(table: Table, event: Event) {
-        table.filterGlobal((event.target as HTMLInputElement).value, 'contains');
-    }
-
-    private delete(user: User) {
-        this.userService.delete(user.id).subscribe({
-            next: () => {
-                this.users.update((users) => users.filter((u) => u.id !== user.id));
-                this.showSuccess('Utilisateur supprimé');
+    private setActivation(user: User, is_active: boolean): void {
+        this.userService.update(user.id, { is_active }).subscribe({
+            next: (saved) => {
+                this.replaceUser(saved);
+                this.messageService.add({
+                    severity: 'success',
+                    summary: is_active ? 'Compte activé' : 'Compte désactivé',
+                    detail: `${saved.name} peut ${is_active ? 'à nouveau' : 'ne peut plus'} accéder à son compte.`
+                });
             },
-            error: (error) => this.showError(error)
+            error: (error: unknown) => this.showError(error)
         });
     }
 
-    private upsertLocally(saved: User) {
-        this.users.update((users) => (users.some((u) => u.id === saved.id) ? users.map((u) => (u.id === saved.id ? saved : u)) : [...users, saved]));
+    private replaceUser(saved: User): void {
+        this.users.update((users) => users.map((user) => (user.id === saved.id ? saved : user)));
+        if (this.selectedUser()?.id === saved.id) this.selectedUser.set(saved);
     }
 
-    private showSuccess(detail: string) {
-        this.messageService.add({ severity: 'success', summary: 'Succès', detail, life: 3000 });
-    }
-
-    private showError(error: unknown) {
+    private showError(error: unknown): void {
         this.messageService.add({ severity: 'error', summary: 'Erreur', detail: apiErrorMessage(error), life: 5000 });
     }
 }

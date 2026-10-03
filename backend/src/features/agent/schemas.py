@@ -2,34 +2,36 @@
 
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from src.domain.agent import AgentStatus
 
 
-class CreateAgentIn(BaseModel):
-    name: str = Field(min_length=1, max_length=255)
-    email: EmailStr
-    department: str = Field(min_length=1, max_length=100)
+class CreateAgentProfileIn(BaseModel):
+    """Profil agent d'un compte existant (rôle AGENT). Un manager crée toujours dans son institut."""
+
+    user_id: str = Field(min_length=1, max_length=36)
+    institut_id: str | None = Field(default=None, min_length=1, max_length=36)
     status: AgentStatus = AgentStatus.AVAILABLE
 
 
-class UpdateAgentIn(BaseModel):
-    """Mise à jour partielle : seuls les champs fournis sont modifiés."""
+class AgentStatusIn(BaseModel):
+    status: AgentStatus
 
-    name: str | None = Field(default=None, min_length=1, max_length=255)
-    email: EmailStr | None = None
-    department: str | None = Field(default=None, min_length=1, max_length=100)
-    status: AgentStatus | None = None
+
+class MoveAgentIn(BaseModel):
+    institut_id: str = Field(min_length=1, max_length=36)
 
 
 class AgentOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: str
+    user_id: str
     name: str
     email: str
-    department: str
+    institut_id: str
+    institut_name: str
     status: AgentStatus
     is_active: bool
     interventions: int

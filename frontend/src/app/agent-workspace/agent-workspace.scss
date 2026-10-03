@@ -46,3 +46,9 @@ button:focus-visible { outline: 3px solid #b45309; outline-offset: 3px; }
     .summary { grid-template-columns: 1fr; }
     .pagination { flex-wrap: wrap; }
 }
+
+.status[data-status='en_attente'] { color: #334155; border-color: #64748b; background: #f1f5f9; }
+.status[data-status='rejete'] { color: #7f1d1d; border-color: #b91c1c; background: #fef2f2; }
+td button + button { margin-left: 0.5rem; }
+.link-button { display: block; margin-top: 0.5rem; padding: 0; border: 0; background: none; color: var(--primary-color); text-decoration: underline; cursor: pointer; }
+.timeline { margin: 0.5rem 0 0; padding-left: 1.25rem; font-size: 0.875rem; color: var(--text-color-secondary); }

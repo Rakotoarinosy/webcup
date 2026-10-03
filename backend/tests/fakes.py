@@ -22,6 +22,17 @@ class FakeUserRepository(UserRepository):
     def list(self) -> list[User]:
         return list(self.users.values())
 
+    def list_citizens(self, search: str | None = None) -> "list[User]":
+        users = [user for user in self.users.values() if user.role is Role.CITIZEN]
+        if search:
+            search = search.casefold()
+            users = [
+                user
+                for user in users
+                if search in user.name.casefold() or search in user.email.casefold()
+            ]
+        return users
+
     def add(self, user: User) -> User:
         self.users[user.id] = user
         return user

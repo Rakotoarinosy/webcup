@@ -1,15 +1,23 @@
-/** Miroir des schémas du backend (backend/src/features/user/schemas.py). */
+export type Role = 'citizen' | 'agent' | 'manager' | 'admin';
 
+/** Miroir du schéma UserOut du backend. */
 export interface User {
     id: string;
     email: string;
     name: string;
+    role: Role;
+    is_active: boolean;
     created_at: string;
 }
+
+export type UpdateUserIn = Partial<Pick<User, 'email' | 'name' | 'is_active'>>;
 
 export interface CreateUserIn {
     email: string;
     name: string;
+    password: string;
+    role: User['role'];
 }
 
-export type UpdateUserIn = Partial<CreateUserIn>;
+/** PATCH /users/manage/{id} : absent = inchangé. */
+export type UpdateAccountIn = Partial<Pick<User, 'email' | 'name' | 'role' | 'is_active'>> & { password?: string };

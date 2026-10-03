@@ -32,6 +32,8 @@ from src.features.auth.use_cases import (
 )
 from src.infrastructure.config.settings import Settings, get_settings
 from src.infrastructure.security.deps import (
+    ActorResolver,
+    get_actor_resolver,
     get_auth_policy,
     get_current_user,
     get_password_hasher,
@@ -68,14 +70,29 @@ def _clear_refresh_cookie(response: Response, settings: Settings) -> None:
     )
 
 
-def _respond(session: AuthSession, response: Response, settings: Settings) -> TokenOut:
+def _profile(user: User, resolve: ActorResolver) -> ProfileOut:
+    actor = resolve(user)
+    return ProfileOut(
+        id=user.id,
+        email=user.email,
+        name=user.name,
+        role=user.role,
+        created_at=user.created_at,
+        agent_id=actor.agent_id,
+        institut_id=actor.institut_id,
+    )
+
+
+def _respond(
+    session: AuthSession, response: Response, settings: Settings, resolve: ActorResolver
+) -> TokenOut:
     _set_refresh_cookie(response, session.refresh_token, settings)
     response.headers["Cache-Control"] = "no-store"
 
     return TokenOut(
         access_token=session.access_token.value,
         expires_in=session.access_token.expires_in,
-        user=ProfileOut.model_validate(session.user),
+        user=_profile(session.user, resolve),
     )
 
 
@@ -98,10 +115,11 @@ def login_endpoint(
     tokens: AccessTokenService = Depends(get_token_service),
     policy: AuthPolicy = Depends(get_auth_policy),
     settings: Settings = Depends(get_settings),
+    resolve: ActorResolver = Depends(get_actor_resolver),
 ) -> TokenOut:
     session = login(payload, users, refresh_repo, hasher, tokens, policy)
 
-    return _respond(session, response, settings)
+    return _respond(session, response, settings, resolve)
 
 
 @router.post("/refresh", response_model=TokenOut)
@@ -113,10 +131,11 @@ def refresh_endpoint(
     tokens: AccessTokenService = Depends(get_token_service),
     policy: AuthPolicy = Depends(get_auth_policy),
     settings: Settings = Depends(get_settings),
+    resolve: ActorResolver = Depends(get_actor_resolver),
 ) -> TokenOut:
     session = refresh(refresh_token, users, refresh_repo, tokens, policy)
 
-    return _respond(session, response, settings)
+    return _respond(session, response, settings, resolve)
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
@@ -142,8 +161,11 @@ def logout_all_endpoint(
 
 
 @router.get("/me", response_model=ProfileOut)
-def me_endpoint(user: User = Depends(get_current_user)) -> User:
-    return user
+def me_endpoint(
+    user: User = Depends(get_current_user),
+    resolve: ActorResolver = Depends(get_actor_resolver),
+) -> ProfileOut:
+    return _profile(user, resolve)
 
 
 @router.post("/change-password", response_model=TokenOut)
@@ -157,7 +179,8 @@ def change_password_endpoint(
     tokens: AccessTokenService = Depends(get_token_service),
     policy: AuthPolicy = Depends(get_auth_policy),
     settings: Settings = Depends(get_settings),
+    resolve: ActorResolver = Depends(get_actor_resolver),
 ) -> TokenOut:
     session = change_password(user, payload, users, refresh_repo, hasher, tokens, policy)
 
-    return _respond(session, response, settings)
+    return _respond(session, response, settings, resolve)

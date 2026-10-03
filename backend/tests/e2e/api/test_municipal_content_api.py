@@ -146,6 +146,86 @@ async def test_featured_services_are_public_and_ordered(
     ]
 
 
+async def test_popular_services_are_ranked_by_usage_with_ties_and_bounded_limit(
+    client: AsyncClient, db_session: Session
+) -> None:
+    db_session.add_all(
+        [
+            MunicipalServiceModel(
+                id=service_id,
+                name=name,
+                category="Administration",
+                description="Description",
+                contact_details="Mairie",
+                opening_hours="8h-16h",
+                icon="pi-building",
+                display_order=0,
+                is_featured=False,
+                usage_count=usage_count,
+                is_active=active,
+            )
+            for service_id, name, usage_count, active in [
+                ("popular-z", "Zeta", 20, True),
+                ("popular-b", "Beta", 20, True),
+                ("popular-a", "Alpha", 20, True),
+                ("popular-alpha-z", "Alpha duplicate", 20, True),
+                ("popular-alpha-a", "Alpha duplicate", 20, True),
+                ("popular-next", "Après", 10, True),
+                ("popular-unused", "Inutilisé", 0, True),
+                ("popular-inactive", "Inactif", 100, False),
+            ]
+        ]
+    )
+    db_session.commit()
+
+    response = await client.get("/api/v1/municipal/services/popular?limit=4")
+
+    assert response.status_code == 200
+    assert [service["id"] for service in response.json()] == [
+        "popular-a",
+        "popular-alpha-a",
+        "popular-alpha-z",
+        "popular-b",
+    ]
+
+
+async def test_popular_services_default_limit_is_six_and_empty_when_unused(
+    client: AsyncClient, db_session: Session
+) -> None:
+    db_session.add_all(
+        MunicipalServiceModel(
+            id=f"unused-{index}",
+            name=f"Service {index}",
+            category="Administration",
+            description="Description",
+            contact_details="Mairie",
+            opening_hours="8h-16h",
+            icon="pi-building",
+            display_order=index,
+            usage_count=0,
+            is_active=True,
+        )
+        for index in range(8)
+    )
+    db_session.commit()
+
+    empty_response = await client.get("/api/v1/municipal/services/popular")
+    invalid_limit = await client.get("/api/v1/municipal/services/popular?limit=7")
+
+    assert empty_response.status_code == 200
+    assert empty_response.json() == []
+    assert invalid_limit.status_code == 422
+
+    for index in range(8):
+        db_session.get(MunicipalServiceModel, f"unused-{index}").usage_count = 8 - index
+    db_session.commit()
+    limited_response = await client.get("/api/v1/municipal/services/popular")
+
+    assert limited_response.status_code == 200
+    assert len(limited_response.json()) == 6
+    assert [service["usage_count"] for service in limited_response.json()] == [8, 7, 6, 5, 4, 3]
+
+
 async def test_starting_service_increments_server_owned_usage_count(
     client: AsyncClient, db_session: Session
 ) -> None:
@@ -174,6 +254,8 @@ async def test_starting_service_increments_server_owned_usage_count(
     assert response.status_code == 200
     assert response.json()["usage_count"] == 8
     assert service.usage_count == 8
+    popular = await client.get("/api/v1/municipal/services/popular")
+    assert [item["id"] for item in popular.json()] == ["start-service"]
 
 
 async def test_usage_count_cannot_be_changed_by_a_client(

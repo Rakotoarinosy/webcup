@@ -10,12 +10,14 @@ import unicodedata
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
+from src.domain.citizen_request import RequestScope
 from src.domain.search import SearchHit, SearchKind, SearchScope
 from src.domain.user import Role
+from src.infrastructure.persistence.citizen_request_repository import scope_conditions
 from src.infrastructure.persistence.models import (
     AgentModel,
     CitizenRequestModel,
-    DemandeModel,
+    InstitutModel,
     UserModel,
 )
 
@@ -66,7 +68,7 @@ class SqlAlchemySearchRepository:
 
     def search(self, query: str, scope: SearchScope, *, limit_per_kind: int) -> list[SearchHit]:
         patterns = _patterns(query)
-        if not patterns:
+        if not patterns or scope.is_empty:
             return []
 
         hits = self._demandes(query, patterns, scope, limit_per_kind)
@@ -121,48 +123,39 @@ class SqlAlchemySearchRepository:
 
     def _agents(self, patterns: list[str], limit: int) -> list[SearchHit]:
         stmt = (
-            select(AgentModel)
-            .where(_matches([AgentModel.name, AgentModel.email, AgentModel.department], patterns))
-            .order_by(AgentModel.name)
+            select(AgentModel, UserModel.name, InstitutModel.name)
+            .join(UserModel, UserModel.id == AgentModel.user_id)
+            .join(InstitutModel, InstitutModel.id == AgentModel.institut_id)
+            .where(_matches([UserModel.name, UserModel.email, InstitutModel.name], patterns))
+            .order_by(UserModel.name)
             .limit(limit)
         )
 
         return [
             SearchHit(
                 kind=SearchKind.AGENT,
-                id=row.id,
-                title=row.name,
-                subtitle=f"{row.department} · {row.status}",
-                agent_id=row.id,
+                id=agent.id,
+                title=name,
+                subtitle=f"{institut_name} · {agent.status}",
+                agent_id=agent.id,
             )
-            for row in self._db.scalars(stmt).all()
+            for agent, name, institut_name in self._db.execute(stmt).all()
         ]
 
     def _interventions(
         self, patterns: list[str], scope: SearchScope, limit: int
     ) -> list[SearchHit]:
-        # Reste sur la table legacy : seule `demandes` possède `scheduled_at`.
+        model = CitizenRequestModel
         stmt = (
-            select(DemandeModel, AgentModel.name)
-            .join(AgentModel, AgentModel.id == DemandeModel.agent_id)
+            select(model, UserModel.name)
+            .join(AgentModel, AgentModel.id == model.assigned_agent_id)
+            .join(UserModel, UserModel.id == AgentModel.user_id)
             .where(
-                DemandeModel.scheduled_at.is_not(None),
-                _matches(
-                    [
-                        DemandeModel.title,
-                        DemandeModel.description,
-                        AgentModel.name,
-                        AgentModel.department,
-                    ],
-                    patterns,
-                ),
+                model.scheduled_at.is_not(None),
+                _matches([model.title, model.description, UserModel.name], patterns),
             )
         )
-        stmt = (
-            self._scope_demandes(stmt, scope)
-            .order_by(DemandeModel.scheduled_at.desc())
-            .limit(limit)
-        )
+        stmt = self._scope_requests(stmt, scope).order_by(model.scheduled_at.desc()).limit(limit)
 
         return [
             SearchHit(
@@ -171,25 +164,17 @@ class SqlAlchemySearchRepository:
                 title=f"Intervention #{_ref(row.id)} — {row.title}",
                 subtitle=f"{agent_name} · {row.scheduled_at:%d/%m/%Y %H:%M}",
                 demande_id=row.id,
-                agent_id=row.agent_id,
+                agent_id=row.assigned_agent_id,
             )
             for row, agent_name in self._db.execute(stmt).all()
         ]
 
     @staticmethod
     def _scope_requests(stmt, scope: SearchScope):
-        if scope.citizen_id is not None:
-            stmt = stmt.where(CitizenRequestModel.citizen_id == scope.citizen_id)
-        if scope.agent_id is not None:
-            stmt = stmt.where(CitizenRequestModel.assigned_agent_id == scope.agent_id)
-
-        return stmt
-
-    @staticmethod
-    def _scope_demandes(stmt, scope: SearchScope):
-        if scope.citizen_id is not None:
-            stmt = stmt.where(DemandeModel.citizen_id == scope.citizen_id)
-        if scope.agent_id is not None:
-            stmt = stmt.where(DemandeModel.agent_id == scope.agent_id)
-
-        return stmt
+        request_scope = RequestScope(
+            citizen_id=scope.citizen_id,
+            agent_id=scope.agent_id,
+            institut_id=scope.institut_id,
+            is_empty=scope.is_empty,
+        )
+        return stmt.where(*scope_conditions(request_scope))

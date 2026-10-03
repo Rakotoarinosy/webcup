@@ -24,8 +24,21 @@ export const appRoutes: Routes = [
                 ]
             },
             { path: 'dashboard', data: { breadcrumb: 'Tableau de bord', roles: ['manager', 'admin'] }, component: Dashboard },
-            { path: 'users', data: { breadcrumb: 'Utilisateurs', roles: ['admin'] }, loadComponent: () => import('./app/users/users').then((m) => m.Users) },
-            { path: 'requests', data: { breadcrumb: 'Demandes citoyennes', roles: ['admin'] }, loadComponent: () => import('./app/requests/requests').then((m) => m.Requests) },
+            { path: 'users', data: { breadcrumb: 'Comptes citoyens', roles: ['agent', 'manager', 'admin'] }, loadComponent: () => import('./app/users/users').then((m) => m.Users) },
+            { path: 'requests', data: { breadcrumb: 'Demandes citoyennes', roles: ['manager', 'admin'] }, loadComponent: () => import('./app/requests/requests').then((m) => m.Requests) },
+            {
+                path: 'accounts',
+                data: { breadcrumb: 'Utilisateurs', roles: ['admin'] },
+                // Une liste par rôle : chaque entrée du menu « Utilisateurs » a sa propre route.
+                children: [
+                    { path: '', redirectTo: 'citizens', pathMatch: 'full' },
+                    { path: 'citizens', data: { breadcrumb: 'Citoyens', role: 'citizen' }, loadComponent: () => import('./app/users/accounts').then((m) => m.Accounts) },
+                    { path: 'agents', data: { breadcrumb: 'Agents', role: 'agent' }, loadComponent: () => import('./app/users/accounts').then((m) => m.Accounts) },
+                    { path: 'managers', data: { breadcrumb: 'Managers', role: 'manager' }, loadComponent: () => import('./app/users/accounts').then((m) => m.Accounts) },
+                    { path: 'admins', data: { breadcrumb: 'Administrateurs', role: 'admin' }, loadComponent: () => import('./app/users/accounts').then((m) => m.Accounts) }
+                ]
+            },
+            { path: 'instituts', data: { breadcrumb: 'Instituts', roles: ['admin'] }, loadComponent: () => import('./app/instituts/instituts').then((m) => m.Instituts) },
             { path: 'agent', data: { breadcrumb: 'Mes interventions', roles: ['agent'] }, loadComponent: () => import('./app/agent-workspace/agent-workspace').then((m) => m.AgentWorkspace) },
             { path: 'agents', data: { breadcrumb: 'Agents', roles: ['manager', 'admin'] }, loadComponent: () => import('./app/agents/agents').then((m) => m.Agents) },
             { path: 'municipal', data: { breadcrumb: 'Accueil municipal' }, loadComponent: () => import('./app/municipal/municipal-home').then((m) => m.MunicipalHome) },

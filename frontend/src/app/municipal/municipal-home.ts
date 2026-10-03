@@ -17,14 +17,12 @@ import { MunicipalPublication, MunicipalService } from './municipal-content.mode
 export class MunicipalHome implements OnInit {
     private readonly content = inject(MunicipalContentService);
     private readonly router = inject(Router);
-    readonly services = signal<MunicipalService[]>([]);
-    readonly featuredServices = signal<MunicipalService[]>([]);
+    readonly popularServices = signal<MunicipalService[]>([]);
     readonly publications = signal<MunicipalPublication[]>([]);
     readonly startError = signal<string | null>(null);
 
     ngOnInit(): void {
-        this.content.services().subscribe({ next: (items) => this.services.set(items.slice(0, 3)) });
-        this.content.featuredServices().subscribe({ next: (items) => this.featuredServices.set(items.slice(0, 6)) });
+        this.content.popularServices(6).subscribe({ next: (items) => this.popularServices.set(items.slice(0, 6)) });
         this.content.publications().subscribe({ next: (items) => this.publications.set(items.slice(0, 2)) });
     }
 

@@ -6,13 +6,13 @@
         <ng-template #start>
             <div>
                 <h1 class="m-0 text-xl font-semibold">Demandes citoyennes</h1>
-                <p class="mt-1 mb-0 text-sm text-muted-color">Recherche, suivi et traitement des signalements.</p>
+                <p class="mt-1 mb-0 text-sm text-muted-color">{{ auth.hasRole('admin') ? 'Toutes les demandes de la plateforme.' : 'Les demandes reçues par votre institut.' }}</p>
             </div>
         </ng-template>
         <ng-template #end>
             <div class="flex gap-2">
                 <p-button label="Actualiser" icon="pi pi-refresh" severity="secondary" [outlined]="true" [loading]="loading()" (onClick)="loadRequests()" />
-                <p-button label="Nouvelle demande" icon="pi pi-plus" (onClick)="openNew()" />
+                <p-button label="Saisir pour un citoyen" icon="pi pi-plus" (onClick)="openSubmit()" />
             </div>
         </ng-template>
     </p-toolbar>
@@ -74,7 +74,7 @@
         [loading]="loading()"
         [sortField]="sortBy"
         [sortOrder]="sortOrder === 'asc' ? 1 : -1"
-        [tableStyle]="{ 'min-width': '82rem' }"
+        [tableStyle]="{ 'min-width': '92rem' }"
         [rowHover]="true"
         dataKey="id"
         currentPageReportTemplate="Affichage {first} à {last} sur {totalRecords} demandes"
@@ -91,8 +91,9 @@
                 <th style="min-width: 10rem">Citoyen</th>
                 <th pSortableColumn="created_at" style="min-width: 10rem">Créée le <p-sortIcon field="created_at" /></th>
                 <th style="min-width: 12rem">Localisation</th>
+                <th style="min-width: 10rem">Institut</th>
                 <th style="min-width: 10rem">Agent assigné</th>
-                <th style="width: 11rem">Actions</th>
+                <th style="width: 13rem">Actions</th>
             </tr>
         </ng-template>
 
@@ -106,12 +107,16 @@
                 <td>{{ userName(request.citizen_id) }}</td>
                 <td>{{ request.created_at | date: 'dd/MM/yyyy HH:mm' }}</td>
                 <td>{{ request.location }}</td>
+                <td>{{ institutName(request.institut_id) }}</td>
                 <td>{{ agentName(request.assigned_agent_id) }}</td>
                 <td>
                     <div class="flex gap-1">
                         <p-button icon="pi pi-eye" [rounded]="true" [text]="true" ariaLabel="Consulter la demande" (onClick)="openDetails(request)" />
                         <p-button icon="pi pi-sparkles" severity="help" [rounded]="true" [text]="true" ariaLabel="Analyser la demande avec l'IA" pTooltip="Analyser la demande" tooltipPosition="top" (onClick)="analyze(request)" />
-                        <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" ariaLabel="Modifier la demande" (onClick)="openEdit(request)" />
+                        @if (isOpen(request.status)) {
+                            <p-button icon="pi pi-user-plus" [rounded]="true" [text]="true" ariaLabel="Attribuer à un agent" pTooltip="Attribuer" tooltipPosition="top" (onClick)="openAssign(request)" />
+                            <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" ariaLabel="Modifier la demande" (onClick)="openEdit(request)" />
+                        }
                         <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [text]="true" ariaLabel="Supprimer la demande" (onClick)="confirmDelete(request)" />
                     </div>
                 </td>
@@ -120,135 +125,138 @@
 
         <ng-template #emptymessage>
             <tr>
-                <td colspan="10" class="py-8 text-center text-muted-color">Aucune demande ne correspond aux critères.</td>
+                <td colspan="11" class="py-8 text-center text-muted-color">Aucune demande ne correspond aux critères.</td>
             </tr>
         </ng-template>
     </p-table>
 </div>
 
-<p-dialog
-    [(visible)]="formDialogVisible"
-    [header]="editedRequest ? 'Modifier la demande' : 'Nouvelle demande citoyenne'"
-    [modal]="true"
-    [style]="{ width: 'min(48rem, 95vw)' }"
->
-    <form #requestForm="ngForm" id="requestForm" class="grid grid-cols-1 gap-4 md:grid-cols-2" (ngSubmit)="save(requestForm)">
+<p-dialog [(visible)]="submitDialogVisible" header="Saisir une demande pour un citoyen" [modal]="true" [style]="{ width: 'min(48rem, 95vw)' }">
+    <p class="mt-0 text-sm text-muted-color">Le statut, la priorité et l'institut destinataire sont fixés automatiquement.</p>
+    <form #submitFormRef="ngForm" id="submitForm" class="grid grid-cols-1 gap-4 md:grid-cols-2" (ngSubmit)="submit(submitFormRef)">
         <div>
-            <label for="request-title" class="mb-2 block font-semibold">Titre</label>
-            <input pInputText id="request-title" name="title" [(ngModel)]="form.title" required maxlength="255" class="w-full" />
+            <label for="submit-title" class="mb-2 block font-semibold">Titre</label>
+            <input pInputText id="submit-title" name="title" [(ngModel)]="submitForm.title" required maxlength="255" class="w-full" />
         </div>
         <div>
-            <label for="request-category" class="mb-2 block font-semibold">Catégorie</label>
-            <p-select
-                inputId="request-category"
-                name="category"
-                [(ngModel)]="form.category"
-                [options]="categories"
-                required
-                class="w-full"
-            />
+            <label for="submit-category" class="mb-2 block font-semibold">Catégorie</label>
+            <p-select inputId="submit-category" name="category" [(ngModel)]="submitForm.category" [options]="categories" required class="w-full" />
         </div>
         <div class="md:col-span-2">
-            <label for="request-description" class="mb-2 block font-semibold">Description</label>
-            <textarea
-                pTextarea
-                id="request-description"
-                name="description"
-                [(ngModel)]="form.description"
-                required
-                maxlength="10000"
-                rows="4"
-                class="w-full"
-            ></textarea>
+            <label for="submit-description" class="mb-2 block font-semibold">Description</label>
+            <textarea pTextarea id="submit-description" name="description" [(ngModel)]="submitForm.description" required maxlength="10000" rows="4" class="w-full"></textarea>
         </div>
         <div>
-            <label for="request-priority" class="mb-2 block font-semibold">Priorité</label>
-            <p-select
-                inputId="request-priority"
-                name="priority"
-                [(ngModel)]="form.priority"
-                [options]="priorities"
-                required
-                class="w-full"
-            />
+            <label for="submit-citizen" class="mb-2 block font-semibold">Citoyen</label>
+            <p-select inputId="submit-citizen" name="citizen_id" [(ngModel)]="submitForm.citizen_id" [options]="userOptions()" optionLabel="label" optionValue="value" [filter]="true" placeholder="Sélectionner un citoyen" required class="w-full" />
         </div>
         <div>
-            <label for="request-status" class="mb-2 block font-semibold">Statut</label>
-            <p-select
-                inputId="request-status"
-                name="status"
-                [(ngModel)]="form.status"
-                [options]="statuses"
-                required
-                class="w-full"
-            />
-        </div>
-        <div>
-            <label for="request-citizen" class="mb-2 block font-semibold">Citoyen</label>
-            <p-select
-                inputId="request-citizen"
-                name="citizen_id"
-                [(ngModel)]="form.citizen_id"
-                [options]="userOptions()"
-                optionLabel="label"
-                optionValue="value"
-                placeholder="Sélectionner un citoyen"
-                required
-                class="w-full"
-            />
-        </div>
-        <div>
-            <label for="request-agent" class="mb-2 block font-semibold">Agent assigné</label>
-            <p-select
-                inputId="request-agent"
-                name="assigned_agent_id"
-                [(ngModel)]="form.assigned_agent_id"
-                [options]="agentOptions()"
-                optionLabel="label"
-                optionValue="value"
-                [showClear]="true"
-                placeholder="Non assigné"
-                class="w-full"
-            />
-        </div>
-        <div class="md:col-span-2">
-            <label for="request-location" class="mb-2 block font-semibold">Localisation</label>
-            <input pInputText id="request-location" name="location" [(ngModel)]="form.location" required maxlength="500" class="w-full" />
+            <label for="submit-location" class="mb-2 block font-semibold">Localisation</label>
+            <input pInputText id="submit-location" name="location" [(ngModel)]="submitForm.location" required maxlength="500" class="w-full" />
         </div>
     </form>
-
     <ng-template #footer>
-        <button pButton type="button" label="Annuler" icon="pi pi-times" [text]="true" (click)="formDialogVisible = false"></button>
-        <button
-            pButton
-            type="submit"
-            form="requestForm"
-            label="Enregistrer"
-            icon="pi pi-check"
-            [loading]="saving()"
-            [disabled]="!requestForm.valid || saving()"
-        ></button>
+        <button pButton type="button" label="Annuler" icon="pi pi-times" [text]="true" (click)="submitDialogVisible = false"></button>
+        <button pButton type="submit" form="submitForm" label="Enregistrer" icon="pi pi-check" [loading]="saving()" [disabled]="!submitFormRef.valid || saving()"></button>
     </ng-template>
 </p-dialog>
 
-<p-dialog [(visible)]="detailsDialogVisible" header="Détail de la demande" [modal]="true" [style]="{ width: 'min(40rem, 95vw)' }">
-    @if (selectedRequest; as request) {
+<p-dialog [(visible)]="editDialogVisible" header="Modifier la demande" [modal]="true" [style]="{ width: 'min(48rem, 95vw)' }">
+    @if (editForm; as values) {
+        <form #editFormRef="ngForm" id="editForm" class="grid grid-cols-1 gap-4 md:grid-cols-2" (ngSubmit)="saveEdit(editFormRef)">
+            <div class="md:col-span-2">
+                <label for="edit-title" class="mb-2 block font-semibold">Titre</label>
+                <input pInputText id="edit-title" name="title" [(ngModel)]="values.title" required maxlength="255" class="w-full" />
+            </div>
+            <div class="md:col-span-2">
+                <label for="edit-description" class="mb-2 block font-semibold">Description</label>
+                <textarea pTextarea id="edit-description" name="description" [(ngModel)]="values.description" required maxlength="10000" rows="4" class="w-full"></textarea>
+            </div>
+            <div>
+                <label for="edit-category" class="mb-2 block font-semibold">Catégorie</label>
+                <p-select inputId="edit-category" name="category" [(ngModel)]="values.category" [options]="categories" required class="w-full" />
+                @if (editedRequest && values.category !== editedRequest.category) {
+                    <small class="mt-1 block text-orange-600">La demande partira à l'institut de cette catégorie ; l'agent actuel sera retiré.</small>
+                }
+            </div>
+            <div>
+                <label for="edit-priority" class="mb-2 block font-semibold">Priorité</label>
+                <p-select inputId="edit-priority" name="priority" [(ngModel)]="values.priority" [options]="priorities" required class="w-full" />
+            </div>
+            <div class="md:col-span-2">
+                <label for="edit-location" class="mb-2 block font-semibold">Localisation</label>
+                <input pInputText id="edit-location" name="location" [(ngModel)]="values.location" required maxlength="500" class="w-full" />
+            </div>
+        </form>
+    }
+    <ng-template #footer>
+        <button pButton type="button" label="Annuler" icon="pi pi-times" [text]="true" (click)="editDialogVisible = false"></button>
+        <button pButton type="submit" form="editForm" label="Enregistrer" icon="pi pi-check" [loading]="saving()" [disabled]="saving()"></button>
+    </ng-template>
+</p-dialog>
+
+<p-dialog [(visible)]="assignDialogVisible" header="Attribuer la demande" [modal]="true" [style]="{ width: 'min(32rem, 95vw)' }">
+    @if (assignedRequest; as request) {
+        <p class="mt-0 text-muted-color">« {{ request.title }} » · {{ institutName(request.institut_id) }}</p>
+        <div class="grid gap-4">
+            <div>
+                <label for="assign-agent" class="mb-2 block font-semibold">Agent</label>
+                <p-select inputId="assign-agent" [(ngModel)]="assignAgentId" [options]="agentOptions(request)" optionLabel="label" optionValue="value" placeholder="Choisir un agent actif de l'institut" emptyMessage="Aucun agent actif dans cet institut" class="w-full" appendTo="body" />
+            </div>
+            <div>
+                <label for="assign-date" class="mb-2 block font-semibold">Intervention prévue le <span class="font-normal text-muted-color">(facultatif)</span></label>
+                <input pInputText id="assign-date" type="datetime-local" [(ngModel)]="assignScheduledAt" class="w-full" />
+            </div>
+            @if (request.status !== 'En cours') {
+                <small class="text-muted-color"><i class="pi pi-info-circle mr-1"></i>La demande passera « En cours ».</small>
+            }
+        </div>
+    }
+    <ng-template #footer>
+        <p-button label="Annuler" severity="secondary" [text]="true" (onClick)="assignDialogVisible = false" />
+        <p-button label="Attribuer" icon="pi pi-check" [loading]="saving()" [disabled]="!assignAgentId || saving()" (onClick)="saveAssign()" />
+    </ng-template>
+</p-dialog>
+
+<p-dialog [(visible)]="detailsDialogVisible" header="Détail de la demande" [modal]="true" [style]="{ width: 'min(48rem, 95vw)' }">
+    @if (selectedRequest(); as request) {
         <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div><dt class="text-sm text-muted-color">ID</dt><dd class="mt-1 break-all font-mono text-sm">{{ request.id }}</dd></div>
+            <div><dt class="text-sm text-muted-color">Référence</dt><dd class="mt-1 font-mono text-sm">#{{ request.id.slice(0, 8) }}</dd></div>
             <div><dt class="text-sm text-muted-color">Date de création</dt><dd class="mt-1">{{ request.created_at | date: 'dd/MM/yyyy HH:mm' }}</dd></div>
             <div class="sm:col-span-2"><dt class="text-sm text-muted-color">Titre</dt><dd class="mt-1 font-semibold">{{ request.title }}</dd></div>
             <div class="sm:col-span-2"><dt class="text-sm text-muted-color">Description</dt><dd class="mt-1 whitespace-pre-wrap">{{ request.description }}</dd></div>
             <div><dt class="text-sm text-muted-color">Catégorie</dt><dd class="mt-1">{{ request.category }}</dd></div>
-            <div><dt class="text-sm text-muted-color">Priorité</dt><dd class="mt-1"><p-tag [value]="request.priority" [severity]="prioritySeverity(request.priority)" /></dd></div>
+            <div><dt class="text-sm text-muted-color">Institut</dt><dd class="mt-1">{{ institutName(request.institut_id) }}</dd></div>
+            <div><dt class="text-sm text-muted-color">Priorité</dt><dd class="mt-1"><p-tag [value]="request.priority" [severity]="prioritySeverity(request.priority)" /> <span class="ml-2 text-sm text-muted-color">score {{ request.priority_score }}/100</span></dd></div>
             <div><dt class="text-sm text-muted-color">Statut</dt><dd class="mt-1"><p-tag [value]="request.status" [severity]="statusSeverity(request.status)" /></dd></div>
-            <div><dt class="text-sm text-muted-color">Localisation</dt><dd class="mt-1">{{ request.location }}</dd></div>
             <div><dt class="text-sm text-muted-color">Citoyen</dt><dd class="mt-1">{{ userName(request.citizen_id) }}</dd></div>
             <div><dt class="text-sm text-muted-color">Agent assigné</dt><dd class="mt-1">{{ agentName(request.assigned_agent_id) }}</dd></div>
+            <div class="sm:col-span-2"><dt class="text-sm text-muted-color">Localisation</dt><dd class="mt-1">{{ request.location }}</dd></div>
         </dl>
+
+        <h3 class="mt-6 mb-3 text-base font-semibold">Historique</h3>
+        <ol class="m-0 list-none p-0" aria-label="Historique de la demande, du plus ancien au plus récent">
+            @for (event of timeline(); track event.id) {
+                <li class="border-l-2 border-primary py-1 pl-4">
+                    <span class="font-medium">{{ eventLabel(event) }}</span>
+                    <span class="text-sm text-muted-color"> · {{ event.actor_name ?? 'Système' }} · <time [attr.datetime]="event.created_at">{{ event.created_at | date: 'dd/MM/yyyy HH:mm' }}</time></span>
+                </li>
+            } @empty {
+                <li class="text-muted-color">Chargement de l'historique…</li>
+            }
+        </ol>
     }
     <ng-template #footer>
-        @if (selectedRequest; as request) {
-            <p-button label="Analyser la demande" icon="pi pi-sparkles" severity="help" (onClick)="analyze(request)" />
+        @if (selectedRequest(); as request) {
+            <div class="flex w-full flex-wrap justify-end gap-2">
+                <p-button label="Analyser" icon="pi pi-sparkles" severity="help" [text]="true" (onClick)="analyze(request)" />
+                @if (isOpen(request.status)) {
+                    <p-button label="Attribuer" icon="pi pi-user-plus" severity="secondary" [outlined]="true" (onClick)="openAssign(request)" />
+                }
+                @for (action of statusActions(request); track action.target) {
+                    <p-button [label]="action.label" [severity]="action.danger ? 'danger' : 'primary'" [outlined]="action.danger" [loading]="saving()" (onClick)="changeStatus(request, action.target)" />
+                }
+            </div>
         }
     </ng-template>
 </p-dialog>
@@ -301,9 +309,9 @@
                 <dd class="mt-1">
                     @if (result.recommended_agent; as agent) {
                         <span class="font-semibold">{{ agent.name }}</span>
-                        <span class="text-muted-color"> — {{ agent.department }} · {{ agent.interventions }} intervention(s)</span>
+                        <span class="text-muted-color"> — {{ agent.institut_name }} · {{ agent.interventions }} intervention(s)</span>
                     } @else {
-                        <span class="text-muted-color">Aucun agent adapté parmi les agents actifs.</span>
+                        <span class="text-muted-color">Aucun agent adapté parmi les agents actifs de l'institut.</span>
                     }
                 </dd>
             </div>

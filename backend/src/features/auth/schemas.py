@@ -34,8 +34,10 @@ class ProfileOut(BaseModel):
     email: str
     name: str
     role: str
-    agent_id: str | None
     created_at: datetime
+    # Dérivés du profil (jamais stockés sur le compte) : profil agent, institut de l'agent ou géré.
+    agent_id: str | None = None
+    institut_id: str | None = None
 
 
 class TokenOut(BaseModel):
