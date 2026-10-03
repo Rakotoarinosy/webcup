@@ -83,7 +83,7 @@ describe('AuthService session lifecycle', () => {
         http.expectOne(`${AUTH_URL}/login`).flush(SESSION);
         auth.validateSession().subscribe();
         http.expectOne(`${AUTH_URL}/me`).flush({ ...USER, role: 'manager' });
-        expect(auth.homeUrl()).toBe('/home/dashboard');
+        expect(auth.homeUrl()).toBe('/home/account');
         expect(auth.roleLabel()).toBe('Gestionnaire');
     });
     it('updates the visible profile and cancels a stale profile response', () => {

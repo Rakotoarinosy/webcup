@@ -1,1 +1,0 @@
-import{f as a}from"./chunk-EG46MQ3O.js";import{V as e,_ as i}from"./chunk-GICGBXAP.js";var n=class r{router=i(a);path(o=""){let t=this.router.url.startsWith("/home/")?"/home/municipal":"/municipal";return o?`${t}/${o}`:t}static \u0275fac=function(t){return new(t||r)};static \u0275prov=e({token:r,factory:r.\u0275fac,providedIn:"root"})};export{n as a};

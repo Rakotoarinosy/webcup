@@ -52,6 +52,34 @@ export interface MunicipalPublication {
     content: string;
     category: string;
     published_at: string;
+    /** Présent pour les équipes de la mairie ; les citoyens ne reçoivent que les publications visibles. */
+    is_published?: boolean;
+    image_url?: string | null;
+    view_count?: number;
+    like_count?: number;
+}
+
+export interface MunicipalPublicationIn {
+    title: string;
+    summary: string;
+    content: string;
+    category: string;
+    published_at: string;
+    is_published: boolean;
+    image_url: string | null;
+}
+
+export interface PublicationLikeResult {
+    like_count: number;
+    liked: boolean;
+}
+
+export interface MunicipalPublicationComment {
+    id: string;
+    publication_id: string;
+    author_name: string;
+    content: string;
+    created_at: string;
 }
 
 export interface ContactMessageIn {

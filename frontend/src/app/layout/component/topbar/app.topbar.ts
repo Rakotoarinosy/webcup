@@ -94,7 +94,6 @@ export class AppTopbar {
             {
                 label: user?.name ?? 'Utilisateur',
                 items: [
-                    { label: 'Mon espace', icon: 'pi pi-user', routerLink: ['/home/account'] },
                     { label: 'Mon profil', icon: 'pi pi-id-card', routerLink: ['/home/profile'] },
                     { label: 'Mes données', icon: 'pi pi-lock', routerLink: ['/home/my-data'] },
                     { separator: true },

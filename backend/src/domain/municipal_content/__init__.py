@@ -1,6 +1,7 @@
 from src.domain.municipal_content.entities import (
     ContactMessage,
     MunicipalPublication,
+    MunicipalPublicationComment,
     MunicipalService,
 )
 from src.domain.municipal_content.exceptions import (
@@ -13,6 +14,7 @@ __all__ = [
     "ContactMessage",
     "MunicipalContentRepository",
     "MunicipalPublication",
+    "MunicipalPublicationComment",
     "MunicipalPublicationNotFoundError",
     "MunicipalService",
     "MunicipalServiceNotFoundError",

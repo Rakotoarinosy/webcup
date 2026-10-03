@@ -45,9 +45,10 @@ export class VerifyCode {
     });
 
     constructor() {
-        // Pas de challenge (rechargement de page, accès direct) : retour à la connexion.
+        // Pas de challenge (rechargement de page, accès direct) : ne jamais laisser un
+        // utilisateur connecté revenir vers l'écran de connexion.
         if (!this.store.challenge()) {
-            this.router.navigate(['/auth/login']);
+            this.router.navigateByUrl(this.auth.isAuthenticated() ? this.auth.homeUrl() : '/auth/login');
         }
         interval(1000)
             .pipe(takeUntilDestroyed())

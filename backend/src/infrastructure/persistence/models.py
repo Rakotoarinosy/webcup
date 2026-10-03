@@ -268,6 +268,28 @@ class MunicipalPublicationModel(Base):
     is_published: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=True, server_default=true()
     )
+    image_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
+    view_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    like_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+
+
+class MunicipalPublicationLikeModel(Base):
+    __tablename__ = "municipal_publication_likes"
+
+    publication_id: Mapped[str] = mapped_column(String(36), ForeignKey("municipal_publications.id", ondelete="CASCADE"), primary_key=True)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class MunicipalPublicationCommentModel(Base):
+    __tablename__ = "municipal_publication_comments"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    publication_id: Mapped[str] = mapped_column(String(36), ForeignKey("municipal_publications.id", ondelete="CASCADE"), index=True)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    author_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
 
 
 class DataConcernModel(Base):

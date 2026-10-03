@@ -2,5 +2,8 @@ export const environment = {
     // Base de l'API backend (FastAPI).
     // En dev, `ng serve` redirige /api vers le backend (voir proxy.conf.json).
     apiUrl: '/api/v1',
+    // Les événements temps réel vont directement à FastAPI : le WebSocket Vite sert
+    // uniquement au rechargement de développement et ne transporte aucune donnée métier.
+    realtimeUrl: 'ws://localhost:8000/api/v1/realtime',
     googleClientId: ''
 };

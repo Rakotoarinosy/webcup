@@ -1,5 +1,6 @@
 """Scénarios publics de consultation et de contact municipal."""
 
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -7,11 +8,14 @@ from httpx import AsyncClient
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from src.domain.user import Role
 from src.infrastructure.persistence.models import (
     ContactMessageModel,
     MunicipalPublicationModel,
     MunicipalServiceModel,
 )
+from src.infrastructure.persistence.user_repository import SqlAlchemyUserRepository
+from tests.integration.test_auth_api import signin, signup
 
 pytestmark = pytest.mark.anyio
 
@@ -55,6 +59,65 @@ async def test_lists_public_services_and_publications(
     assert services.json()[0]["usage_count"] == 0
     assert publications.status_code == 200
     assert publications.json()[0]["title"] == "Information"
+
+
+async def test_publication_media_and_engagement_counters_are_server_owned(
+    client: AsyncClient, db_session: Session
+) -> None:
+    publication = MunicipalPublicationModel(
+        id="publication-engagement",
+        title="Information illustrée",
+        summary="Résumé",
+        content="Contenu complet",
+        category="Information pratique",
+        published_at=datetime.now(UTC),
+        is_published=True,
+        image_url="https://example.test/mairie.jpg",
+    )
+    db_session.add(publication)
+    db_session.commit()
+
+    viewed = await client.post("/api/v1/municipal/publications/publication-engagement/view")
+
+    assert viewed.status_code == 200
+    assert viewed.json()["image_url"] == "https://example.test/mairie.jpg"
+    assert viewed.json()["view_count"] == 1
+    assert viewed.json()["like_count"] == 0
+
+
+async def test_citizen_can_toggle_like_and_comment_a_publication(
+    client: AsyncClient, db_session: Session
+) -> None:
+    db_session.add(
+        MunicipalPublicationModel(
+            id="publication-social",
+            title="Information citoyenne",
+            summary="Résumé",
+            content="Contenu complet",
+            category="Information pratique",
+            published_at=datetime.now(UTC),
+            is_published=True,
+        )
+    )
+    db_session.commit()
+    _, credentials = await signup(client, "citizen-social@test.mg")
+    headers = await signin(client, credentials)
+
+    liked = await client.post("/api/v1/municipal/publications/publication-social/like", headers=headers)
+    assert liked.status_code == 200
+    assert liked.json() == {"like_count": 1, "liked": True}
+    unliked = await client.post("/api/v1/municipal/publications/publication-social/like", headers=headers)
+    assert unliked.json() == {"like_count": 0, "liked": False}
+
+    created = await client.post(
+        "/api/v1/municipal/publications/publication-social/comments",
+        json={"content": "Merci pour cette information."},
+        headers=headers,
+    )
+    assert created.status_code == 201
+    comments = await client.get("/api/v1/municipal/publications/publication-social/comments")
+    assert comments.status_code == 200
+    assert comments.json()[0]["content"] == "Merci pour cette information."
 
 
 async def test_featured_services_are_public_and_ordered(
@@ -416,6 +479,79 @@ async def test_future_and_unpublished_publications_are_hidden(
     for identifier in ["future", "draft"]:
         assert (await client.get(f"/api/v1/municipal/publications/{identifier}")).status_code == 404
     assert (await client.get("/api/v1/municipal/publications/published-new")).status_code == 200
+
+
+@pytest.mark.parametrize("role", [Role.ADMIN, Role.AGENT, Role.MANAGER])
+async def test_staff_can_manage_publications_but_drafts_stay_private(
+    client: AsyncClient, db_session: Session, role: Role
+) -> None:
+    profile, credentials = await signup(client, f"{role.value}-publication@test.mg")
+    users = SqlAlchemyUserRepository(db_session)
+    user = users.get_by_id(profile["id"])
+    assert user is not None
+    users.update(replace(user, role=role))
+    headers = await signin(client, credentials)
+    payload = {
+        "title": "Information temporaire",
+        "summary": "Résumé destiné aux habitants.",
+        "content": "Contenu complet de la publication municipale.",
+        "category": "Information",
+        "published_at": datetime.now(UTC).isoformat(),
+        "is_published": False,
+    }
+
+    created = await client.post("/api/v1/municipal/publications", headers=headers, json=payload)
+    assert created.status_code == 201, created.text
+    identifier = created.json()["id"]
+    assert created.json()["is_published"] is False
+    assert identifier in [
+        item["id"]
+        for item in (
+            await client.get("/api/v1/municipal/publications/manage", headers=headers)
+        ).json()
+    ]
+    assert identifier not in [
+        item["id"] for item in (await client.get("/api/v1/municipal/publications")).json()
+    ]
+
+    updated = await client.patch(
+        f"/api/v1/municipal/publications/{identifier}",
+        headers=headers,
+        json={"is_published": True, "title": "Information publiée"},
+    )
+    assert updated.status_code == 200
+    assert updated.json()["title"] == "Information publiée"
+    assert (await client.get(f"/api/v1/municipal/publications/{identifier}")).status_code == 200
+    assert (
+        await client.delete(f"/api/v1/municipal/publications/{identifier}", headers=headers)
+    ).status_code == 204
+    assert (await client.get(f"/api/v1/municipal/publications/{identifier}")).status_code == 404
+
+
+async def test_citizen_cannot_manage_publications(client: AsyncClient) -> None:
+    _, credentials = await signup(client, "citizen-publication@test.mg")
+    headers = await signin(client, credentials)
+    payload = {
+        "title": "Tentative citoyenne",
+        "summary": "Cette création doit être refusée.",
+        "content": "Les citoyens ne peuvent pas gérer les publications.",
+        "category": "Information",
+        "published_at": datetime.now(UTC).isoformat(),
+    }
+    assert (
+        await client.post("/api/v1/municipal/publications", headers=headers, json=payload)
+    ).status_code == 403
+    assert (
+        await client.get("/api/v1/municipal/publications/manage", headers=headers)
+    ).status_code == 403
+    assert (
+        await client.patch(
+            "/api/v1/municipal/publications/missing", headers=headers, json={"title": "Refus"}
+        )
+    ).status_code == 403
+    assert (
+        await client.delete("/api/v1/municipal/publications/missing", headers=headers)
+    ).status_code == 403
 
 
 @pytest.mark.parametrize(

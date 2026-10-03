@@ -32,6 +32,19 @@ class MunicipalPublication:
     category: str
     published_at: datetime
     is_published: bool
+    image_url: str | None = None
+    view_count: int = 0
+    like_count: int = 0
+
+
+@dataclass(frozen=True)
+class MunicipalPublicationComment:
+    id: str
+    publication_id: str
+    user_id: str
+    author_name: str
+    content: str
+    created_at: datetime
 
 
 @dataclass(frozen=True)

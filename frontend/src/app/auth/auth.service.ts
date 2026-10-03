@@ -39,7 +39,7 @@ export class AuthService {
     readonly user = signal<AuthUser | null>(null);
     readonly isAuthenticated = computed(() => this.user() !== null && this.token() !== null);
     readonly roleLabel = computed(() => (this.user() ? ROLE_LABELS[this.user()!.role] : ''));
-    readonly homeUrl = computed(() => (this.hasRole('admin', 'manager') ? '/home/dashboard' : '/home/account'));
+    readonly homeUrl = computed(() => '/home/account');
 
     hasRole(...roles: Role[]): boolean {
         const user = this.user();

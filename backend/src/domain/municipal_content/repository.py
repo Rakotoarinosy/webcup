@@ -1,8 +1,10 @@
 from abc import ABC, abstractmethod
+from datetime import datetime
 
 from src.domain.municipal_content.entities import (
     ContactMessage,
     MunicipalPublication,
+    MunicipalPublicationComment,
     MunicipalService,
 )
 
@@ -47,6 +49,49 @@ class MunicipalContentRepository(ABC):
 
     @abstractmethod
     def get_publication(self, publication_id: str) -> MunicipalPublication | None: ...
+
+    @abstractmethod
+    def list_publications_for_management(self) -> list[MunicipalPublication]: ...
+
+    @abstractmethod
+    def get_publication_for_management(
+        self, publication_id: str
+    ) -> MunicipalPublication | None: ...
+
+    @abstractmethod
+    def add_publication(self, publication: MunicipalPublication) -> MunicipalPublication: ...
+
+    @abstractmethod
+    def update_publication(
+        self,
+        publication_id: str,
+        *,
+        title: str | None = None,
+        summary: str | None = None,
+        content: str | None = None,
+        category: str | None = None,
+        published_at: datetime | None = None,
+        is_published: bool | None = None,
+        image_url: str | None = None,
+    ) -> MunicipalPublication | None: ...
+
+    @abstractmethod
+    def increment_publication_views(self, publication_id: str) -> MunicipalPublication | None: ...
+
+    @abstractmethod
+    def increment_publication_likes(self, publication_id: str) -> MunicipalPublication | None: ...
+
+    @abstractmethod
+    def toggle_publication_like(self, publication_id: str, user_id: str) -> tuple[MunicipalPublication, bool] | None: ...
+
+    @abstractmethod
+    def list_publication_comments(self, publication_id: str) -> list[MunicipalPublicationComment]: ...
+
+    @abstractmethod
+    def add_publication_comment(self, comment: MunicipalPublicationComment) -> MunicipalPublicationComment | None: ...
+
+    @abstractmethod
+    def delete_publication(self, publication_id: str) -> bool: ...
 
     @abstractmethod
     def add_contact_message(self, message: ContactMessage) -> ContactMessage: ...
