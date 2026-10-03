@@ -1,7 +1,8 @@
 import { inject } from '@angular/core';
-import { CanActivateFn, Router } from '@angular/router';
+import { ActivatedRouteSnapshot, CanActivateFn, Router } from '@angular/router';
 import { catchError, map, of, switchMap } from 'rxjs';
 
+import { Role } from './auth.model';
 import { AuthService } from './auth.service';
 
 /** Pages de l'application : connexion obligatoire (la session est restaurée après un refresh). */
@@ -22,12 +23,25 @@ export const guestGuard: CanActivateFn = () => {
         .pipe(map((authenticated) => (authenticated ? router.createUrlTree(['/home/dashboard']) : true)));
 };
 
-export const roleGuard: CanActivateFn = (route) => {
-    const auth = inject(AuthService);
+/**
+ * Complément du contrôle côté API : empêche aussi l'accès direct à une URL dont le rôle
+ * n'est pas autorisé. Les rôles permis sont déclarés sur la route via `data.roles`.
+ */
+export const roleGuard: CanActivateFn = (route: ActivatedRouteSnapshot, state) => {
     const router = inject(Router);
+    const auth = inject(AuthService);
+    const allowedRoles = (route.data['roles'] as Role[] | undefined) ?? [];
+
     return auth.restoreSession().pipe(
-        switchMap((authenticated) => (authenticated ? auth.me() : of(null))),
-        map((user) => (user && (route.data['roles'] as string[]).includes(user.role) ? true : router.createUrlTree(['/home/requests']))),
-        catchError(() => of(router.createUrlTree(['/auth/login'])))
+        map((authenticated) => {
+            if (!authenticated) {
+                return router.createUrlTree(['/auth/login'], { queryParams: { returnUrl: state.url } });
+            }
+
+            const role = auth.user()?.role;
+            return role && allowedRoles.includes(role)
+                ? true
+                : router.createUrlTree(['/home/municipal']);
+        })
     );
 };
