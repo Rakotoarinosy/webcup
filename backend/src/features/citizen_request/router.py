@@ -94,7 +94,6 @@ def create_request_endpoint(
                 "citizen_id": user.id,
                 "status": RequestStatus.NEW,
                 "priority": RequestPriority.NORMAL,
-                "assigned_agent_id": None,
             }
         )
     return create_citizen_request(payload, repo, users, agents)

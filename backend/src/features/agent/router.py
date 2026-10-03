@@ -72,6 +72,18 @@ def list_agents_endpoint(
     return list_agents(query, repo)
 
 
+@router.get("/available", response_model=list[AgentOut])
+def list_available_agents_for_citizen_endpoint(
+    _: User = Depends(require_roles(Role.CITIZEN)),
+    repo: AgentRepository = Depends(get_agent_repo),
+) -> list[Agent]:
+    """Annuaire restreint aux agents sélectionnables par un citoyen."""
+    return list_agents(
+        AgentQuery(status=AgentStatus.AVAILABLE, is_active=True),
+        repo,
+    )
+
+
 @router.get("/{agent_id}", response_model=AgentOut)
 def get_agent_endpoint(
     agent_id: str,

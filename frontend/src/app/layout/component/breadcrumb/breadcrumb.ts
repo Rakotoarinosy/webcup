@@ -31,7 +31,12 @@ export class BreadcrumbComponent {
             const segment = route.url.map((part) => part.path).join('/');
             if (segment) url += `/${segment}`;
             const label = route.data['breadcrumb'] as string | undefined;
-            if (label) items.push({ label, url: url || '/' });
+            const currentUrl = url || '/';
+            // Les routes enfant vides héritent des données de leur parent dans Angular.
+            // Elles ne doivent pas dupliquer le même niveau dans le fil d'Ariane.
+            if (label && !items.some((item) => item.label === label && item.url === currentUrl)) {
+                items.push({ label, url: currentUrl });
+            }
             route = route.firstChild;
         }
 

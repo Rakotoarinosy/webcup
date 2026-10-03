@@ -6,9 +6,17 @@ import { $t, updatePreset, updateSurfacePalette } from '@primeuix/themes';
 import Aura from '@primeuix/themes/aura';
 import Lara from '@primeuix/themes/lara';
 import Nora from '@primeuix/themes/nora';
+import { SelectModule } from 'primeng/select';
 import { SelectButtonModule } from 'primeng/selectbutton';
 
+import { AuthService } from '@/app/auth/auth.service';
 import { LayoutConfig, LayoutService } from '@/app/layout/service/layout.service';
+import {
+    FontFamily,
+    FontSize,
+    PreferencesService,
+    UserPreferences
+} from '@/app/preferences/preferences.service';
 
 const presets = {
     Aura,
@@ -43,6 +51,34 @@ const MENU_MODE_OPTIONS = [
     { label: 'Static', value: 'static' },
     { label: 'Overlay', value: 'overlay' }
 ];
+
+const THEME_OPTIONS: { label: string; value: UserPreferences['theme'] }[] = [
+    { label: 'Clair', value: 'light' },
+    { label: 'Sombre', value: 'dark' },
+    { label: 'Système', value: 'system' }
+];
+
+const FONT_SIZE_OPTIONS: { label: string; value: FontSize }[] = [
+    { label: 'Petite', value: 'small' },
+    { label: 'Normale', value: 'medium' },
+    { label: 'Grande', value: 'large' }
+];
+
+const FONT_FAMILY_OPTIONS: { label: string; value: FontFamily }[] = [
+    { label: 'Lato — classique', value: 'system' },
+    { label: 'Inter — moderne et lisible', value: 'inter' },
+    { label: 'Poppins — géométrique', value: 'poppins' },
+    { label: 'Manrope — élégant', value: 'manrope' },
+    { label: 'Source Sans 3 — professionnel', value: 'source' },
+    { label: 'Merriweather — avec serif', value: 'serif' },
+    { label: 'Monospace — technique', value: 'mono' }
+];
+
+const DEFAULT_PREFERENCES: UserPreferences = {
+    theme: 'system',
+    font_size: 'medium',
+    font_family: 'system'
+};
 
 const SURFACES: SurfacesType[] = [
     {
@@ -185,7 +221,7 @@ const SURFACES: SurfacesType[] = [
 
 @Component({
     selector: 'app-configurator',
-    imports: [CommonModule, FormsModule, SelectButtonModule],
+    imports: [CommonModule, FormsModule, SelectModule, SelectButtonModule],
     templateUrl: './app.configurator.html',
     styleUrl: './app.configurator.scss',
     host: {
@@ -199,9 +235,19 @@ export class AppConfigurator {
 
     platformId = inject(PLATFORM_ID);
 
+    private readonly preferencesService = inject(PreferencesService);
+
+    private readonly auth = inject(AuthService);
+
     readonly presets = Object.keys(presets);
 
     readonly menuModeOptions = MENU_MODE_OPTIONS;
+
+    readonly themeOptions = THEME_OPTIONS;
+
+    readonly fontSizeOptions = FONT_SIZE_OPTIONS;
+
+    readonly fontFamilyOptions = FONT_FAMILY_OPTIONS;
 
     readonly surfaces = SURFACES;
 
@@ -214,6 +260,16 @@ export class AppConfigurator {
     selectedPreset = computed(() => this.layoutService.layoutConfig().preset);
 
     menuMode = computed(() => this.layoutService.layoutConfig().menuMode);
+
+    readonly isAuthenticated = this.auth.isAuthenticated;
+
+    readonly preferences = signal<UserPreferences>(DEFAULT_PREFERENCES);
+
+    readonly saving = signal(false);
+
+    readonly saveError = signal<string | null>(null);
+
+    readonly saved = signal(false);
 
     primaryColors = computed<SurfacesType[]>(() => {
         const presetPalette = presets[this.layoutService.layoutConfig().preset as KeyOfType<typeof presets>].primitive;
@@ -232,6 +288,13 @@ export class AppConfigurator {
     ngOnInit() {
         if (isPlatformBrowser(this.platformId)) {
             this.onPresetChange(this.layoutService.layoutConfig().preset);
+        }
+
+        if (this.isAuthenticated()) {
+            this.preferencesService.load().subscribe({
+                next: (preferences) => this.preferences.set(preferences),
+                error: () => this.saveError.set('Vos préférences ne peuvent pas être chargées pour le moment.')
+            });
         }
     }
 
@@ -276,6 +339,47 @@ export class AppConfigurator {
 
     onMenuModeChange(event: string) {
         this.updateLayoutConfig({ menuMode: event });
+    }
+
+    onThemeChange(theme: UserPreferences['theme']): void {
+        this.preview({ theme });
+    }
+
+    onFontSizeChange(fontSize: FontSize): void {
+        this.preview({ font_size: fontSize });
+    }
+
+    onFontFamilyChange(fontFamily: FontFamily): void {
+        this.preview({ font_family: fontFamily });
+    }
+
+    savePreferences(): void {
+        if (!this.isAuthenticated() || this.saving()) {
+            return;
+        }
+
+        this.saving.set(true);
+        this.saveError.set(null);
+        this.saved.set(false);
+        this.preferencesService.save(this.preferences()).subscribe({
+            next: (preferences) => {
+                this.preferences.set(preferences);
+                this.saved.set(true);
+                this.saving.set(false);
+            },
+            error: () => {
+                this.saveError.set('Impossible d’enregistrer vos préférences. Réessayez plus tard.');
+                this.saving.set(false);
+            }
+        });
+    }
+
+    private preview(patch: Partial<UserPreferences>): void {
+        const preferences = { ...this.preferences(), ...patch };
+        this.preferences.set(preferences);
+        this.preferencesService.apply(preferences);
+        this.saveError.set(null);
+        this.saved.set(false);
     }
 
     private updateLayoutConfig(patch: Partial<LayoutConfig>) {

@@ -25,7 +25,10 @@ describe('BreadcrumbComponent', () => {
                             {
                                 path: 'my-requests',
                                 data: { breadcrumb: 'Mes demandes' },
-                                children: [{ path: ':id', data: { breadcrumb: 'Détail' }, component: TestPage }]
+                                children: [
+                                    { path: '', component: TestPage },
+                                    { path: ':id', data: { breadcrumb: 'Détail' }, component: TestPage }
+                                ]
                             }
                         ]
                     }
@@ -60,5 +63,18 @@ describe('BreadcrumbComponent', () => {
 
         expect(fixture.componentInstance.previous()?.url).toBe('/home/my-requests');
         expect(fixture.componentInstance.items().at(-1)?.label).toBe('Détail');
+    });
+
+    it('does not repeat inherited breadcrumb data for an empty child route', async () => {
+        const fixture = TestBed.createComponent(BreadcrumbComponent);
+        const router = TestBed.inject(Router);
+
+        await router.navigateByUrl('/home/my-requests');
+        fixture.detectChanges();
+
+        expect(fixture.componentInstance.items().map((item) => item.label)).toEqual([
+            'Espace personnel',
+            'Mes demandes'
+        ]);
     });
 });

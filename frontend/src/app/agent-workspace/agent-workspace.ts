@@ -51,6 +51,12 @@ export class AgentWorkspace {
         this.refresh();
     }
 
+    protected pageNumbers(): number[] {
+        const total = this.pages();
+        const first = Math.max(1, Math.min(this.page() - 2, total - 4));
+        return Array.from({ length: Math.min(5, total) }, (_, index) => first + index);
+    }
+
     protected resolve(item: AssignedDemande): void {
         if (this.resolving()) return;
         this.resolving.set(item.id);

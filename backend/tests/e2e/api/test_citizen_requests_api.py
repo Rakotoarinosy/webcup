@@ -186,6 +186,117 @@ async def test_citizen_request_creation_confirms_response_and_history_is_owner_s
     assert other_detail.status_code == 403
 
 
+async def test_citizen_history_search_filters_and_pagination_are_owner_scoped(
+    admin_client: httpx.AsyncClient,
+) -> None:
+    owner_credentials = {
+        "email": "history-table-owner@example.com",
+        "name": "History Table Owner",
+        "password": "Motdepasse123",
+    }
+    other_credentials = {
+        "email": "history-table-other@example.com",
+        "name": "History Table Other",
+        "password": "Motdepasse123",
+    }
+    owner = (await admin_client.post("/api/v1/auth/register", json=owner_credentials)).json()
+    other = (await admin_client.post("/api/v1/auth/register", json=other_credentials)).json()
+
+    other_request = await admin_client.post(
+        REQUESTS,
+        json=_request(
+            other["id"],
+            title="Fuite d'eau d'une autre personne",
+            description="Canalisation publique à réparer.",
+            category="Eau",
+        ),
+    )
+    assert other_request.status_code == 201
+
+    login = await admin_client.post("/api/v1/auth/login", json=owner_credentials)
+    admin_client.headers["Authorization"] = f"Bearer {login.json()['access_token']}"
+    for title, description, category in [
+        ("Fuite d'eau", "Canalisation cassée devant la maison.", "Eau"),
+        ("Lampadaire", "L'éclairage est éteint.", "Éclairage public"),
+    ]:
+        created = await admin_client.post(
+            REQUESTS,
+            json=_request(other["id"], title=title, description=description, category=category),
+        )
+        assert created.status_code == 201
+        assert created.json()["citizen_id"] == owner["id"]
+
+    filtered = await admin_client.get(
+        REQUESTS,
+        params={
+            "page": 1,
+            "page_size": 1,
+            "search": "canalisation",
+            "category": "Eau",
+            "status": "Nouveau",
+        },
+    )
+    assert filtered.status_code == 200
+    assert filtered.json()["total"] == 1
+    assert filtered.json()["items"][0]["title"] == "Fuite d'eau"
+
+    paged = await admin_client.get(REQUESTS, params={"page": 2, "page_size": 1})
+    assert paged.status_code == 200
+    assert paged.json()["total"] == 2
+    assert len(paged.json()["items"]) == 1
+    assert all(item["citizen_id"] == owner["id"] for item in paged.json()["items"])
+
+
+async def test_citizen_can_select_an_available_agent_for_a_new_request(
+    admin_client: httpx.AsyncClient,
+) -> None:
+    citizen_credentials = {
+        "email": "agent-choice-citizen@example.com",
+        "name": "Citizen Agent Choice",
+        "password": "Motdepasse123",
+    }
+    citizen = (await admin_client.post("/api/v1/auth/register", json=citizen_credentials)).json()
+    available_agent = (
+        await admin_client.post(
+            "/api/v1/agents",
+            json={"email": "available@mairie.mg", "name": "Mairie Centre", "department": "Accueil"},
+        )
+    ).json()
+    inactive_agent = (
+        await admin_client.post(
+            "/api/v1/agents",
+            json={"email": "inactive@mairie.mg", "name": "Mairie Annexe", "department": "Accueil"},
+        )
+    ).json()
+    assert (
+        await admin_client.post(f"/api/v1/agents/{inactive_agent['id']}/deactivate")
+    ).status_code == 200
+
+    login = await admin_client.post("/api/v1/auth/login", json=citizen_credentials)
+    admin_client.headers["Authorization"] = f"Bearer {login.json()['access_token']}"
+    directory = await admin_client.get("/api/v1/agents/available")
+    assert directory.status_code == 200
+    assert [agent["id"] for agent in directory.json()] == [available_agent["id"]]
+
+    created = await admin_client.post(
+        REQUESTS,
+        json=_request(
+            "ignored-by-citizen-role",
+            assigned_agent_id=available_agent["id"],
+            title="Besoin d'accueil",
+        ),
+    )
+    assert created.status_code == 201
+    assert created.json()["citizen_id"] == citizen["id"]
+    assert created.json()["assigned_agent_id"] == available_agent["id"]
+
+    refused = await admin_client.post(
+        REQUESTS,
+        json=_request("ignored-by-citizen-role", assigned_agent_id=inactive_agent["id"]),
+    )
+    assert refused.status_code == 400
+
+
 def _request(citizen_id: str, **overrides: object) -> dict[str, object]:
     return {
         "title": "Signalement",

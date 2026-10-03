@@ -9,12 +9,11 @@ import { ROLE_LABELS } from '@/app/auth/auth.model';
 import { AuthService } from '@/app/auth/auth.service';
 import { LayoutService } from '@/app/layout/service/layout.service';
 import { AppConfigurator } from '../configurator/app.configurator';
-import { AppThemeSwitcher } from '../themeswitcher/app.themeswitcher';
 import { Notifications } from './widget/notifications/notifications';
 
 @Component({
     selector: 'app-topbar',
-    imports: [RouterModule, CommonModule, StyleClassModule, AppConfigurator, AppThemeSwitcher, MenuModule, Notifications],
+    imports: [RouterModule, CommonModule, StyleClassModule, AppConfigurator, MenuModule, Notifications],
     templateUrl: './app.topbar.html',
     styleUrl: './app.topbar.scss'
 })

@@ -41,7 +41,7 @@
             <p class="empty-message">Aucune demande ne vous est attribuée pour le moment.</p>
         } @else {
             <div class="table-wrap">
-                <table>
+                <table class="app-data-table">
                     <caption>Demandes attribuées à votre compte, page {{ page() }} sur {{ pages() }}</caption>
                     <thead>
                         <tr>
@@ -79,10 +79,15 @@
                     </tbody>
                 </table>
             </div>
-            <nav class="pagination" aria-label="Pagination des demandes">
-                <button type="button" class="secondary-button" [disabled]="page() <= 1 || loading()" (click)="goToPage(page() - 1)">Page précédente</button>
-                <span aria-live="polite">Page {{ page() }} sur {{ pages() }}</span>
-                <button type="button" class="secondary-button" [disabled]="page() >= pages() || loading()" (click)="goToPage(page() + 1)">Page suivante</button>
+            <nav class="app-table-pagination" aria-label="Pagination des demandes">
+                <button type="button" class="app-pagination-button" aria-label="Première page" [disabled]="page() <= 1 || loading()" (click)="goToPage(1)"><i class="pi pi-angle-double-left" aria-hidden="true"></i></button>
+                <button type="button" class="app-pagination-button" aria-label="Page précédente" [disabled]="page() <= 1 || loading()" (click)="goToPage(page() - 1)"><i class="pi pi-angle-left" aria-hidden="true"></i></button>
+                @for (pageNumber of pageNumbers(); track pageNumber) {
+                    <button type="button" class="app-pagination-button app-pagination-page" [class.is-active]="pageNumber === page()" [attr.aria-current]="pageNumber === page() ? 'page' : null" [attr.aria-label]="'Page ' + pageNumber" [disabled]="loading()" (click)="goToPage(pageNumber)">{{ pageNumber }}</button>
+                }
+                <button type="button" class="app-pagination-button" aria-label="Page suivante" [disabled]="page() >= pages() || loading()" (click)="goToPage(page() + 1)"><i class="pi pi-angle-right" aria-hidden="true"></i></button>
+                <button type="button" class="app-pagination-button" aria-label="Dernière page" [disabled]="page() >= pages() || loading()" (click)="goToPage(pages())"><i class="pi pi-angle-double-right" aria-hidden="true"></i></button>
+                <span class="sr-only" aria-live="polite">Page {{ page() }} sur {{ pages() }}</span>
             </nav>
         }
     </section>

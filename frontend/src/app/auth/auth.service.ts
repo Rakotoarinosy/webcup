@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { Observable, Subject, catchError, finalize, map, of, shareReplay, switchMap, takeUntil, tap, throwError } from 'rxjs';
 
 import { environment } from '@/environments/environment';
+import { PreferencesService } from '@/app/preferences/preferences.service';
 import { AuthUser, ROLE_LABELS, Role, TokenResponse } from './auth.model';
 
 export const AUTH_URL = `${environment.apiUrl}/auth`;
@@ -19,6 +20,7 @@ export const AUTH_URL = `${environment.apiUrl}/auth`;
 export class AuthService {
     private readonly http = inject(HttpClient);
     private readonly router = inject(Router);
+    private readonly preferences = inject(PreferencesService);
 
     private readonly token = signal<string | null>(null);
     private readonly sessionEnded = new Subject<void>();
@@ -139,5 +141,6 @@ export class AuthService {
         this.sessionChecked = true;
         this.token.set(response.access_token);
         this.user.set(response.user);
+        this.preferences.load().subscribe({ error: () => undefined });
     }
 }
