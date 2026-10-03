@@ -55,8 +55,17 @@ export function apiErrorMessage(error: unknown): string {
     }
 
     if (error.status === 0) {
-        return 'API injoignable : le backend est-il lancé (make dev dans backend/) ?';
+        return 'Connexion au serveur impossible. Réessayez dans quelques instants.';
     }
+
+    const messages: Record<string, string> = {
+        UserAlreadyExistsError: 'Cette adresse email est déjà utilisée.',
+        UserNotFoundError: 'Ce compte n’existe plus. Rechargez la liste.',
+        UserConflictError: 'Cette adresse email ou cette fiche agent est déjà utilisée, ou la fiche agent n’existe plus.',
+        LastAdminError: 'Le dernier administrateur actif ne peut pas être supprimé, désactivé ou changer de profil.'
+    };
+    const message = messages[error.error?.error];
+    if (message) return message;
 
     const detail = error.error?.detail;
 

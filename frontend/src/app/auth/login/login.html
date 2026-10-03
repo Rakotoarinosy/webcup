@@ -1,3 +1,4 @@
+<app-floating-configurator [float]="false" class="auth-display-settings" />
 <main class="grid min-h-dvh bg-white font-sans text-emerald-950 dark:bg-emerald-950 dark:text-emerald-50 lg:grid-cols-[minmax(26rem,57.3%)_1fr]">
     <section
         class="relative isolate hidden overflow-hidden bg-[radial-gradient(circle_at_90%_8%,#17845b_0,transparent_31%),linear-gradient(145deg,#062c21_0%,#07533a_59%,#03271d_100%)] px-[clamp(2rem,7vw,8.5rem)] py-[clamp(2rem,4vw,4.8rem)] text-white lg:flex lg:flex-col"
@@ -37,6 +38,9 @@
                 <h1 id="login-title" class="mb-2 text-[2rem] font-bold leading-tight tracking-[-.045em]">Bon retour</h1>
                 <p class="m-0 leading-6 text-emerald-950/60 dark:text-emerald-50/65">Connectez-vous pour piloter les demandes.</p>
             </header>
+            @if (accountDeleted) {
+                <p role="status" class="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-950">Votre compte a été supprimé. Vous êtes déconnecté de votre espace personnel.</p>
+            }
             @if (errorMessage()) {
                 <p-message severity="error" [text]="errorMessage()!" icon="pi pi-exclamation-circle" styleClass="mb-5 block" role="alert" />
             }
@@ -94,4 +98,3 @@
         </div>
     </section>
 </main>
-<app-floating-configurator />

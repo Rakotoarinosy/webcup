@@ -41,6 +41,7 @@ export class AppTopbar {
                         disabled: true
                     },
                     { label: 'Mon espace', icon: 'pi pi-user', routerLink: ['/home/account'] },
+                    { label: 'Mon profil', icon: 'pi pi-id-card', routerLink: ['/home/profile'] },
                     { separator: true },
                     {
                         label: 'Déconnexion',

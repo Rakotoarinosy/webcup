@@ -3,6 +3,14 @@ import { MapRequest } from './widget/map/map';
 
 /** Conversions des réponses de l'API vers les widgets, partagées par le dashboard et « Mon espace ». */
 
+/** GET /dashboard/public : compteurs de toute la ville, sans connexion ni donnée personnelle. */
+export interface PublicDashboard {
+    total: number;
+    open: number;
+    in_progress: number;
+    resolved: number;
+}
+
 export interface StatCards {
     openRequests: number;
     inProgressRequests: number;

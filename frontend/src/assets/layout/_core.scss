@@ -1,6 +1,7 @@
 html {
     height: 100%;
-    font-size: 14px;
+    font-size: calc(87.5% * var(--font-scale, 1));
+    --layout-gutter: min(2rem, 28px);
     line-height: 1.2;
 }
 

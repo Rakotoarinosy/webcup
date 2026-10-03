@@ -99,7 +99,10 @@ class SqlAlchemyMunicipalContentRepository(MunicipalContentRepository):
     def list_publications(self, category: str | None, limit: int) -> list[MunicipalPublication]:
         statement = (
             select(MunicipalPublicationModel)
-            .where(MunicipalPublicationModel.is_published.is_(True))
+            .where(
+                MunicipalPublicationModel.is_published.is_(True),
+                MunicipalPublicationModel.published_at <= datetime.now(UTC),
+            )
             .order_by(MunicipalPublicationModel.published_at.desc())
             .limit(limit)
         )
@@ -109,7 +112,11 @@ class SqlAlchemyMunicipalContentRepository(MunicipalContentRepository):
 
     def get_publication(self, publication_id: str) -> MunicipalPublication | None:
         row = self.db.get(MunicipalPublicationModel, publication_id)
-        return self._publication(row) if row and row.is_published else None
+        return (
+            self._publication(row)
+            if row and row.is_published and self._utc(row.published_at) <= datetime.now(UTC)
+            else None
+        )
 
     def add_contact_message(self, message: ContactMessage) -> ContactMessage:
         self.db.add(

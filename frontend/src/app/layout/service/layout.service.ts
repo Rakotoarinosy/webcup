@@ -151,8 +151,12 @@ export class LayoutService {
     }
 
     private startViewTransition(config: LayoutConfig): void {
-        document.startViewTransition(() => {
+        const transition = document.startViewTransition(() => {
             this.toggleDarkMode(config);
+        });
+        // Une transition remplacee n’anime plus, mais son changement de theme reste applique.
+        void transition.ready.catch((error: unknown) => {
+            if (!(error instanceof DOMException && error.name === 'AbortError')) throw error;
         });
     }
 

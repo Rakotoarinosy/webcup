@@ -11,7 +11,8 @@ import { TerraNovaStore } from '../terra-nova.store';
 @Component({
     selector: 'app-terra-nova-request-detail',
     imports: [FormsModule, DialogModule, SelectModule, TagModule, ArrivalPipe, XpPipe],
-    templateUrl: './tn-request-detail.html'
+    templateUrl: './tn-request-detail.html',
+    styleUrl: './tn-request-detail.scss'
 })
 export class TerraNovaRequestDetail {
     protected readonly store = inject(TerraNovaStore);

@@ -7,14 +7,14 @@
     left: 0;
     top: 0;
     width: 100%;
-    padding: 0 2rem;
+    padding: 0 var(--layout-gutter);
     background-color: var(--surface-card);
     transition: left var(--layout-section-transition-duration);
     display: flex;
     align-items: center;
 
     .layout-topbar-logo-container {
-        width: 20rem;
+        width: min(20rem, 320px);
         display: flex;
         align-items: center;
     }
@@ -38,6 +38,7 @@
     }
 
     .layout-topbar-action {
+        flex-shrink: 0;
         display: inline-flex;
         justify-content: center;
         align-items: center;
@@ -98,7 +99,7 @@
 
 @media (max-width: 991px) {
     .layout-topbar {
-        padding: 0 2rem;
+        padding: 0 var(--layout-gutter);
 
         .layout-topbar-logo-container {
             width: auto;
@@ -125,7 +126,8 @@
             padding: 1rem;
             right: 2rem;
             top: 4rem;
-            min-width: 15rem;
+            min-width: min(15rem, calc(100vw - 2 * var(--layout-gutter)));
+            max-width: calc(100vw - 2 * var(--layout-gutter));
             border: 1px solid var(--surface-border);
 
             .layout-topbar-menu-content {
@@ -133,6 +135,7 @@
             }
 
             .layout-topbar-action {
+        flex-shrink: 0;
                 display: flex;
                 width: 100%;
                 height: auto;

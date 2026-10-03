@@ -1,0 +1,6 @@
+<div class="flex flex-wrap items-center gap-1" role="group" aria-label="Taille du texte">
+    <p-button type="button" label="A−" size="small" severity="secondary" outlined ariaLabel="Réduire la taille du texte" [disabled]="!fontScale.canDecrease()" (onClick)="fontScale.decrease()" />
+    <p-button type="button" [label]="percent()" size="small" severity="secondary" text ariaLabel="Remettre la taille du texte à 100 %" (onClick)="fontScale.reset()" />
+    <p-button type="button" label="A+" size="small" severity="secondary" outlined ariaLabel="Agrandir la taille du texte" [disabled]="!fontScale.canIncrease()" (onClick)="fontScale.increase()" />
+</div>
+<span class="sr-only" aria-live="polite" aria-atomic="true">Taille du texte : {{ percent() }}</span>

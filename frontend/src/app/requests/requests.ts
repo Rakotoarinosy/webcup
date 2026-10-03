@@ -45,6 +45,7 @@ import {
     RequestStatus,
     STATUS_TRANSITIONS
 } from './request.model';
+import { LiveDataService } from '@/app/shared/live-data.service';
 import { CitizenRequestService } from './request.service';
 
 /** Création pour le compte d'un citoyen : statut, priorité et institut sont décidés par le serveur. */
@@ -112,6 +113,7 @@ export class Requests implements OnInit {
     private readonly messageService = inject(MessageService);
     private readonly confirmationService = inject(ConfirmationService);
     private readonly destroyRef = inject(DestroyRef);
+    private readonly live = inject(LiveDataService);
     private readonly requestQueries = new Subject<CitizenRequestQuery>();
     private readonly searchChanges = new Subject<string>();
     protected readonly auth = inject(AuthService);
@@ -194,6 +196,11 @@ export class Requests implements OnInit {
     }
 
     ngOnInit(): void {
+        this.live.watch(
+            this.destroyRef,
+            () => this.loadRequests(),
+            () => !this.loading() && !this.saving() && !this.submitDialogVisible && !this.editDialogVisible && !this.detailsDialogVisible && !this.assignDialogVisible && !this.analysisDialogVisible
+        );
         this.userService.list().subscribe({ next: (users) => this.users.set(users), error: (error: unknown) => this.showError(error) });
         this.agentService.list().subscribe({ next: (agents) => this.agents.set(agents), error: (error: unknown) => this.showError(error) });
         this.institutService.list().subscribe({ next: (instituts) => this.instituts.set(instituts), error: (error: unknown) => this.showError(error) });

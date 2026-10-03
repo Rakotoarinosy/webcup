@@ -54,6 +54,11 @@ service `db` dans `docker-compose.yml`.
 
 ## Configuration
 
+Le fichier `backend/.env` est chargé quel que soit le dossier de lancement ; les
+variables exportées restent prioritaires. Les URL `postgres://`, `postgresql://` et
+l'ancienne forme `postgresql+psycopg2://` utilisent le pilote `psycopg` 3 installé
+par le projet. Les identifiants et options de connexion sont conservés.
+
 Toutes les variables sont dans [.env.example](.env.example) :
 
 | Variable | Défaut | Rôle |
@@ -83,27 +88,41 @@ Toutes les variables sont dans [.env.example](.env.example) :
 Les clés Gemini et Terra Nova sont facultatives, mais les fonctions associées ne seront pas
 disponibles sans elles. Ne partagez et ne commitez jamais un vrai fichier `.env`.
 
-## Exemples d'appels (domaine `user`)
+## Authentification et gestion des comptes
+
+`POST /api/v1/auth/register` accepte `name`, `email`, `password` et renvoie un
+profil citoyen. Angular enchaîne avec `POST /api/v1/auth/login` pour ouvrir la session.
+Le mot de passe doit contenir 10 à 128 caractères, une majuscule, une minuscule et un chiffre.
+`GET /api/v1/auth/me` retrouve le profil courant avec le token Bearer.
+
+Le token d'accès reste en mémoire. Le cookie HttpOnly de refresh restaure la session
+après rechargement. Un `401` sur `/auth/refresh` est normal sans session valide ;
+une page publique reste accessible et une page protégée redirige vers la connexion.
+
+Les endpoints `/users` sont réservés aux administrateurs. Remplacer `$TOKEN` par
+leur token d'accès :
 
 ```bash
-# Créer
 curl -X POST http://localhost:8000/api/v1/users \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"email": "ada@example.com", "name": "Ada"}'
-# → 201 {"id": "0272…", "email": "ada@example.com", "name": "Ada", "created_at": "…Z"}
+  -d '{"email":"ada@example.com","name":"Ada","password":"Motdepasse123","role":"citizen"}'
 
-# Lister / détail
-curl http://localhost:8000/api/v1/users
-curl http://localhost:8000/api/v1/users/<id>
+curl http://localhost:8000/api/v1/users -H "Authorization: Bearer $TOKEN"
 
-# Modifier (partiel)
-curl -X PUT http://localhost:8000/api/v1/users/<id> \
+curl -X PATCH http://localhost:8000/api/v1/users/<id> \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"name": "Ada Lovelace"}'
+  -d '{"name":"Ada Lovelace"}'
 
-# Supprimer
-curl -X DELETE http://localhost:8000/api/v1/users/<id>   # → 204
+curl -X DELETE http://localhost:8000/api/v1/users/<id> -H "Authorization: Bearer $TOKEN"
 ```
+
+La création permet de choisir `citizen`, `agent`, `manager` ou `admin` et une liaison
+`agent_id` facultative. `PATCH` permet aussi `is_active` et une réinitialisation du
+mot de passe ; `agent_id: null` détache la fiche. Une modification sensible révoque
+les refresh tokens. Le dernier administrateur actif ne peut pas être supprimé,
+désactivé ou rétrogradé.
 
 Format des erreurs métier :
 
@@ -158,3 +177,22 @@ backend/
 ├── Dockerfile · docker-compose.yml · Makefile
 └── pyproject.toml
 ```
+
+## Profil personnel
+
+Les endpoints utilisent exclusivement l’identité authentifiée par le bearer JWT :
+
+- `GET /api/v1/auth/me` : lire son profil existant (`ProfileOut`).
+- `PATCH /api/v1/auth/me` : modifier `name` et `email`, avec `current_password`.
+  Retourne `TokenOut`, renouvelle le cookie HttpOnly et révoque les anciens refresh tokens.
+- `POST /api/v1/auth/change-password` : changer le mot de passe avec la politique existante.
+- `DELETE /api/v1/auth/me` : supprimer son compte citoyen avec `current_password`.
+  Retourne 204 et efface le cookie. Les identifiants de cible et champs de privilèges
+  sont refusés ; les comptes professionnels restent gérés par l’administration.
+
+La suppression est atomique : le compte, ses refresh tokens et ses marqueurs de lecture
+sont retirés ; les demandes des deux flux sont conservées sous une identité inactive
+« Compte supprimé », sans nom personnel, email personnel ni mot de passe. Les acteurs
+de l’historique associés au compte sont également retirés. Le contenu libre des demandes
+reste conservé. La relecture du compte à chaque requête refuse immédiatement ses anciens JWT.
+Ces opérations ne modifient pas le schéma et ne nécessitent aucune nouvelle migration.

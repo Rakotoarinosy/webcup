@@ -180,6 +180,17 @@ class DashboardStatsOut(BaseModel):
     daily: list[DailyCountOut]
 
 
+class PublicDashboardOut(BaseModel):
+    """Compteurs de toute la ville, sans connexion : aucune demande ni identité exposée."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    total: int
+    open: int
+    in_progress: int
+    resolved: int
+
+
 class RecommendedAgentOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

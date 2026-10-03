@@ -1,1 +1,80 @@
-.municipal-page { max-width: 1100px; margin: 0 auto; padding: 1rem; }.eyebrow { color: var(--p-primary-color); font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }.intro { color: var(--p-text-muted-color); max-width: 650px; }.service-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; margin-top: 2rem; } i { color: var(--p-primary-color); margin-right: .5rem; } dl { margin: 1.5rem 0 0; } dt { font-weight: 700; margin-top: .75rem; } dd { margin: .15rem 0; color: var(--p-text-muted-color); }
+.municipal-page {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 1rem;
+}
+.eyebrow {
+    color: var(--p-primary-color);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+.intro {
+    color: var(--p-text-muted-color);
+    max-width: 650px;
+}
+.service-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1rem;
+    margin-top: 2rem;
+}
+i {
+    color: var(--p-primary-color);
+    margin-right: 0.5rem;
+}
+dl {
+    margin: 1.5rem 0 0;
+}
+dt {
+    font-weight: 700;
+    margin-top: 0.75rem;
+}
+dd {
+    margin: 0.15rem 0;
+    color: var(--p-text-muted-color);
+}
+
+.service-card {
+    position: relative;
+    min-width: 0;
+    border-radius: 0.75rem;
+}
+.service-card:hover {
+    box-shadow: 0 0 0 1px var(--p-primary-color);
+}
+.card-action {
+    color: var(--p-primary-color);
+    font-weight: 600;
+    border: 0;
+    background: transparent;
+    padding: 1rem 0 0;
+    text-align: left;
+    cursor: pointer;
+}
+.card-action::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 0.75rem;
+}
+.card-action:focus-visible {
+    outline: 0;
+}
+.card-action:focus-visible::after {
+    outline: 2px solid var(--p-primary-color);
+    outline-offset: 4px;
+}
+.card-action:disabled {
+    cursor: progress;
+    opacity: 0.65;
+}
+.service-admin {
+    position: relative;
+    z-index: 1;
+}
+@media (max-width: 600px) {
+    .service-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}

@@ -18,6 +18,7 @@
                 @for (shortcut of shortcuts(); track shortcut.link) {
                     <p-button [label]="shortcut.label" [icon]="shortcut.icon" [outlined]="!$first" [routerLink]="shortcut.link" />
                 }
+                <p-button label="Mon profil" icon="pi pi-user-edit" [outlined]="true" routerLink="/home/profile" />
                 @if (!unattached()) {
                     <p-button icon="pi pi-refresh" severity="secondary" [text]="true" [loading]="loading()" ariaLabel="Actualiser" (onClick)="load()" />
                 }

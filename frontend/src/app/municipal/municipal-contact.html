@@ -1,1 +1,158 @@
-<section class="contact-page"><p class="eyebrow">Nous contacter</p><h1>Écrivez aux services municipaux</h1><p class="intro">Votre message est transmis à l'équipe concernée. Un accusé de réception vous sera remis immédiatement.</p>@if (receipt(); as receipt) { <p-message severity="success">{{ receipt.message }} Référence : <strong>{{ receipt.receipt_number }}</strong>.</p-message> } @if (error(); as error) { <p-message severity="error">{{ error }}</p-message> }<p-card><form #contactForm="ngForm" (ngSubmit)="send(contactForm)"><div class="form-grid"><div><label for="name">Nom</label><input pInputText id="name" name="sender_name" [(ngModel)]="form.sender_name" required minlength="2"></div><div><label for="email">E-mail</label><input pInputText id="email" type="email" name="sender_email" [(ngModel)]="form.sender_email" required email></div></div><label for="service">Service concerné (facultatif)</label><p-select inputId="service" name="service_id" [(ngModel)]="form.service_id" [options]="services()" optionLabel="name" optionValue="id" placeholder="Choisir un service" [showClear]="true"></p-select><label for="subject">Objet</label><input pInputText id="subject" name="subject" [(ngModel)]="form.subject" required minlength="3"><label for="message">Message</label><textarea pTextarea id="message" name="message" [(ngModel)]="form.message" required minlength="10" rows="7"></textarea><button pButton type="submit" label="Envoyer le message" icon="pi pi-send" [loading]="sending()" [disabled]="contactForm.invalid"></button></form></p-card></section>
+<section class="contact-page">
+    <div class="page-heading">
+        <span class="heading-icon pi pi-envelope" aria-hidden="true"></span>
+        <div>
+            <p class="eyebrow">Nous sommes à votre écoute</p>
+            <h1>Contacter la mairie</h1>
+        </div>
+    </div>
+    <p class="intro">Une question, une difficulté dans une démarche ? Écrivez-nous. Vous recevrez une confirmation avec une référence dès que votre message sera enregistré.</p>
+    @if (receipt(); as saved) {
+        <div #confirmation class="confirmation" role="status" aria-live="polite" tabindex="-1" aria-labelledby="confirmation-title">
+            <span class="pi pi-check-circle" aria-hidden="true"></span>
+            <h2 id="confirmation-title">Votre message a bien été envoyé</h2>
+            <p>{{ saved.message }}</p>
+            <dl>
+                <dt>Destinataire</dt>
+                <dd>{{ recipient() }}</dd>
+                <dt>Référence de votre message</dt>
+                <dd class="receipt-number">{{ saved.receipt_number }}</dd>
+                <dt>Date d’envoi</dt>
+                <dd>{{ saved.created_at | date: 'dd/MM/yyyy à HH:mm' }}</dd>
+            </dl>
+            <p>Conservez cette référence pour vos prochains échanges avec la mairie.</p>
+            <div class="confirmation-actions"><button pButton type="button" label="Envoyer un autre message" icon="pi pi-plus" (click)="newMessage()"></button><a [routerLink]="navigation.path()">Retour à l’accueil municipal</a></div>
+        </div>
+    } @else {
+        <div class="contact-form-card">
+            @if (error(); as message) {
+                <p #sendError role="alert" tabindex="-1" class="send-error">{{ message }}</p>
+            }
+            <form #contactForm="ngForm" (ngSubmit)="send(contactForm)" [attr.aria-busy]="sending()">
+                <p class="form-hint">Tous les champs sont obligatoires, sauf le service concerné.</p>
+                <fieldset [disabled]="sending()">
+                    <legend class="sr-only">Votre message à la mairie</legend>
+                    <div class="form-grid">
+                        <div class="field">
+                            <label for="contact-name">Nom et prénom</label
+                            ><input
+                                #nameInput
+                                #nameModel="ngModel"
+                                pInputText
+                                id="contact-name"
+                                name="sender_name"
+                                [(ngModel)]="form.sender_name"
+                                autocomplete="name"
+                                required
+                                minlength="2"
+                                maxlength="255"
+                                aria-describedby="name-error"
+                                [attr.aria-invalid]="nameModel.invalid && nameModel.touched"
+                            />
+                            <small id="name-error" class="field-error">
+                                @if (nameModel.invalid && nameModel.touched) {
+                                    Indiquez votre nom et prénom (au moins 2 caractères).
+                                }
+                            </small>
+                        </div>
+                        <div class="field">
+                            <label for="contact-email">Adresse e-mail</label
+                            ><input
+                                #emailModel="ngModel"
+                                pInputText
+                                id="contact-email"
+                                type="email"
+                                name="sender_email"
+                                [(ngModel)]="form.sender_email"
+                                autocomplete="email"
+                                required
+                                email
+                                maxlength="320"
+                                aria-describedby="email-help email-error"
+                                [attr.aria-invalid]="emailModel.invalid && emailModel.touched"
+                            /><small id="email-help">Pour permettre à la mairie de vous répondre.</small>
+                            <small id="email-error" class="field-error">
+                                @if (emailModel.invalid && emailModel.touched) {
+                                    Indiquez une adresse e-mail valide.
+                                }
+                            </small>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label for="contact-service">Service concerné <span class="optional">(facultatif)</span></label
+                        ><p-select
+                            inputId="contact-service"
+                            name="service_id"
+                            [(ngModel)]="form.service_id"
+                            [options]="services()"
+                            optionLabel="name"
+                            optionValue="id"
+                            placeholder="Je ne sais pas / Services municipaux"
+                            [showClear]="true"
+                            [disabled]="sending()"
+                            [loading]="servicesLoading()"
+                            aria-describedby="service-help"
+                        ></p-select
+                        ><small id="service-help">Vous ne savez pas à qui écrire ? Laissez ce champ vide.</small>
+                        @if (servicesError(); as message) {
+                            <p class="service-warning" role="status">{{ message }} <button type="button" class="retry-link" (click)="loadServices()" [disabled]="servicesLoading()">Actualiser la liste</button></p>
+                        }
+                    </div>
+                    <div class="field">
+                        <label for="contact-subject">Objet de votre message</label
+                        ><input
+                            #subjectModel="ngModel"
+                            pInputText
+                            id="contact-subject"
+                            name="subject"
+                            [(ngModel)]="form.subject"
+                            placeholder="Ex. : Aide pour une démarche"
+                            required
+                            minlength="3"
+                            maxlength="255"
+                            aria-describedby="subject-error"
+                            [attr.aria-invalid]="subjectModel.invalid && subjectModel.touched"
+                        /><small id="subject-error" class="field-error">
+                            @if (subjectModel.invalid && subjectModel.touched) {
+                                Précisez l’objet de votre message (au moins 3 caractères).
+                            }
+                        </small>
+                    </div>
+                    <div class="field">
+                        <label for="contact-message">Votre message</label
+                        ><textarea
+                            #messageModel="ngModel"
+                            pTextarea
+                            id="contact-message"
+                            name="message"
+                            [(ngModel)]="form.message"
+                            placeholder="Expliquez votre question ou la difficulté rencontrée…"
+                            required
+                            minlength="10"
+                            maxlength="5000"
+                            rows="6"
+                            aria-describedby="message-help message-error"
+                            [attr.aria-invalid]="messageModel.invalid && messageModel.touched"
+                        ></textarea
+                        ><small id="message-help">{{ form.message.length }} / 5 000 caractères · 10 caractères minimum</small
+                        ><small id="message-error" class="field-error">
+                            @if (messageModel.invalid && messageModel.touched) {
+                                Décrivez votre demande en au moins 10 caractères.
+                            }
+                        </small>
+                    </div>
+                </fieldset>
+                <div class="form-actions">
+                    <button pButton type="submit" label="Envoyer mon message" icon="pi pi-send" [loading]="sending()" [disabled]="contactForm.invalid || sending()"></button
+                    ><span class="submit-hint">
+                        @if (sending()) {
+                            Envoi en cours…
+                        } @else {
+                            Une confirmation s’affichera après l’envoi.
+                        }
+                    </span>
+                </div>
+            </form>
+        </div>
+    }
+</section>

@@ -53,3 +53,14 @@ async def test_dashboard_days_parameter(platform: Platform) -> None:
     assert (
         await platform.client.get(DASHBOARD, headers=platform.as_("admin"), params={"days": 60})
     ).status_code == 422
+
+
+async def test_public_dashboard_counts_the_whole_city_without_login(platform: Platform) -> None:
+    await platform.submit("c1")
+    await platform.submit("c2", category="Eau")
+
+    platform.client.headers.pop("Authorization")  # visiteur anonyme
+    response = await platform.client.get(f"{DASHBOARD}/public")
+
+    assert response.status_code == 200, response.text
+    assert response.json() == {"total": 2, "open": 2, "in_progress": 0, "resolved": 0}

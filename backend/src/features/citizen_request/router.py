@@ -42,6 +42,7 @@ from src.features.citizen_request.schemas import (
     PriorityInputsIn,
     PriorityItemOut,
     PriorityQueueOut,
+    PublicDashboardOut,
     RecommendedAgentOut,
     RequestAnalysisOut,
     RequestEventOut,
@@ -54,6 +55,7 @@ from src.features.citizen_request.use_cases import (
     delete_request,
     edit_request,
     get_dashboard,
+    get_public_dashboard,
     get_request,
     list_map_points,
     list_request_events,
@@ -337,6 +339,14 @@ def analyze_request_endpoint(
 
 
 # ─── Dashboard ──────────────────────────────────────────────────────
+
+
+@dashboard_router.get("/public", response_model=PublicDashboardOut)
+def public_dashboard_endpoint(
+    analytics: CitizenRequestAnalytics = Depends(get_analytics),
+    settings: Settings = Depends(get_settings),
+) -> DashboardStats:
+    return get_public_dashboard(analytics, resolve_timezone(settings.app_timezone))
 
 
 @dashboard_router.get("", response_model=DashboardStatsOut)

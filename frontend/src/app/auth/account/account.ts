@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { MessageService } from 'primeng/api';
@@ -19,6 +19,7 @@ import { Institut } from '@/app/instituts/institut.model';
 import { InstitutService } from '@/app/instituts/institut.service';
 import { CitizenRequest, DashboardStats, requestPrioritySeverity, requestStatusSeverity } from '@/app/requests/request.model';
 import { CitizenRequestService } from '@/app/requests/request.service';
+import { LiveDataService } from '@/app/shared/live-data.service';
 import { apiErrorMessage } from '@/app/users/user.service';
 import { AuthService } from '../auth.service';
 
@@ -47,6 +48,8 @@ export class Account implements OnInit {
     private readonly agents = inject(AgentService);
     private readonly instituts = inject(InstitutService);
     private readonly messages = inject(MessageService);
+    private readonly live = inject(LiveDataService);
+    private readonly destroyRef = inject(DestroyRef);
 
     readonly stats = signal<DashboardStats | null>(null);
     readonly recent = signal<CitizenRequest[]>([]);
@@ -113,6 +116,7 @@ export class Account implements OnInit {
     });
 
     ngOnInit(): void {
+        this.live.watch(this.destroyRef, () => this.load(), () => !this.loading() && !this.savingStatus());
         this.load();
     }
 

@@ -7,12 +7,12 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from src.shared.validation import Email, Password
+from src.shared.validation import Email, Name, Password
 
 
 class RegisterIn(BaseModel):
     email: Email
-    name: str = Field(min_length=1, max_length=255)
+    name: Name
     password: Password
 
 
@@ -25,6 +25,20 @@ class LoginIn(BaseModel):
 class ChangePasswordIn(BaseModel):
     current_password: str = Field(min_length=1, max_length=128)
     new_password: Password
+
+
+class UpdateProfileIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: Name
+    email: Email
+    current_password: str = Field(min_length=1, max_length=128)
+
+
+class DeleteAccountIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    current_password: str = Field(min_length=1, max_length=128)
 
 
 class ProfileOut(BaseModel):

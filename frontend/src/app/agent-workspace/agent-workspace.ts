@@ -1,9 +1,10 @@
 import { DatePipe } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { finalize, forkJoin } from 'rxjs';
 
 import { CitizenRequest, DashboardStats, RequestEvent, RequestStatus, STATUS_TRANSITIONS, eventLabel } from '@/app/requests/request.model';
 import { CitizenRequestService } from '@/app/requests/request.service';
+import { LiveDataService } from '@/app/shared/live-data.service';
 import { apiErrorMessage } from '@/app/users/user.service';
 
 const PAGE_SIZE = 20;
@@ -24,6 +25,8 @@ const ACTION_LABELS: Partial<Record<RequestStatus, string>> = {
 })
 export class AgentWorkspace {
     private readonly api = inject(CitizenRequestService);
+    private readonly live = inject(LiveDataService);
+    private readonly destroyRef = inject(DestroyRef);
 
     protected readonly items = signal<CitizenRequest[]>([]);
     protected readonly stats = signal<DashboardStats | null>(null);
@@ -42,6 +45,8 @@ export class AgentWorkspace {
     protected readonly pendingCount = computed(() => this.count('En cours') + this.count('En attente'));
 
     constructor() {
+        // Rafraîchit la liste quand la mairie la modifie ailleurs (autre onglet, autre poste).
+        this.live.watch(this.destroyRef, () => this.refresh(), () => !this.loading() && !this.saving());
         this.refresh();
     }
 

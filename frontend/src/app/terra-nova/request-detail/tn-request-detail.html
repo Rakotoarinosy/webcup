@@ -1,7 +1,7 @@
-<p-dialog [visible]="!!store.selected()" (visibleChange)="onVisibleChange($event)" [modal]="true" [dismissableMask]="true" [draggable]="false" [style]="{ width: '44rem' }" [breakpoints]="{ '768px': '95vw' }">
+<p-dialog [visible]="!!store.selected()" (visibleChange)="onVisibleChange($event)" [modal]="true" [dismissableMask]="true" [draggable]="false" [style]="{ width: '44rem', maxWidth: 'calc(100vw - 2rem)' }" [breakpoints]="{ '768px': '95vw' }">
     @if (store.selected(); as r) {
         <ng-template #header>
-            <div class="flex items-center gap-3">
+            <div class="flex flex-wrap items-center gap-3">
                 <span class="font-mono text-xl font-bold">{{ r.request_code }}</span>
                 <p-tag [value]="difficultyLabel(r.difficulty_level, r.difficulty)" [severity]="difficultySeverity(r.difficulty_level)" />
                 @if (r.is_ai_request || r.is_ai_related) {
@@ -11,7 +11,7 @@
         </ng-template>
 
         <div class="flex flex-col gap-5">
-            <div class="flex items-center gap-3">
+            <div class="flex flex-wrap items-center gap-3">
                 <span class="flex h-9 w-9 items-center justify-center rounded-full bg-emphasis"><i class="pi pi-user"></i></span>
                 <div class="flex flex-col">
                     <span class="font-semibold">{{ r.requester_name || 'Demandeur inconnu' }}</span>
@@ -29,7 +29,7 @@
                 <blockquote class="m-0 whitespace-pre-line rounded-r-lg border-l-4 border-primary bg-emphasis px-4 py-3 leading-relaxed">{{ r.message_public }}</blockquote>
             </div>
 
-            <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
+            <div class="request-detail-grid">
                 <div>
                     <div class="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-color">XP de base</div>
                     <span class="font-medium">{{ r.xp_base | xp }}</span>
@@ -48,7 +48,7 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
+            <div class="request-detail-grid">
                 <div>
                     <div class="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-color">Vague</div>
                     <span class="font-medium">{{ waveLabel(r) }}</span>

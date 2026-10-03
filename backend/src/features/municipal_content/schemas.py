@@ -45,6 +45,8 @@ class MunicipalPublicationOut(BaseModel):
 
 
 class CreateContactMessageIn(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
     service_id: str | None = None
     sender_name: str = Field(min_length=2, max_length=255)
     sender_email: Email

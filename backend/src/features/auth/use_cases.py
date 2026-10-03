@@ -27,7 +27,8 @@ from src.domain.user import (
     UserAlreadyExistsError,
     UserRepository,
 )
-from src.features.auth.schemas import ChangePasswordIn, LoginIn, RegisterIn
+from src.features.auth.schemas import ChangePasswordIn, LoginIn, RegisterIn, UpdateProfileIn
+from src.features.user.use_cases import delete_own_account, update_own_profile
 
 
 @dataclass(frozen=True)
@@ -114,13 +115,16 @@ def login(
     if not user.is_active:
         raise InvalidCredentialsError()
 
-    changes: dict[str, object] = {}
-    if user.failed_login_attempts or user.locked_until:
-        changes.update(failed_login_attempts=0, locked_until=None)
-    if hasher.needs_rehash(user.password_hash):
-        changes["password_hash"] = hasher.hash(dto.password)
-    if changes:
-        user = users.update(replace(user, **changes))
+    rehash = hasher.needs_rehash(user.password_hash)
+    if user.failed_login_attempts or user.locked_until or rehash:
+        user = users.update(
+            replace(
+                user,
+                failed_login_attempts=0,
+                locked_until=None,
+                password_hash=hasher.hash(dto.password) if rehash else user.password_hash,
+            )
+        )
 
     refresh_repo.delete_expired(now)
 
@@ -185,8 +189,7 @@ def change_password(
     tokens: AccessTokenService,
     policy: AuthPolicy,
 ) -> AuthSession:
-    if not hasher.verify(dto.current_password, user.password_hash):
-        raise IncorrectPasswordError()
+    user = _verify_current_password(user, dto.current_password, users, hasher, policy)
     if dto.new_password == dto.current_password:
         raise PasswordReuseError()
 
@@ -195,3 +198,53 @@ def change_password(
     refresh_repo.revoke_all_for_user(user.id, now)  # déconnecte tous les autres appareils
 
     return _issue_session(user, str(uuid.uuid4()), refresh_repo, tokens, policy, now)
+
+
+def _verify_current_password(
+    user: User, password: str, users: UserRepository, hasher: PasswordHasher, policy: AuthPolicy
+) -> User:
+    now = datetime.now(UTC)
+    if user.is_locked(now):
+        raise AccountLockedError()
+    if not hasher.verify(password, user.password_hash):
+        attempts = user.failed_login_attempts + 1
+        locked = attempts >= policy.max_failed_attempts
+        users.update(
+            replace(
+                user,
+                failed_login_attempts=0 if locked else attempts,
+                locked_until=now + timedelta(minutes=policy.lockout_minutes) if locked else None,
+            )
+        )
+        raise IncorrectPasswordError()
+    if user.failed_login_attempts or user.locked_until:
+        user = users.update(replace(user, failed_login_attempts=0, locked_until=None))
+    return user
+
+
+def update_profile(
+    user: User,
+    dto: UpdateProfileIn,
+    users: UserRepository,
+    refresh_repo: RefreshTokenRepository,
+    hasher: PasswordHasher,
+    tokens: AccessTokenService,
+    policy: AuthPolicy,
+) -> AuthSession:
+    user = _verify_current_password(user, dto.current_password, users, hasher, policy)
+    updated = update_own_profile(user, dto, users)
+    now = datetime.now(UTC)
+    refresh_repo.revoke_all_for_user(user.id, now)
+    return _issue_session(updated, str(uuid.uuid4()), refresh_repo, tokens, policy, now)
+
+
+def delete_account(
+    user: User,
+    password: str,
+    users: UserRepository,
+    hasher: PasswordHasher,
+    policy: AuthPolicy,
+) -> None:
+    user.require_personal_account_deletion()
+    user = _verify_current_password(user, password, users, hasher, policy)
+    delete_own_account(user, users)

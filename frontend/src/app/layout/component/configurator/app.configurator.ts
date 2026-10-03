@@ -9,14 +9,11 @@ import Nora from '@primeuix/themes/nora';
 import { SelectModule } from 'primeng/select';
 import { SelectButtonModule } from 'primeng/selectbutton';
 
+import { AppFontSize } from '../fontsize/app.fontsize';
+
 import { AuthService } from '@/app/auth/auth.service';
 import { LayoutConfig, LayoutService } from '@/app/layout/service/layout.service';
-import {
-    FontFamily,
-    FontSize,
-    PreferencesService,
-    UserPreferences
-} from '@/app/preferences/preferences.service';
+import { FontFamily, FontSize, PreferencesService, UserPreferences } from '@/app/preferences/preferences.service';
 
 const presets = {
     Aura,
@@ -221,11 +218,11 @@ const SURFACES: SurfacesType[] = [
 
 @Component({
     selector: 'app-configurator',
-    imports: [CommonModule, FormsModule, SelectModule, SelectButtonModule],
+    imports: [CommonModule, FormsModule, SelectModule, SelectButtonModule, AppFontSize],
     templateUrl: './app.configurator.html',
     styleUrl: './app.configurator.scss',
     host: {
-        class: 'hidden absolute top-13 right-0 w-72 p-4 bg-surface-0 dark:bg-surface-900 border border-surface rounded-border origin-top shadow-[0px_3px_5px_rgba(0,0,0,0.02),0px_0px_2px_rgba(0,0,0,0.05),0px_1px_4px_rgba(0,0,0,0.08)]'
+        class: 'config-panel hidden absolute top-13 right-0 w-72 p-4 bg-surface-0 dark:bg-surface-900 border border-surface rounded-border origin-top shadow-[0px_3px_5px_rgba(0,0,0,0.02),0px_0px_2px_rgba(0,0,0,0.05),0px_1px_4px_rgba(0,0,0,0.08)]'
     }
 })
 export class AppConfigurator {

@@ -1,3 +1,4 @@
+import { LiveDataService } from '@/app/shared/live-data.service';
 import { DatePipe } from '@angular/common';
 import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -50,6 +51,7 @@ const EMPTY_FORM: AgentForm = { mode: 'existing', user_id: null, name: '', email
     providers: [MessageService, ConfirmationService]
 })
 export class Agents implements OnInit {
+    private readonly live = inject(LiveDataService);
     private readonly agentService = inject(AgentService);
     private readonly institutService = inject(InstitutService);
     private readonly userService = inject(UserService);
@@ -123,6 +125,13 @@ export class Agents implements OnInit {
     }
 
     ngOnInit(): void {
+        this.live.watch(
+            this.destroyRef,
+            () => {
+                this.loadAgents();
+            },
+            () => !this.loading() && !this.saving() && !this.formDialogVisible && !this.interventionsDialogVisible
+        );
         this.loadAgents();
         this.institutService.list().subscribe({ next: (instituts) => this.instituts.set(instituts), error: (error: unknown) => this.showError(error) });
         if (this.auth.hasRole('admin')) {

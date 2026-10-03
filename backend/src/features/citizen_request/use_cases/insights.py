@@ -17,6 +17,7 @@ from src.domain.citizen_request import (
     RequestAnalysis,
     RequestAnalyzer,
     RequestCategory,
+    RequestScope,
     RequestStatus,
     ensure_can_manage,
     scope_for,
@@ -34,6 +35,14 @@ def get_dashboard(
     now: datetime | None = None,
 ) -> DashboardStats:
     return analytics.dashboard_stats(scope_for(actor), now or datetime.now(UTC), tz, days)
+
+
+def get_public_dashboard(
+    analytics: CitizenRequestAnalytics, tz: tzinfo, now: datetime | None = None
+) -> DashboardStats:
+    """Chiffres de toute la ville pour la page d'accueil publique. Le routeur n'en expose que
+    des compteurs agrégés : aucune demande, aucune identité."""
+    return analytics.dashboard_stats(RequestScope(), now or datetime.now(UTC), tz, 1)
 
 
 def list_map_points(

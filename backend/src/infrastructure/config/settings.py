@@ -1,29 +1,23 @@
 """Configuration de l'application, chargée depuis les variables d'environnement et `.env`."""
 
-import os
 from functools import lru_cache
 from pathlib import Path
 from typing import Annotated, Literal
 
-from dotenv import load_dotenv
-from pydantic import Field, field_validator, model_validator
-from pydantic_settings import BaseSettings, NoDecode
+from pydantic import field_validator, model_validator
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 # backend/.env, quel que soit le dossier de lancement (uvicorn, Passenger, pytest…).
 ENV_FILE = Path(__file__).resolve().parents[3] / ".env"
-# Charge le fichier local avant l'instanciation des settings. Les variables déjà
-# exportées par l'environnement (Docker, CI, production) restent prioritaires.
-load_dotenv(dotenv_path=ENV_FILE, override=False)
-
 DEFAULT_SECRET = "change-me-in-production"
 DEFAULT_DATABASE_URL = "sqlite:///./app.db"
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=ENV_FILE, env_file_encoding="utf-8", extra="ignore")
+
     environment: Literal["development", "production", "test"] = "development"
-    database_url: str = Field(
-        default_factory=lambda: os.getenv("DATABASE_URL", DEFAULT_DATABASE_URL)
-    )
+    database_url: str = DEFAULT_DATABASE_URL
     # NoDecode : la valeur est une liste séparée par des virgules, pas du JSON.
     cors_origins: Annotated[list[str], NoDecode] = ["http://localhost:4200"]
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
@@ -58,6 +52,15 @@ class Settings(BaseSettings):
     terra_nova_timeout_seconds: float = 15.0
     # Boucle de synchronisation en tâche de fond (désactivable, ex. plusieurs workers).
     terra_nova_background_sync: bool = True
+
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def use_installed_postgres_driver(cls, value: str) -> str:
+        # Les URL standard des fournisseurs PostgreSQL utilisent psycopg 3.
+        for prefix in ("postgresql://", "postgres://", "postgresql+psycopg2://"):
+            if value.startswith(prefix):
+                return "postgresql+psycopg://" + value[len(prefix) :]
+        return value
 
     @field_validator("cors_origins", mode="before")
     @classmethod

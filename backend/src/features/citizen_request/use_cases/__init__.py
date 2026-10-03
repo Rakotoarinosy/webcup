@@ -3,6 +3,7 @@ from src.features.citizen_request.use_cases.edit import delete_request, edit_req
 from src.features.citizen_request.use_cases.insights import (
     analyze_request,
     get_dashboard,
+    get_public_dashboard,
     list_map_points,
 )
 from src.features.citizen_request.use_cases.prioritization import (
@@ -24,6 +25,7 @@ __all__ = [
     "delete_request",
     "edit_request",
     "get_dashboard",
+    "get_public_dashboard",
     "get_request",
     "list_map_points",
     "list_request_events",

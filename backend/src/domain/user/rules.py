@@ -21,3 +21,12 @@ def validate_password_strength(value: str) -> str:
 
 def normalize_email(value: str) -> str:
     return value.strip().lower()
+
+
+def normalize_name(value: object) -> str:
+    if not isinstance(value, str):
+        raise ValueError("Name must be a string")
+    value = value.strip()
+    if not value:
+        raise ValueError("Name must not be blank")
+    return value

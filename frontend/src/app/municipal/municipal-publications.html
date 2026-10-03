@@ -1,1 +1,31 @@
-<section class="municipal-page"><p class="eyebrow">Vie municipale</p><h1>Publications</h1><p class="intro">Annonces, changements de service et informations pratiques de votre ville.</p><p-select [options]="categories()" optionLabel="label" optionValue="value" [showClear]="true" placeholder="Toutes les catégories" (onChange)="selectCategory($event.value)"></p-select><div class="publication-list">@for (publication of publications(); track publication.id) { <p-card><ng-template #title>{{ publication.title }}</ng-template><ng-template #subtitle>{{ publication.category }} · {{ publication.published_at | date:'longDate' }}</ng-template><p>{{ publication.summary }}</p><p class="content">{{ publication.content }}</p></p-card> } @empty { <p>Aucune publication dans cette catégorie.</p> }</div></section>
+<section class="municipal-page">
+    <p class="eyebrow">Vie municipale</p>
+    <h1>Publications</h1>
+    <p class="intro">Annonces, changements de service et informations pratiques de votre ville.</p>
+    <p-select [options]="categories()" optionLabel="label" optionValue="value" [showClear]="true" placeholder="Toutes les catégories" ariaLabel="Filtrer les publications par catégorie" (onChange)="selectCategory($event.value)"></p-select>
+    @if (loading()) {
+        <p role="status">Actualisation des publications…</p>
+    }
+    @if (error(); as message) {
+        <p role="alert">{{ message }} <button type="button" (click)="load()">Réessayer</button></p>
+    }
+    <div class="publication-list">
+        @for (publication of visiblePublications(); track publication.id) {
+            <article class="publication-card">
+                <button type="button" class="publication-summary" [attr.aria-expanded]="expandedPublication() === publication.id" [attr.aria-controls]="'publication-' + publication.id" (click)="togglePublication(publication.id)">
+                    <span class="publication-title">{{ publication.title }}</span>
+                    <span class="publication-meta">{{ publication.category }} · {{ publication.published_at | date: 'longDate' }}</span>
+                    <span>{{ publication.summary }}</span>
+                    <span class="publication-cta"
+                        >{{ expandedPublication() === publication.id ? 'Fermer la publication' : 'Lire la publication' }} <i [class]="expandedPublication() === publication.id ? 'pi pi-chevron-up' : 'pi pi-chevron-down'" aria-hidden="true"></i
+                    ></span>
+                </button>
+                <div [id]="'publication-' + publication.id" [hidden]="expandedPublication() !== publication.id" class="publication-content">
+                    <p>{{ publication.content }}</p>
+                </div>
+            </article>
+        } @empty {
+            <p>Aucune publication dans cette catégorie.</p>
+        }
+    </div>
+</section>

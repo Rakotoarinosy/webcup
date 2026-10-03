@@ -1,5 +1,6 @@
+import { LiveDataService } from '../shared/live-data.service';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 
 import { AuthService } from '../auth/auth.service';
@@ -14,6 +15,7 @@ describe('MunicipalServices', () => {
             imports: [MunicipalServices],
             providers: [
                 provideRouter([]),
+                { provide: LiveDataService, useValue: { watch: () => {} } },
                 {
                     provide: MunicipalContentService,
                     useValue: {
@@ -22,6 +24,7 @@ describe('MunicipalServices', () => {
                                 { id: 'roads', name: 'Voirie', category: 'Mobilité', description: 'Routes et circulation', contact_details: '', opening_hours: '', icon: 'pi-directions', display_order: 1, is_featured: false, usage_count: 0 },
                                 { id: 'health', name: 'Centre de santé', category: 'Santé', description: 'Soins et prévention', contact_details: '', opening_hours: '', icon: 'pi-heart', display_order: 20, is_featured: true, usage_count: 5 }
                             ]),
+                        startService: jasmine.createSpy('startService').and.returnValue(of({})),
                         updateFeaturedService: jasmine.createSpy('updateFeaturedService')
                     }
                 },
@@ -40,5 +43,15 @@ describe('MunicipalServices', () => {
         expect(component.visibleServices().map((service) => service.id)).toEqual(['roads']);
         component.search.set('sante');
         expect(component.visibleServices().map((service) => service.id)).toEqual(['health']);
+    });
+    it('opens contact with the chosen service from the full-card action', async () => {
+        const router = TestBed.inject(Router);
+        spyOn(router, 'navigate').and.returnValue(Promise.resolve(true));
+        const button: HTMLButtonElement = fixture.nativeElement.querySelector('.service-card .card-action');
+        expect(button.getAttribute('aria-label')).toContain('Centre de santé');
+        button.click();
+        await fixture.whenStable();
+        expect(TestBed.inject(MunicipalContentService).startService).toHaveBeenCalledOnceWith('health');
+        expect(router.navigate).toHaveBeenCalledWith(['/municipal/contact'], { queryParams: { service: 'health' } });
     });
 });

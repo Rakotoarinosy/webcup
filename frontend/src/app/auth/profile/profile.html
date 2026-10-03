@@ -1,0 +1,170 @@
+<div class="mx-auto max-w-[78rem]">
+    <header class="profile-hero rounded-2xl p-6 sm:p-8">
+        <a routerLink="/home/account" class="inline-flex items-center gap-2 font-semibold"><i class="pi pi-arrow-left" aria-hidden="true"></i> Mon espace</a>
+        <div class="mt-6 flex flex-wrap items-center gap-5">
+            <span class="grid h-18 w-18 shrink-0 place-items-center rounded-2xl bg-primary text-2xl font-bold text-primary-contrast" aria-hidden="true">{{ initials() }}</span>
+            <div class="min-w-0 flex-1">
+                <p class="mb-1 font-semibold text-primary">Votre compte Kotrana</p>
+                <h1 class="m-0 text-3xl font-bold">Mon profil</h1>
+                <p class="mb-0 mt-2">Vos informations, votre sécurité et vos choix au même endroit.</p>
+            </div>
+        </div>
+    </header>
+
+    @if (notice()) {
+        <p #feedback tabindex="-1" class="profile-notice mt-5 rounded-xl p-4" role="status">{{ notice() }}</p>
+    }
+    @if (error()) {
+        <p #feedback tabindex="-1" class="mt-5 rounded-xl border border-red-300 p-4 text-red-700 dark:text-red-300" role="alert">{{ error() }}</p>
+    }
+
+    <div class="mt-6 flex flex-wrap gap-6">
+        <div class="grid min-w-0 flex-[3_1_30rem] gap-6">
+            <section class="profile-panel card mb-0" aria-labelledby="identity-heading">
+                <div class="mb-5 flex items-start gap-3">
+                    <i class="pi pi-user mt-1 text-xl text-primary" aria-hidden="true"></i>
+                    <div>
+                        <h2 id="identity-heading" class="m-0 text-xl font-semibold">Mes informations</h2>
+                        <p class="mb-0 mt-2 text-muted-color">Gardez votre nom et votre adresse de connexion à jour.</p>
+                    </div>
+                </div>
+                <form [formGroup]="profileForm" (ngSubmit)="saveProfile()" novalidate>
+                    <fieldset [disabled]="!!busy()" class="profile-fields">
+                        <div class="grid gap-5 sm:grid-cols-2">
+                            <div>
+                                <label for="profile-name">Nom et prénom</label
+                                ><input id="profile-name" formControlName="name" autocomplete="name" maxlength="255" required [attr.aria-invalid]="profileForm.controls.name.touched && profileForm.controls.name.invalid" aria-describedby="name-help" />
+                                <small id="name-help">De 1 à 255 caractères.</small>
+                                @if (profileForm.controls.name.touched && profileForm.controls.name.invalid) {
+                                    <p class="text-red-700 dark:text-red-300">Indiquez votre nom et prénom.</p>
+                                }
+                            </div>
+                            <div>
+                                <label for="profile-email">Adresse email</label
+                                ><input
+                                    id="profile-email"
+                                    type="email"
+                                    formControlName="email"
+                                    autocomplete="email"
+                                    maxlength="320"
+                                    required
+                                    [attr.aria-invalid]="profileForm.controls.email.touched && profileForm.controls.email.invalid"
+                                    aria-describedby="email-help"
+                                />
+                                <small id="email-help">Elle sert à vous connecter à votre espace.</small>
+                                @if (profileForm.controls.email.touched && profileForm.controls.email.invalid) {
+                                    <p class="text-red-700 dark:text-red-300">Indiquez une adresse email valide.</p>
+                                }
+                            </div>
+                        </div>
+                        <div class="mt-5">
+                            <label for="profile-password">Mot de passe actuel</label
+                            ><input id="profile-password" type="password" formControlName="current_password" autocomplete="current-password" maxlength="128" required aria-describedby="identity-password-help" />
+                            <small id="identity-password-help">Pour confirmer que ces changements viennent bien de vous.</small>
+                            @if (profileForm.controls.current_password.touched && profileForm.controls.current_password.invalid) {
+                                <p class="text-red-700 dark:text-red-300">Saisissez votre mot de passe actuel.</p>
+                            }
+                        </div>
+                        <button class="profile-button mt-6" type="submit">
+                            <i [class]="busy() === 'profile' ? 'pi pi-spin pi-spinner' : 'pi pi-check'" aria-hidden="true"></i>{{ busy() === 'profile' ? 'Enregistrement…' : 'Enregistrer mes informations' }}
+                        </button>
+                    </fieldset>
+                </form>
+            </section>
+
+            <section class="profile-panel card mb-0" aria-labelledby="security-heading">
+                <div class="mb-5 flex items-start gap-3">
+                    <i class="pi pi-shield mt-1 text-xl text-primary" aria-hidden="true"></i>
+                    <div>
+                        <h2 id="security-heading" class="m-0 text-xl font-semibold">Mon mot de passe</h2>
+                        <p class="mb-0 mt-2 text-muted-color">Choisissez un mot de passe que vous utilisez uniquement ici.</p>
+                    </div>
+                </div>
+                <form [formGroup]="passwordForm" (ngSubmit)="savePassword()" novalidate>
+                    <fieldset [disabled]="!!busy()" class="profile-fields">
+                        <div>
+                            <label for="security-current">Mot de passe actuel</label><input id="security-current" type="password" formControlName="current_password" autocomplete="current-password" maxlength="128" required />
+                            @if (passwordForm.controls.current_password.touched && passwordForm.controls.current_password.invalid) {
+                                <p class="text-red-700 dark:text-red-300">Saisissez votre mot de passe actuel.</p>
+                            }
+                        </div>
+                        <div class="mt-5 grid gap-5 sm:grid-cols-2">
+                            <div>
+                                <label for="security-new">Nouveau mot de passe</label><input id="security-new" type="password" formControlName="new_password" autocomplete="new-password" maxlength="128" required aria-describedby="password-help" />
+                                @if (passwordForm.controls.new_password.touched && passwordForm.controls.new_password.invalid) {
+                                    <p class="text-red-700 dark:text-red-300">Le mot de passe doit respecter les critères ci-dessous.</p>
+                                }
+                            </div>
+                            <div>
+                                <label for="security-confirm">Confirmer le nouveau mot de passe</label><input id="security-confirm" type="password" formControlName="confirmation" autocomplete="new-password" maxlength="128" required />
+                                @if (passwordForm.controls.confirmation.touched && passwordForm.controls.confirmation.invalid) {
+                                    <p class="text-red-700 dark:text-red-300">Confirmez votre nouveau mot de passe.</p>
+                                }
+                            </div>
+                        </div>
+                        <small id="password-help" class="mt-3 block">10 à 128 caractères, avec une majuscule, une minuscule et un chiffre.</small>
+                        <button class="profile-button mt-6" type="submit">
+                            <i [class]="busy() === 'password' ? 'pi pi-spin pi-spinner' : 'pi pi-lock'" aria-hidden="true"></i>{{ busy() === 'password' ? 'Modification…' : 'Modifier mon mot de passe' }}
+                        </button>
+                    </fieldset>
+                </form>
+            </section>
+
+            @if (auth.hasRole('citizen')) {
+                <section class="profile-panel card mb-0 border border-red-200 dark:border-red-900" aria-labelledby="delete-heading">
+                    <h2 id="delete-heading" class="m-0 text-xl font-semibold">Supprimer mon compte</h2>
+                    <p>Vous pouvez quitter le portail quand vous le souhaitez. Votre compte et ses accès seront supprimés définitivement.</p>
+                    <p class="text-muted-color">Vos demandes resteront dans les dossiers de la mairie sous l’identité « Compte supprimé ». Leur contenu et leur suivi seront conservés.</p>
+                    <button id="open-deletion" type="button" class="profile-button danger" [disabled]="!!busy()" (click)="openDeletion()">Supprimer mon compte</button>
+                </section>
+            }
+        </div>
+
+        <aside class="profile-panel card mb-0 h-fit min-w-0 flex-[1_1_18rem]" aria-labelledby="account-info-heading">
+            <span class="inline-flex items-center gap-2 rounded-full bg-emphasis px-3 py-2 text-sm"><span class="h-2 w-2 rounded-full bg-emerald-500" aria-hidden="true"></span> Session connectée</span>
+            <h2 id="account-info-heading" class="mb-5 mt-5 text-lg font-semibold">Mon compte</h2>
+            <dl class="grid gap-5">
+                <div>
+                    <dt class="text-sm text-muted-color">Nom et prénom</dt>
+                    <dd class="m-0 mt-1 font-semibold">{{ auth.user()?.name }}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm text-muted-color">Email</dt>
+                    <dd class="m-0 mt-1 break-all">{{ auth.user()?.email }}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm text-muted-color">Profil</dt>
+                    <dd class="m-0 mt-1">{{ auth.roleLabel() }}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm text-muted-color">Membre depuis le</dt>
+                    <dd class="m-0 mt-1">{{ auth.user()?.created_at | date: 'd MMMM yyyy' }}</dd>
+                </div>
+            </dl>
+            <p class="mb-0 mt-6 border-t border-surface pt-5 text-sm text-muted-color"><i class="pi pi-lock mr-1" aria-hidden="true"></i> Votre rôle et vos autorisations sont gérés par la mairie.</p>
+        </aside>
+    </div>
+
+    <dialog #deleteDialog class="profile-dialog" aria-labelledby="confirm-heading" aria-describedby="confirm-description" (cancel)="closeDeletion($event)">
+        <h2 id="confirm-heading" class="mt-0 text-2xl font-bold">Supprimer mon compte ?</h2>
+        <p id="confirm-description">
+            Vous perdrez l’accès à votre espace. Votre nom, votre email de connexion et vos sessions seront retirés du compte. Les demandes déjà transmises à la mairie conserveront leur contenu et leur suivi sous l’identité « Compte supprimé ».
+        </p>
+        @if (deleteError()) {
+            <p #deleteFeedback tabindex="-1" role="alert" class="text-red-700 dark:text-red-300">{{ deleteError() }}</p>
+        }
+        <form [formGroup]="deleteForm" (ngSubmit)="deleteAccount()" novalidate>
+            <fieldset [disabled]="!!busy()" class="profile-fields">
+                <label for="delete-password">Votre mot de passe actuel</label><input id="delete-password" type="password" formControlName="current_password" autocomplete="current-password" maxlength="128" required />
+                @if (deleteForm.controls.current_password.touched && deleteForm.controls.current_password.invalid) {
+                    <p class="text-red-700 dark:text-red-300">Votre mot de passe est nécessaire pour supprimer le compte.</p>
+                }
+                <label class="mt-5 flex items-start gap-3"><input class="mt-1 shrink-0" type="checkbox" formControlName="confirmed" /><span>Je comprends que la suppression de mon compte est définitive.</span></label>
+                <div class="mt-6 flex flex-wrap justify-end gap-3">
+                    <button type="button" class="profile-button secondary" (click)="closeDeletion()" autofocus>Garder mon compte</button>
+                    <button id="confirm-deletion" type="submit" class="profile-button danger" [disabled]="deleteForm.invalid">{{ busy() === 'delete' ? 'Suppression…' : 'Supprimer mon compte' }}</button>
+                </div>
+            </fieldset>
+        </form>
+    </dialog>
+</div>

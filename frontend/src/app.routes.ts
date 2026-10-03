@@ -13,6 +13,7 @@ export const appRoutes: Routes = [
         canActivateChild: [authGuard],
         children: [
             { path: 'account', data: { breadcrumb: 'Mon espace' }, loadComponent: () => import('./app/auth/account/account').then((m) => m.Account) },
+            { path: 'profile', data: { breadcrumb: 'Mon profil' }, loadComponent: () => import('./app/auth/profile/profile').then((m) => m.Profile) },
             { path: '', redirectTo: 'account', pathMatch: 'full' },
             {
                 path: 'my-requests',
@@ -46,6 +47,17 @@ export const appRoutes: Routes = [
             { path: 'municipal/publications', data: { breadcrumb: 'Publications' }, loadComponent: () => import('./app/municipal/municipal-publications').then((m) => m.MunicipalPublications) },
             { path: 'municipal/contact', data: { breadcrumb: 'Contacter la mairie' }, loadComponent: () => import('./app/municipal/municipal-contact').then((m) => m.MunicipalContact) },
             { path: 'terra-nova', data: { breadcrumb: 'Terra Nova', roles: ['agent', 'manager', 'admin'] }, loadChildren: () => import('./app/terra-nova/terra-nova.routes') }
+        ]
+    },
+    {
+        path: 'municipal',
+        canActivate: [publicSessionGuard],
+        loadComponent: () => import('./app/municipal/municipal-layout').then((m) => m.MunicipalLayout),
+        children: [
+            { path: '', loadComponent: () => import('./app/municipal/municipal-home').then((m) => m.MunicipalHome) },
+            { path: 'services', loadComponent: () => import('./app/municipal/municipal-services').then((m) => m.MunicipalServices) },
+            { path: 'publications', loadComponent: () => import('./app/municipal/municipal-publications').then((m) => m.MunicipalPublications) },
+            { path: 'contact', loadComponent: () => import('./app/municipal/municipal-contact').then((m) => m.MunicipalContact) }
         ]
     },
     { path: '', component: Landing, canActivate: [publicSessionGuard] },

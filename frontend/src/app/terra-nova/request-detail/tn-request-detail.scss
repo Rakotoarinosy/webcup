@@ -1,0 +1,10 @@
+.request-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 8rem), 1fr));
+    gap: 1rem;
+}
+blockquote {
+    margin: 0;
+    padding: min(1rem, 14px);
+    overflow-wrap: anywhere;
+}
