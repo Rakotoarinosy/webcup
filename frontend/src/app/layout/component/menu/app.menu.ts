@@ -16,6 +16,15 @@ const MENU_MODEL: MenuItem[] = [
         ]
     },
     {
+        label: 'Terra Nova',
+        items: [
+            { label: 'Tableau de bord', icon: 'pi pi-fw pi-chart-line', routerLink: ['/home/terra-nova'], routerLinkActiveOptions: { exact: true } },
+            { label: 'Demandes API', icon: 'pi pi-fw pi-list', routerLink: ['/home/terra-nova/demandes'] },
+            { label: 'Notifications', icon: 'pi pi-fw pi-bell', routerLink: ['/home/terra-nova/notifications'] },
+            { label: 'Pipeline', icon: 'pi pi-fw pi-objects-column', routerLink: ['/home/terra-nova/pipeline'] }
+        ]
+    },
+    {
         label: 'Démo API',
         items: [{ label: 'Utilisateurs', icon: 'pi pi-fw pi-users', routerLink: ['/home/users'] }]
     },

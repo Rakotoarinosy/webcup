@@ -1,0 +1,60 @@
+<p-toast />
+
+<div class="card mb-4! py-4!">
+    <div class="flex flex-wrap items-center justify-between gap-4">
+        <div>
+            <h1 class="m-0 text-xl! font-semibold">Terra Nova — suivi des demandes</h1>
+            <p class="mt-1 mb-0 text-sm text-muted-color">Demandes publiées par l'API officielle, synchronisées automatiquement toutes les {{ store.overview()?.sync_interval_seconds ?? 30 }} s.</p>
+        </div>
+
+        <div class="flex items-center gap-4">
+            <div class="flex items-center gap-3" [pTooltip]="store.session()?.last_sync_error ?? undefined" tooltipPosition="bottom">
+                <span class="inline-block h-2.5 w-2.5 shrink-0 rounded-full" [class.bg-green-500]="apiState() === 'ok'" [class.bg-red-500]="apiState() === 'error'" [class.bg-amber-500]="apiState() === 'pending'"></span>
+                <div class="flex flex-col leading-tight">
+                    @switch (apiState()) {
+                        @case ('ok') {
+                            <span class="text-sm font-semibold">API Terra Nova connectée</span>
+                            <span class="text-xs text-muted-color">Dernière synchronisation : {{ store.session()?.last_sync_success_at | ago: store.now() }}</span>
+                        }
+                        @case ('error') {
+                            <span class="text-sm font-semibold">API Terra Nova : erreur de connexion</span>
+                            <span class="text-xs text-muted-color">Dernière synchronisation réussie : {{ store.session()?.last_sync_success_at | ago: store.now() }}</span>
+                        }
+                        @default {
+                            <span class="text-sm font-semibold">Connexion…</span>
+                            <span class="text-xs text-muted-color">Première synchronisation en cours</span>
+                        }
+                    }
+                </div>
+            </div>
+            <p-button
+                label="Synchroniser"
+                icon="pi pi-refresh"
+                severity="secondary"
+                [outlined]="true"
+                size="small"
+                [loading]="store.syncing()"
+                [disabled]="store.forbidden()"
+                (onClick)="store.syncNow()"
+                pTooltip="Interroger l'API Terra Nova maintenant"
+                tooltipPosition="bottom"
+            />
+        </div>
+    </div>
+</div>
+
+@if (store.loadError(); as error) {
+    <div class="card flex flex-col items-center gap-2 py-10! text-center">
+        <i class="pi text-3xl text-muted-color" [class.pi-lock]="store.forbidden()" [class.pi-server]="!store.forbidden()"></i>
+        <span class="font-semibold">{{ error }}</span>
+        @if (!store.forbidden()) {
+            <span class="text-sm text-muted-color">Nouvelle tentative automatique toutes les 10 s.</span>
+        }
+    </div>
+}
+
+@if (!store.forbidden()) {
+    <router-outlet />
+}
+
+<app-terra-nova-request-detail />

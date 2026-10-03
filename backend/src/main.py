@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from scalar_fastapi import get_scalar_api_reference
 from starlette.responses import HTMLResponse
 
-from src.bootstrap import ensure_bootstrap_admin
+from src.bootstrap import ensure_bootstrap_admin, start_terra_sync
 from src.features.agent.router import router as agent_router
 from src.features.auth.router import router as auth_router
 from src.features.citizen_request.router import dashboard_router, request_router
@@ -20,6 +20,7 @@ from src.shared.errors import register_exception_handlers
 from src.features.notification.router import router as notification_router
 from src.features.priority.router import router as priority_router
 from src.features.search.router import router as search_router
+from src.features.terra_request.router import router as terra_request_router
 
 API_PREFIX = "/api/v1"
 
@@ -34,13 +35,17 @@ FEATURE_ROUTERS: list[APIRouter] = [
     notification_router,
     search_router,
     priority_router,
+    terra_request_router,
 ]
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     ensure_bootstrap_admin()
+    terra_sync_stop = start_terra_sync()
     yield
+    if terra_sync_stop is not None:
+        terra_sync_stop.set()
 
 
 def create_app() -> FastAPI:

@@ -46,6 +46,9 @@ Toutes les variables sont dans [.env.example](.env.example) :
 | `CORS_ORIGINS` | `http://localhost:4200` | Origines autorisées, séparées par des virgules |
 | `LOG_LEVEL` | `INFO` | `DEBUG`, `INFO`, `WARNING`, `ERROR` |
 | `SECRET_KEY` | `change-me-in-production` | À remplacer en production |
+| `TERRA_NOVA_API_KEY` | — | Clé de l'équipe pour l'API Terra Nova (suivi `/home/terra-nova`) |
+| `TERRA_NOVA_SYNC_SECONDS` | `30` | Intervalle d'interrogation de l'API Terra Nova |
+| `TERRA_NOVA_BACKGROUND_SYNC` | `true` | `false` : pas de boucle de fond, synchro à la lecture seulement |
 
 ## Exemples d'appels (domaine `user`)
 

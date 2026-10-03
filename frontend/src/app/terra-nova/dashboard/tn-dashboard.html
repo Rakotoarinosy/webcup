@@ -1,0 +1,194 @@
+<!-- 1. Session -->
+<div class="mb-4 grid grid-cols-1 gap-4 xl:grid-cols-5">
+    <div class="card mb-0! xl:col-span-3">
+        <div class="mb-4 text-xs font-semibold uppercase tracking-wide text-muted-color">Session actuelle</div>
+        @if (store.session()?.last_sync_success_at && store.session(); as s) {
+            <div class="mb-5 flex items-center gap-2 font-semibold">
+                <span class="inline-block h-2.5 w-2.5 rounded-full" [class.bg-green-500]="store.isActive()" [class.bg-surface-400]="!store.isActive()"></span>
+                {{ store.isActive() ? 'Session active' : s.status === 'none' ? 'Aucune session active' : 'Session ' + s.status }}
+                @if (s.elapsed_minutes > 0) {
+                    <span class="font-normal text-muted-color">· {{ elapsedLabel() }} écoulées</span>
+                }
+            </div>
+            <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
+                <div>
+                    <div class="text-sm text-muted-color">Vague actuelle</div>
+                    <div class="text-3xl font-bold">#{{ s.current_wave }}</div>
+                </div>
+                <div>
+                    <div class="text-sm text-muted-color">Demandes disponibles</div>
+                    <div class="text-3xl font-bold">{{ s.visible_requests_count }}</div>
+                </div>
+                <div>
+                    <div class="text-sm text-muted-color">Demandes initiales</div>
+                    <div class="text-3xl font-bold">{{ s.initial_requests_count }}</div>
+                </div>
+                <div>
+                    <div class="text-sm text-muted-color">Demandes des vagues</div>
+                    <div class="text-3xl font-bold">{{ s.wave_requests_count }}</div>
+                </div>
+            </div>
+        } @else {
+            <p-skeleton height="1.25rem" width="40%" styleClass="mb-4" />
+            <p-skeleton height="3.5rem" />
+        }
+    </div>
+
+    <div class="card mb-0! flex flex-col gap-1 xl:col-span-2">
+        <div class="mb-3 flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-muted-color">
+            Prochaine vague
+            <i class="pi pi-info-circle cursor-help" pTooltip="Affichage uniquement : la synchronisation avec l'API a lieu toutes les 30 s, indépendamment de ce compte à rebours." tooltipPosition="left"></i>
+        </div>
+        @switch (countdownState()) {
+            @case ('running') {
+                <div class="text-lg font-semibold">Vague #{{ store.session()?.next_wave_number }}</div>
+                <div class="text-sm text-muted-color">Prochaine diffusion dans</div>
+                <div class="font-mono text-4xl font-bold text-primary">{{ store.msUntilNextWave() | countdown }}</div>
+            }
+            @case ('imminent') {
+                <div class="text-lg font-semibold">Vague #{{ store.session()?.next_wave_number }}</div>
+                <div class="text-sm text-muted-color">Diffusion imminente</div>
+                <div class="mb-2 font-mono text-4xl font-bold text-amber-500">00:00:00</div>
+                <p-progressbar mode="indeterminate" [style]="{ height: '4px' }" />
+            }
+            @case ('finished') {
+                <div class="text-lg font-semibold">Aucune vague planifiée</div>
+                <div class="text-sm text-muted-color">Toutes les vagues ont été diffusées.</div>
+            }
+            @case ('inactive') {
+                <div class="text-lg font-semibold">En attente</div>
+                <div class="text-sm text-muted-color">Le concours n'a pas encore démarré.</div>
+            }
+            @default {
+                <p-skeleton height="1.25rem" width="50%" styleClass="mb-3" />
+                <p-skeleton height="3rem" />
+            }
+        }
+    </div>
+</div>
+
+<!-- Statistiques -->
+<div class="mb-4 grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
+    @if (!store.loaded()) {
+        @for (i of [1, 2, 3, 4, 5]; track i) {
+            <div class="card mb-0!"><p-skeleton height="3.25rem" /></div>
+        }
+    } @else {
+        <a routerLink="demandes" class="card mb-0! flex flex-col gap-1 border border-transparent text-color no-underline hover:border-primary">
+            <span class="text-sm text-muted-color">Demandes disponibles</span>
+            <span class="text-2xl font-bold">{{ store.stats().total }}</span>
+        </a>
+        <a routerLink="notifications" class="card mb-0! flex flex-col gap-1 border border-transparent text-color no-underline hover:border-primary">
+            <span class="text-sm text-muted-color">Nouvelles demandes</span>
+            <span class="text-2xl font-bold text-primary">{{ store.stats().fresh }}</span>
+        </a>
+        <a routerLink="pipeline" class="card mb-0! flex flex-col gap-1 border border-transparent text-color no-underline hover:border-primary">
+            <span class="text-sm text-muted-color">En cours</span>
+            <span class="text-2xl font-bold">{{ store.stats().inProgress }}</span>
+            @if (store.stats().validation) {
+                <span class="text-xs text-muted-color">+ {{ store.stats().validation }} en validation</span>
+            }
+        </a>
+        <a routerLink="pipeline" class="card mb-0! flex flex-col gap-1 border border-transparent text-color no-underline hover:border-primary">
+            <span class="text-sm text-muted-color">Terminées</span>
+            <span class="text-2xl font-bold">{{ store.stats().done }}</span>
+            <span class="text-xs text-muted-color">{{ store.stats().donePercent }} % des demandes</span>
+        </a>
+        <div class="card mb-0! flex flex-col gap-1">
+            <span class="text-sm text-muted-color">XP disponibles</span>
+            <span class="text-2xl font-bold">{{ store.stats().xpAvailable | xp }}</span>
+            <span class="text-xs text-muted-color">{{ store.stats().xpDone | xp }} terminés</span>
+        </div>
+    }
+</div>
+
+<div class="mb-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
+    <!-- 2. Nouvelles demandes -->
+    <div class="card mb-0!">
+        <div class="mb-3 flex items-center justify-between">
+            <span class="text-xs font-semibold uppercase tracking-wide text-muted-color">Nouvelles demandes</span>
+            @if (store.unreadCount()) {
+                <a routerLink="notifications" class="text-sm text-primary">Tout voir</a>
+            }
+        </div>
+        @for (r of freshRequests(); track r.request_code) {
+            <button type="button" class="flex w-full cursor-pointer items-center gap-3 rounded-md border-0 bg-transparent px-2 py-2.5 text-left text-color hover:bg-emphasis" (click)="store.openDetail(r.request_code)">
+                <span class="inline-block h-2 w-2 shrink-0 rounded-full bg-primary"></span>
+                <span class="font-mono font-semibold">{{ r.request_code }}</span>
+                <span class="line-clamp-2 min-w-0 flex-1 text-sm text-muted-color">{{ r.message_public }}</span>
+                <p-tag [value]="difficultyLabel(r.difficulty_level, r.difficulty)" [severity]="difficultySeverity(r.difficulty_level)" styleClass="whitespace-nowrap" />
+                <span class="w-20 shrink-0 text-right font-semibold whitespace-nowrap">{{ r.xp_total | xp: true }}</span>
+            </button>
+        } @empty {
+            <div class="flex flex-col items-center gap-2 py-8 text-muted-color">
+                <i class="pi pi-check-circle text-2xl"></i>
+                <span>Aucune nouvelle demande non lue.</span>
+            </div>
+        }
+    </div>
+
+    <!-- 3. Priorités -->
+    <div class="card mb-0!">
+        <div class="mb-3 flex items-center justify-between">
+            <span class="text-xs font-semibold uppercase tracking-wide text-muted-color">Priorités · plus forte valeur</span>
+            <a routerLink="demandes" class="text-sm text-primary">Toutes les demandes</a>
+        </div>
+        @for (r of store.priorities(); track r.request_code) {
+            <button type="button" class="flex w-full cursor-pointer items-center gap-3 rounded-md border-0 bg-transparent px-2 py-2.5 text-left text-color hover:bg-emphasis" (click)="store.openDetail(r.request_code)">
+                <span class="font-mono font-semibold">{{ r.request_code }}</span>
+                <span class="line-clamp-2 min-w-0 flex-1 text-sm text-muted-color">{{ r.message_public }}</span>
+                <p-tag [value]="statusMeta(r.status).label" [severity]="statusMeta(r.status).severity" styleClass="whitespace-nowrap" />
+                <span class="w-20 shrink-0 text-right font-semibold whitespace-nowrap">{{ r.xp_total | xp }}</span>
+            </button>
+        } @empty {
+            @if (store.loaded()) {
+                <div class="flex flex-col items-center gap-2 py-8 text-muted-color">
+                    <i class="pi pi-inbox text-2xl"></i>
+                    <span>Aucune demande à traiter.</span>
+                </div>
+            } @else {
+                <p-skeleton height="12rem" />
+            }
+        }
+    </div>
+</div>
+
+<div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
+    <!-- Difficulté -->
+    <div class="card mb-0!">
+        <div class="mb-4 text-xs font-semibold uppercase tracking-wide text-muted-color">Répartition par difficulté</div>
+        <div class="flex flex-col gap-3">
+            @for (d of store.stats().byDifficulty; track d.value) {
+                <div class="grid grid-cols-[5.5rem_1fr_2rem_6rem] items-center gap-3">
+                    <p-tag [value]="d.label" [severity]="difficultySeverity(d.value)" />
+                    <div class="h-2 overflow-hidden rounded bg-emphasis">
+                        <div class="h-full rounded transition-all" [class]="barColors[d.value]" [style.width.%]="(d.count / maxDifficultyCount()) * 100"></div>
+                    </div>
+                    <span class="text-right font-semibold">{{ d.count }}</span>
+                    <span class="text-right text-sm text-muted-color">{{ d.xp | xp }}</span>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- 4. Pipeline -->
+    <div class="card mb-0!">
+        <div class="mb-4 flex items-center justify-between">
+            <span class="text-xs font-semibold uppercase tracking-wide text-muted-color">Pipeline</span>
+            <a routerLink="pipeline" class="text-sm text-primary">Ouvrir le Kanban</a>
+        </div>
+        <div class="mb-5 grid grid-cols-2 gap-3 md:grid-cols-4">
+            @for (s of statuses; track s.value) {
+                <a routerLink="pipeline" class="flex flex-col items-start gap-2 rounded-lg border border-surface p-3 text-color no-underline hover:border-primary">
+                    <p-tag [value]="s.label" [severity]="s.severity" [icon]="s.icon" />
+                    <span class="text-2xl font-bold">{{ columnCount(s.value) }}</span>
+                </a>
+            }
+        </div>
+        <div class="mb-1 flex justify-between text-sm">
+            <span class="text-muted-color">Progression</span>
+            <span>{{ store.stats().donePercent }} %</span>
+        </div>
+        <p-progressbar [value]="store.stats().donePercent" [showValue]="false" [style]="{ height: '8px' }" />
+    </div>
+</div>
