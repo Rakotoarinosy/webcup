@@ -2,7 +2,7 @@
 
 import uuid
 from dataclasses import replace
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta, tzinfo
 
 from src.domain.agent import (
     Agent,
@@ -153,10 +153,12 @@ def analyze_citizen_request(
 
 
 def get_dashboard_summary(
-    repo: CitizenRequestRepository, now: datetime | None = None
+    repo: CitizenRequestRepository, now: datetime | None = None, timezone: tzinfo = UTC
 ) -> DashboardSummary:
     current_time = now or datetime.now(UTC)
-    today_start = current_time.astimezone(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
+    today_start = current_time.astimezone(timezone).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
     today_end = today_start + timedelta(days=1)
     trend_start = today_start - timedelta(days=6)
 

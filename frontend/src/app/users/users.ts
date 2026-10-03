@@ -1,5 +1,6 @@
+import { LiveDataService } from '@/app/shared/live-data.service';
 import { DatePipe } from '@angular/common';
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
@@ -34,6 +35,8 @@ const EMPTY_FORM = { email: '', name: '', password: '', role: 'citizen' as Role,
     providers: [MessageService, ConfirmationService]
 })
 export class Users implements OnInit {
+    private readonly live = inject(LiveDataService);
+    private readonly destroyRef = inject(DestroyRef);
     private readonly userService = inject(UserService);
     private readonly agentService = inject(AgentService);
     private readonly auth = inject(AuthService);
@@ -92,6 +95,13 @@ export class Users implements OnInit {
     }
 
     ngOnInit() {
+        this.live.watch(
+            this.destroyRef,
+            () => {
+                this.loadUsers();
+            },
+            () => !this.loading() && !this.saving() && !this.dialogVisible()
+        );
         this.loadUsers();
     }
 

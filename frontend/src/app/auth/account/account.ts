@@ -1,3 +1,4 @@
+import { LiveDataService } from '@/app/shared/live-data.service';
 import { DatePipe } from '@angular/common';
 import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -15,6 +16,7 @@ import { AccountService, PersonalDemandesPage } from './account.service';
 })
 export class Account implements OnInit {
     readonly auth = inject(AuthService);
+    private readonly live = inject(LiveDataService);
     private readonly service = inject(AccountService);
     private readonly destroyRef = inject(DestroyRef);
     readonly result = signal<PersonalDemandesPage | null>(null);
@@ -25,6 +27,13 @@ export class Account implements OnInit {
     readonly statuses: Record<string, string | undefined> = { nouveau: 'Nouveau', accepte: 'Accepté', en_cours: 'En cours', resolu: 'Résolu', rejete: 'Rejeté' };
 
     ngOnInit(): void {
+        this.live.watch(
+            this.destroyRef,
+            () => {
+                this.load(this.result()?.page ?? 1);
+            },
+            () => !this.loading() && this.agentLinked()
+        );
         if (this.agentLinked()) this.load();
     }
 

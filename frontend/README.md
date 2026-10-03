@@ -1,76 +1,28 @@
-# Frontend
+# Kotrana — Frontend Angular
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.
+Depuis `frontend/` :
 
-## Development server
-
-To start a local development server, run:
-
-```bash
-ng serve
+```powershell
+npm ci
+npm start       # http://localhost:4200 ; proxy API vers localhost:8000
+npm run build
+npm test -- --watch=false --browsers=ChromeHeadless
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+La commande `npm start` utilise Angular CLI installé dans le projet.
+Démarrer aussi le backend et appliquer les migrations existantes avant de tester.
 
-## Code scaffolding
+Les vues chargent les statistiques, demandes, comptes, agents et contenus municipaux
+via l'API. Elles se rafraîchissent toutes les 30 secondes, au retour sur un onglet
+et après une modification réussie. Les autres onglets reçoivent un signal de mise
+à jour sans donnée personnelle. Le rafraîchissement attend la fermeture des
+formulaires d'administration pour préserver les saisies.
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+L'accueil public présente des totaux anonymes et les publications effectivement
+publiées. L'espace citoyen et son historique utilisent `/requests` avec les statuts
+français et le filtre serveur `mine=true`. L'espace agent conserve son API existante.
+Les dates du tableau de bord suivent `APP_TIMEZONE`, configuré côté backend.
 
-PS D:\projet\webcup\webcup\frontend> ng serve
-ng : Le terme «ng» n'est pas reconnu comme nom d'applet de commande, fonction, fichier de script ou programme exécutable. Vérifiez 
-l'orthographe du nom, ou si un chemin d'accès existe, vérifiez que le chemin d'accès est correct et réessayez.
-Au caractère Ligne:1 : 1
-+ ng serve
-+ ~~
-    + CategoryInfo          : ObjectNotFound: (ng:String) [], CommandNotFoundException
-    + FullyQualifiedErrorId : CommandNotFoundException
- 
-PS D:\projet\webcup\webcup\frontend> 
-
-
-
-
-
-
-
-```bash
-ng generate component component-name
-```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
-
-```bash
-ng generate --help
-```
-
-## Building
-
-To build the project run:
-
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+La session conserve le token d'accès en mémoire et se restaure avec le cookie
+HttpOnly de refresh. Les routes et les endpoints appliquent les droits de chaque rôle.
+Les vues Terra Nova possèdent déjà leur propre rafraîchissement.

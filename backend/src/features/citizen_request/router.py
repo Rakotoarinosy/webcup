@@ -46,6 +46,7 @@ from src.infrastructure.persistence.citizen_request_repository import (
 from src.infrastructure.persistence.database import get_db
 from src.infrastructure.persistence.user_repository import SqlAlchemyUserRepository
 from src.infrastructure.security.deps import get_current_user, require_roles
+from src.shared.timezone import resolve_timezone
 
 request_router = APIRouter(prefix="/requests", tags=["citizen requests"])
 dashboard_router = APIRouter(prefix="/dashboard", tags=["dashboard"])
@@ -194,7 +195,7 @@ def delete_request_endpoint(
 def get_dashboard_endpoint(
     repo: CitizenRequestRepository = Depends(get_request_repo),
 ) -> DashboardOut:
-    return get_dashboard_summary(repo)
+    return get_dashboard_summary(repo, timezone=resolve_timezone(get_settings().app_timezone))
 
 
 def _analysis_out(analysis: RequestAnalysis, agent: Agent | None) -> RequestAnalysisOut:

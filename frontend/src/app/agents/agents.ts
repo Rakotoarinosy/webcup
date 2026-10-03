@@ -1,3 +1,4 @@
+import { LiveDataService } from '@/app/shared/live-data.service';
 import { DatePipe } from '@angular/common';
 import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -34,6 +35,7 @@ const EMPTY_FORM: CreateAgentIn = { name: '', email: '', department: '', status:
     providers: [MessageService, ConfirmationService]
 })
 export class Agents implements OnInit {
+    private readonly live = inject(LiveDataService);
     private readonly agentService = inject(AgentService);
     private readonly messageService = inject(MessageService);
     private readonly confirmationService = inject(ConfirmationService);
@@ -90,6 +92,13 @@ export class Agents implements OnInit {
     }
 
     ngOnInit(): void {
+        this.live.watch(
+            this.destroyRef,
+            () => {
+                this.loadAgents();
+            },
+            () => !this.loading() && !this.saving() && !this.formDialogVisible && !this.interventionsDialogVisible
+        );
         this.loadAgents();
     }
 

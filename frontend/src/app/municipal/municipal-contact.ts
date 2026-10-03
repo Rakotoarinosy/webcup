@@ -1,4 +1,7 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { finalize } from 'rxjs';
+import { LiveDataService } from '@/app/shared/live-data.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { FormsModule, NgForm } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
@@ -12,8 +15,12 @@ import { MunicipalContentService } from './municipal-content.service';
 
 @Component({ selector: 'app-municipal-contact', imports: [FormsModule, ButtonModule, CardModule, InputTextModule, MessageModule, SelectModule, TextareaModule], templateUrl: './municipal-contact.html', styleUrl: './municipal-contact.scss' })
 export class MunicipalContact implements OnInit {
+    private readonly live = inject(LiveDataService);
+    private readonly destroyRef = inject(DestroyRef);
     private readonly content = inject(MunicipalContentService);
     private readonly route = inject(ActivatedRoute);
+    readonly servicesLoading = signal(false);
+    readonly servicesError = signal<string | null>(null);
     readonly services = signal<MunicipalService[]>([]);
     readonly receipt = signal<ContactReceipt | null>(null);
     readonly error = signal<string | null>(null);
@@ -22,14 +29,44 @@ export class MunicipalContact implements OnInit {
 
     ngOnInit(): void {
         this.form.service_id = this.route.snapshot.queryParamMap.get('service');
-        this.content.services().subscribe({ next: (items) => this.services.set(items) });
+        this.loadServices();
+        this.live.watch(
+            this.destroyRef,
+            () => this.loadServices(),
+            () => !this.sending() && !this.servicesLoading()
+        );
+    }
+    private loadServices(): void {
+        if (this.servicesLoading()) return;
+        this.servicesLoading.set(true);
+        this.servicesError.set(null);
+        this.content
+            .services()
+            .pipe(
+                takeUntilDestroyed(this.destroyRef),
+                finalize(() => this.servicesLoading.set(false))
+            )
+            .subscribe({
+                next: (items) => this.services.set(items),
+                error: () => this.servicesError.set('Impossible de charger les services de contact. Réessayez.')
+            });
     }
     send(form: NgForm): void {
-        if (form.invalid) { return; }
-        this.sending.set(true); this.error.set(null);
+        if (form.invalid || this.sending()) {
+            return;
+        }
+        this.sending.set(true);
+        this.error.set(null);
         this.content.sendContact(this.form).subscribe({
-            next: (receipt) => { this.receipt.set(receipt); this.sending.set(false); form.resetForm({ service_id: null }); },
-            error: () => { this.error.set("L'envoi a échoué. Veuillez réessayer."); this.sending.set(false); }
+            next: (receipt) => {
+                this.receipt.set(receipt);
+                this.sending.set(false);
+                form.resetForm({ service_id: null });
+            },
+            error: () => {
+                this.error.set("L'envoi a échoué. Veuillez réessayer.");
+                this.sending.set(false);
+            }
         });
     }
 }

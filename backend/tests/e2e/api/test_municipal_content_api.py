@@ -1,6 +1,6 @@
 """Scénarios publics de consultation et de contact municipal."""
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from httpx import AsyncClient
@@ -286,3 +286,29 @@ async def test_unknown_publication_is_not_exposed(client: AsyncClient) -> None:
     response = await client.get("/api/v1/municipal/publications/missing")
 
     assert response.status_code == 404
+
+
+async def test_future_and_unpublished_publications_are_hidden(
+    client: AsyncClient, db_session: Session
+) -> None:
+    now = datetime.now(UTC)
+    db_session.add_all([
+        MunicipalPublicationModel(
+            id=identifier, title=identifier, summary="Summary", content="Content",
+            category="Information", published_at=published_at, is_published=published,
+        )
+        for identifier, published_at, published in [
+            ("published-old", now - timedelta(days=2), True),
+            ("published-new", now - timedelta(days=1), True),
+            ("future", now + timedelta(days=1), True),
+            ("draft", now - timedelta(days=1), False),
+        ]
+    ])
+    db_session.commit()
+
+    listed = await client.get("/api/v1/municipal/publications")
+    assert listed.status_code == 200
+    assert [item["id"] for item in listed.json()] == ["published-new", "published-old"]
+    for identifier in ["future", "draft"]:
+        assert (await client.get(f"/api/v1/municipal/publications/{identifier}")).status_code == 404
+    assert (await client.get("/api/v1/municipal/publications/published-new")).status_code == 200

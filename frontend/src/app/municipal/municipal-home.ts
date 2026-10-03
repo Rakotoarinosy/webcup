@@ -1,5 +1,8 @@
+import { LiveDataService } from '@/app/shared/live-data.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { finalize, forkJoin } from 'rxjs';
 import { DatePipe } from '@angular/common';
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
@@ -15,17 +18,42 @@ import { MunicipalPublication, MunicipalService } from './municipal-content.mode
     styleUrl: './municipal-home.scss'
 })
 export class MunicipalHome implements OnInit {
+    private readonly live = inject(LiveDataService);
+    private readonly destroyRef = inject(DestroyRef);
     private readonly content = inject(MunicipalContentService);
     private readonly router = inject(Router);
+    readonly loading = signal(false);
+    readonly loadError = signal<string | null>(null);
     readonly services = signal<MunicipalService[]>([]);
     readonly featuredServices = signal<MunicipalService[]>([]);
     readonly publications = signal<MunicipalPublication[]>([]);
     readonly startError = signal<string | null>(null);
 
     ngOnInit(): void {
-        this.content.services().subscribe({ next: (items) => this.services.set(items.slice(0, 3)) });
-        this.content.featuredServices().subscribe({ next: (items) => this.featuredServices.set(items.slice(0, 6)) });
-        this.content.publications().subscribe({ next: (items) => this.publications.set(items.slice(0, 2)) });
+        this.load();
+        this.live.watch(
+            this.destroyRef,
+            () => this.load(),
+            () => !this.loading()
+        );
+    }
+    load(): void {
+        if (this.loading()) return;
+        this.loading.set(true);
+        this.loadError.set(null);
+        forkJoin({ services: this.content.services(), featured: this.content.featuredServices(), publications: this.content.publications() })
+            .pipe(
+                takeUntilDestroyed(this.destroyRef),
+                finalize(() => this.loading.set(false))
+            )
+            .subscribe({
+                next: ({ services, featured, publications }) => {
+                    this.services.set(services.slice(0, 3));
+                    this.featuredServices.set(featured.slice(0, 6));
+                    this.publications.set(publications.slice(0, 2));
+                },
+                error: () => this.loadError.set('Impossible de charger les informations municipales. Réessayez.')
+            });
     }
 
     startService(service: MunicipalService): void {

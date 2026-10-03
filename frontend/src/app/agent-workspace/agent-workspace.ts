@@ -1,5 +1,6 @@
+import { LiveDataService } from '@/app/shared/live-data.service';
 import { DatePipe } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { finalize, forkJoin } from 'rxjs';
 import { AgentDemandeSummary, AgentWorkspaceService, AssignedDemande, DemandeStatus } from './agent-workspace.service';
 
@@ -10,6 +11,8 @@ import { AgentDemandeSummary, AgentWorkspaceService, AssignedDemande, DemandeSta
     styleUrl: './agent-workspace.scss'
 })
 export class AgentWorkspace {
+    private readonly live = inject(LiveDataService);
+    private readonly destroyRef = inject(DestroyRef);
     private readonly api = inject(AgentWorkspaceService);
 
     protected readonly items = signal<AssignedDemande[]>([]);
@@ -26,6 +29,13 @@ export class AgentWorkspace {
     });
 
     constructor() {
+        this.live.watch(
+            this.destroyRef,
+            () => {
+                this.refresh();
+            },
+            () => !this.loading() && !this.resolving()
+        );
         this.refresh();
     }
 
@@ -54,18 +64,21 @@ export class AgentWorkspace {
     protected resolve(item: AssignedDemande): void {
         if (this.resolving()) return;
         this.resolving.set(item.id);
-        this.api.resolve(item.id).pipe(finalize(() => this.resolving.set(null))).subscribe({
-            next: () => this.refresh(),
-            error: () => this.error.set(`La demande « ${item.title} » n’a pas pu être résolue.`)
-        });
+        this.api
+            .resolve(item.id)
+            .pipe(finalize(() => this.resolving.set(null)))
+            .subscribe({
+                next: () => this.refresh(),
+                error: () => this.error.set(`La demande « ${item.title} » n’a pas pu être résolue.`)
+            });
     }
 
     protected statusLabel(status: DemandeStatus): string {
-        return ({ nouveau: 'Nouvelle', en_cours: 'En cours', en_attente: 'En attente', resolu: 'Résolue', rejete: 'Rejetée' })[status];
+        return { nouveau: 'Nouvelle', en_cours: 'En cours', en_attente: 'En attente', resolu: 'Résolue', rejete: 'Rejetée' }[status];
     }
 
     protected priorityLabel(priority: string): string {
-        return ({ faible: 'Faible', moyenne: 'Moyenne', haute: 'Haute', critique: 'Critique' })[priority] ?? priority;
+        return { faible: 'Faible', moyenne: 'Moyenne', haute: 'Haute', critique: 'Critique' }[priority] ?? priority;
     }
 
     protected categoryLabel(category: string): string {

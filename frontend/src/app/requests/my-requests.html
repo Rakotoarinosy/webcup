@@ -6,15 +6,12 @@
             <div class="mb-5 rounded-lg border border-green-300 bg-green-50 p-4 text-green-900 dark:border-green-800 dark:bg-green-950 dark:text-green-100" role="status">
                 <h2 class="m-0 text-lg font-semibold">Votre demande a bien été envoyée</h2>
                 <p class="mb-0 mt-2">
-                    Référence <strong>#{{ request.id.slice(0, 8) }}</strong> · envoyée le
-                    <strong>{{ request.created_at | date: 'dd/MM/yyyy à HH:mm' }}</strong> · statut initial
-                    <strong>{{ request.status }}</strong>. Vous n’avez pas besoin de la renvoyer.
+                    Référence <strong>#{{ request.id.slice(0, 8) }}</strong> · envoyée le <strong>{{ request.created_at | date: 'dd/MM/yyyy à HH:mm' }}</strong> · statut <strong>{{ request.status }}</strong
+                    >. Vous n’avez pas besoin de la renvoyer.
                 </p>
             </div>
         }
-        <a routerLink="/home/my-requests" class="mb-4 inline-flex items-center gap-2 text-primary focus-visible:outline-2 focus-visible:outline-offset-2">
-            <i class="pi pi-arrow-left" aria-hidden="true"></i> Retour à mes demandes
-        </a>
+        <a routerLink="/home/my-requests" class="mb-4 inline-flex items-center gap-2 text-primary focus-visible:outline-2 focus-visible:outline-offset-2"> <i class="pi pi-arrow-left" aria-hidden="true"></i> Retour à mes demandes </a>
         @if (loading()) {
             <p role="status">Chargement de la demande…</p>
         } @else if (error(); as message) {
@@ -23,10 +20,14 @@
             <h1 id="request-detail-title">{{ request.title }}</h1>
             <p>{{ request.description }}</p>
             <dl>
-                <dt>Référence</dt><dd>#{{ request.id.slice(0, 8) }}</dd>
-                <dt>Statut</dt><dd>{{ request.status }}</dd>
-                <dt>Créée le</dt><dd>{{ request.created_at | date: 'dd/MM/yyyy à HH:mm' }}</dd>
-                <dt>Lieu</dt><dd>{{ request.location }}</dd>
+                <dt>Référence</dt>
+                <dd>#{{ request.id.slice(0, 8) }}</dd>
+                <dt>Statut</dt>
+                <dd>{{ request.status }}</dd>
+                <dt>Créée le</dt>
+                <dd>{{ request.created_at | date: 'dd/MM/yyyy à HH:mm' }}</dd>
+                <dt>Lieu</dt>
+                <dd>{{ request.location }}</dd>
             </dl>
         }
     </section>
@@ -56,7 +57,9 @@
                 }
                 @for (request of actionable(); track request.id) {
                     <article class="flex flex-wrap items-center justify-between gap-3 border-t border-surface py-3">
-                        <p class="m-0"><strong>{{ request.title }}</strong> — en attente d’une action ou d’informations de votre part.</p>
+                        <p class="m-0">
+                            <strong>{{ request.title }}</strong> — en attente d’une action ou d’informations de votre part.
+                        </p>
                         <a class="text-primary underline" [routerLink]="['/home/my-requests', request.id]">Consulter la demande</a>
                     </article>
                 }
@@ -75,7 +78,9 @@
                 <div>
                     <label for="request-category" class="mb-1 block font-medium">Catégorie</label>
                     <select id="request-category" name="category" class="w-full rounded border border-surface bg-transparent p-3" [(ngModel)]="form.category">
-                        @for (category of categories; track category) { <option [ngValue]="category">{{ category }}</option> }
+                        @for (category of categories; track category) {
+                            <option [ngValue]="category">{{ category }}</option>
+                        }
                     </select>
                 </div>
                 <div class="md:col-span-2">
@@ -87,12 +92,18 @@
                     <input id="request-location" name="location" class="w-full rounded border border-surface bg-transparent p-3" [(ngModel)]="form.location" required maxlength="500" />
                 </div>
                 <div class="flex items-end">
-                    <button type="submit" class="rounded-lg bg-primary px-4 py-3 font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-60" [disabled]="submitting() || !form.title.trim() || !form.description.trim() || !form.location.trim()">
+                    <button
+                        type="submit"
+                        class="rounded-lg bg-primary px-4 py-3 font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-60"
+                        [disabled]="submitting() || !form.title.trim() || !form.description.trim() || !form.location.trim()"
+                    >
                         {{ submitting() ? 'Envoi en cours…' : 'Envoyer la demande' }}
                     </button>
                 </div>
             </form>
-            @if (error(); as message) { <p class="mt-3 text-red-600" role="alert">{{ message }}</p> }
+            @if (error(); as message) {
+                <p class="mt-3 text-red-600" role="alert">{{ message }}</p>
+            }
         </section>
 
         <section aria-labelledby="history-title">
@@ -102,7 +113,9 @@
                     <span>Filtrer par statut</span>
                     <select class="rounded border border-surface bg-transparent p-2" aria-label="Filtrer mes demandes par statut" [ngModel]="statusFilter()" (ngModelChange)="filterChanged($event)">
                         <option [ngValue]="null">Tous les statuts</option>
-                        @for (status of statuses; track status) { <option [ngValue]="status">{{ status }}</option> }
+                        @for (status of statuses; track status) {
+                            <option [ngValue]="status">{{ status }}</option>
+                        }
                     </select>
                 </label>
             </div>
@@ -113,13 +126,26 @@
             } @else if (requests().length) {
                 <div class="overflow-x-auto">
                     <table class="w-full border-collapse text-left">
-                        <caption class="sr-only">Vos demandes, triées par date de création décroissante</caption>
-                        <thead><tr class="border-b border-surface"><th scope="col" class="p-3">Demande</th><th scope="col" class="p-3">Statut</th><th scope="col" class="p-3">Date</th><th scope="col" class="p-3">Lieu</th></tr></thead>
+                        <caption class="sr-only">
+                            Vos demandes, triées par date de création décroissante
+                        </caption>
+                        <thead>
+                            <tr class="border-b border-surface">
+                                <th scope="col" class="p-3">Demande</th>
+                                <th scope="col" class="p-3">Statut</th>
+                                <th scope="col" class="p-3">Date</th>
+                                <th scope="col" class="p-3">Lieu</th>
+                            </tr>
+                        </thead>
                         <tbody>
                             @for (request of requests(); track request.id) {
                                 <tr class="border-b border-surface">
-                                    <th scope="row" class="p-3 font-medium"><a class="text-primary underline" [routerLink]="['/home/my-requests', request.id]">{{ request.title }}</a></th>
-                                    <td class="p-3">{{ request.status }}</td><td class="p-3">{{ request.created_at | date: 'dd/MM/yyyy HH:mm' }}</td><td class="p-3">{{ request.location }}</td>
+                                    <th scope="row" class="p-3 font-medium">
+                                        <a class="text-primary underline" [routerLink]="['/home/my-requests', request.id]">{{ request.title }}</a>
+                                    </th>
+                                    <td class="p-3">{{ request.status }}</td>
+                                    <td class="p-3">{{ request.created_at | date: 'dd/MM/yyyy HH:mm' }}</td>
+                                    <td class="p-3">{{ request.location }}</td>
                                 </tr>
                             }
                         </tbody>

@@ -12,26 +12,61 @@
                 ><a href="#process" class="py-3.5 font-semibold text-emerald-700 dark:text-emerald-300">Découvrir le fonctionnement</a>
             </div>
         </div>
-        <div class="overflow-hidden rounded-2xl border border-emerald-100 bg-white p-3 shadow-2xl shadow-emerald-950/15 dark:border-emerald-800 dark:bg-emerald-900">
-            <div class="grid min-h-[25rem] grid-cols-1 md:grid-cols-[9rem_minmax(0,1fr)] rounded-xl bg-emerald-50 dark:bg-emerald-950">
-                <aside class="hidden bg-emerald-950 p-5 text-xs text-emerald-100 md:block">
-                    <b class="mb-9 block text-white">● Kotrana</b>
-                    <div class="grid gap-4"><span class="rounded bg-emerald-800 p-2">⌂ Tableau de bord</span><span>☷ Demandes</span><span>⌖ Carte</span><span>☑ Tâches</span></div>
-                </aside>
-                <div class="p-6">
-                    <p class="m-0 text-xs text-emerald-700/60">Vue d’ensemble</p>
-                    <h2 class="m-0 !text-2xl font-bold dark:!text-white">Demandes</h2>
-                    <div class="my-5 rounded-lg border border-emerald-100 bg-white p-3 text-xs text-emerald-950/40 dark:border-emerald-800 dark:bg-emerald-900">⌕ Rechercher une demande…</div>
-                    <div class="grid gap-3">
-                        @for (item of ['Nid-de-poule sur la chaussée', 'Éclairage public défectueux', 'Collecte des déchets non assurée']; track item) {
-                            <div class="flex flex-wrap gap-2 justify-between rounded-xl bg-white p-3 text-xs font-semibold shadow-sm dark:bg-emerald-900">
-                                <span>{{ item }}</span
-                                ><b class="text-emerald-600">En cours</b>
-                            </div>
-                        }
+        <section class="rounded-2xl border border-emerald-100 bg-emerald-50 p-6 shadow-2xl shadow-emerald-950/10 dark:border-emerald-800 dark:bg-emerald-900" aria-labelledby="commune-activity-title" [attr.aria-busy]="loading()">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <p class="m-0 text-sm text-emerald-700 dark:text-emerald-300">Dans votre commune</p>
+                    <h2 id="commune-activity-title" class="m-0 !text-2xl font-bold dark:!text-white">L'activité en direct</h2>
+                </div>
+                <button type="button" (click)="load()" [disabled]="loading()" aria-label="Actualiser les informations municipales" class="rounded-xl border border-emerald-200 px-3 py-2 disabled:opacity-50 dark:border-emerald-700">
+                    <i class="pi pi-refresh" aria-hidden="true"></i>
+                </button>
+            </div>
+            @if (error(); as message) {
+                <p role="alert" class="text-red-700 dark:text-red-300">{{ message }}</p>
+            }
+            @if (summary(); as data) {
+                <div class="my-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div class="rounded-xl bg-white p-4 dark:bg-emerald-950">
+                        <strong class="block text-3xl" data-testid="public-open-count">{{ data.open_requests }}</strong
+                        ><span>Demandes ouvertes</span>
+                    </div>
+                    <div class="rounded-xl bg-white p-4 dark:bg-emerald-950">
+                        <strong class="block text-3xl">{{ data.in_progress_requests }}</strong
+                        ><span>En cours</span>
+                    </div>
+                    <div class="rounded-xl bg-white p-4 dark:bg-emerald-950">
+                        <strong class="block text-3xl">{{ data.resolved_requests }}</strong
+                        ><span>Résolues</span>
+                    </div>
+                    <div class="rounded-xl bg-white p-4 dark:bg-emerald-950">
+                        <strong class="block text-3xl">{{ services().length }}</strong
+                        ><span>Services disponibles</span>
                     </div>
                 </div>
-            </div>
+                <p class="mb-0 text-sm text-emerald-700 dark:text-emerald-300">Actualisé à {{ updatedAt() | date: 'HH:mm:ss' }} · mise à jour automatique</p>
+            } @else if (loading()) {
+                <p role="status" class="my-6">Chargement de l'activité municipale…</p>
+            }
+        </section>
+    </section>
+    <section class="mx-auto max-w-7xl px-6 pb-20 lg:px-10" aria-labelledby="public-news-title">
+        <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+            <h2 id="public-news-title" class="m-0 !text-3xl font-bold">Les informations de votre mairie</h2>
+            <a routerLink="/home/municipal/publications" class="font-semibold text-emerald-700 dark:text-emerald-300">Toutes les publications</a>
+        </div>
+        <div class="grid gap-6 md:grid-cols-3">
+            @for (publication of publications(); track publication.id) {
+                <article class="rounded-2xl border border-emerald-100 p-6 dark:border-emerald-800">
+                    <p class="text-sm text-emerald-700 dark:text-emerald-300">{{ publication.category }} · {{ publication.published_at | date: 'dd/MM/yyyy' }}</p>
+                    <h3 class="!text-xl font-semibold">{{ publication.title }}</h3>
+                    <p>{{ publication.summary }}</p>
+                </article>
+            } @empty {
+                @if (!loading() && !error()) {
+                    <p>Aucune publication pour le moment.</p>
+                }
+            }
         </div>
     </section>
     <section id="solution" class="border-y border-emerald-100 bg-emerald-50/70 py-24 dark:border-emerald-900 dark:bg-emerald-900/30">
@@ -81,7 +116,7 @@
     </section>
     <footer class="border-t border-emerald-100 px-6 py-8 dark:border-emerald-900">
         <div class="mx-auto flex max-w-7xl flex-col justify-between gap-4 text-sm text-emerald-950/55 dark:text-emerald-50/55 sm:flex-row">
-            <b class="text-emerald-950 dark:text-white">Kotrana</b><span>© 2026 Kotrana · Une gestion publique plus proche.</span><a href="mailto:contact@kotrana.mg">Contact</a>
+            <b class="text-emerald-950 dark:text-white">Kotrana</b><span>© {{ year }} Kotrana · Une gestion publique plus proche.</span><a routerLink="/home/municipal/contact">Contacter la mairie</a>
         </div>
     </footer>
 </main>

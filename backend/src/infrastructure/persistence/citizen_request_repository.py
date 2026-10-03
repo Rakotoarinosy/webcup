@@ -1,9 +1,8 @@
 """Implémentation SQLAlchemy du repository de demandes citoyennes."""
 
-from collections import defaultdict
-from datetime import UTC, date, datetime
+from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import and_, case, func, or_, select
 from sqlalchemy.orm import Session
 
 from src.domain.citizen_request import (
@@ -128,30 +127,49 @@ class SqlAlchemyCitizenRequestRepository(CitizenRequestRepository):
             .select_from(CitizenRequestModel)
             .where(
                 CitizenRequestModel.status == RequestStatus.RESOLVED.value,
-                CitizenRequestModel.resolved_at >= today_start,
-                CitizenRequestModel.resolved_at < today_end,
+                CitizenRequestModel.resolved_at >= today_start.astimezone(UTC),
+                CitizenRequestModel.resolved_at < today_end.astimezone(UTC),
             )
         )
 
-        day_expression = func.date(CitizenRequestModel.created_at)
-        daily_rows = self.db.execute(
-            select(day_expression, func.count())
-            .where(
-                CitizenRequestModel.created_at >= trend_start,
-                CitizenRequestModel.created_at < trend_end,
+        # Bornes UTC de chaque jour local : portable entre SQLite et PostgreSQL,
+        # y compris lorsqu'un changement d'heure intervient dans la semaine.
+        days = []
+        counters = []
+        day_start = trend_start
+        while day_start < trend_end:
+            day_end = min(day_start + timedelta(days=1), trend_end)
+            days.append(day_start.date())
+            counters.append(
+                func.sum(
+                    case(
+                        (
+                            and_(
+                                CitizenRequestModel.created_at >= day_start.astimezone(UTC),
+                                CitizenRequestModel.created_at < day_end.astimezone(UTC),
+                            ),
+                            1,
+                        ),
+                        else_=0,
+                    )
+                )
             )
-            .group_by(day_expression)
-        )
-        by_day: dict[date, int] = defaultdict(int)
-        for raw_day, count in daily_rows:
-            day = date.fromisoformat(raw_day) if isinstance(raw_day, str) else raw_day
-            by_day[day] = count
+            day_start = day_end
+        counts = self.db.execute(
+            select(*counters)
+            .select_from(CitizenRequestModel)
+            .where(
+                CitizenRequestModel.created_at >= trend_start.astimezone(UTC),
+                CitizenRequestModel.created_at < trend_end.astimezone(UTC),
+            )
+        ).one()
+        by_day = {day: int(count or 0) for day, count in zip(days, counts, strict=True)}
 
         return DashboardAggregates(
             by_status=by_status,
             by_category=by_category,
             resolved_today=resolved_today or 0,
-            by_day=dict(by_day),
+            by_day=by_day,
         )
 
     def _to_entity(self, model: CitizenRequestModel) -> CitizenRequest:

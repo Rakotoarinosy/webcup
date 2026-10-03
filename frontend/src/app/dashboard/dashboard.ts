@@ -1,8 +1,9 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import { MessageService } from 'primeng/api';
+import { DatePipe } from '@angular/common';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { LiveDataService } from '@/app/shared/live-data.service';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { ButtonModule } from 'primeng/button';
-import { ToastModule } from 'primeng/toast';
-import { catchError, forkJoin, of } from 'rxjs';
+import { catchError, finalize, forkJoin, of } from 'rxjs';
 
 import { Agent } from '@/app/agents/agent.model';
 import { AgentService } from '@/app/agents/agent.service';
@@ -21,21 +22,25 @@ const MAP_REQUEST_LIMIT = 100;
 
 @Component({
     selector: 'app-dashboard',
-    imports: [ButtonModule, ToastModule, Stats, TrendChart, CategoryChart, Map],
+    imports: [DatePipe, ButtonModule, Stats, TrendChart, CategoryChart, Map],
     templateUrl: './dashboard.html',
-    styleUrl: './dashboard.scss',
-    providers: [MessageService]
+    styleUrl: './dashboard.scss'
 })
 export class Dashboard implements OnInit {
     private readonly dashboardService = inject(DashboardService);
     private readonly requestService = inject(CitizenRequestService);
     private readonly agentService = inject(AgentService);
-    private readonly messageService = inject(MessageService);
+    private readonly live = inject(LiveDataService);
+    private readonly destroyRef = inject(DestroyRef);
 
     private readonly summary = signal<DashboardSummary | null>(null);
     private readonly inProgressRequests = signal<CitizenRequest[]>([]);
     private readonly agents = signal<Agent[]>([]);
     readonly loading = signal(false);
+    readonly error = signal<string | null>(null);
+    readonly agentWarning = signal(false);
+    readonly updatedAt = signal<Date | null>(null);
+    readonly hasData = computed(() => this.summary() !== null);
 
     readonly dashboardStats = computed(() => {
         const summary = this.summary();
@@ -87,26 +92,43 @@ export class Dashboard implements OnInit {
 
     ngOnInit(): void {
         this.load();
+        this.live.watch(
+            this.destroyRef,
+            () => this.load(),
+            () => !this.loading()
+        );
     }
 
     load(): void {
+        if (this.loading()) return;
         this.loading.set(true);
+        this.error.set(null);
+        this.agentWarning.set(false);
         forkJoin({
             summary: this.dashboardService.summary(),
             inProgress: this.requestService.list({ page: 1, page_size: MAP_REQUEST_LIMIT, status: 'En cours', sort_by: 'created_at', sort_order: 'desc' }),
             // Réservé aux gestionnaires : sans ce droit, la carte affiche « Agent inconnu » au lieu d'échouer.
-            agents: this.agentService.list().pipe(catchError(() => of([])))
-        }).subscribe({
-            next: ({ summary, inProgress, agents }) => {
-                this.summary.set(summary);
-                this.inProgressRequests.set(inProgress.items);
-                this.agents.set(agents);
-                this.loading.set(false);
-            },
-            error: (error: unknown) => {
-                this.loading.set(false);
-                this.messageService.add({ severity: 'error', summary: 'Erreur', detail: apiErrorMessage(error), life: 5000 });
-            }
-        });
+            agents: this.agentService.list().pipe(
+                catchError(() => {
+                    this.agentWarning.set(true);
+                    return of([]);
+                })
+            )
+        })
+            .pipe(
+                takeUntilDestroyed(this.destroyRef),
+                finalize(() => this.loading.set(false))
+            )
+            .subscribe({
+                next: ({ summary, inProgress, agents }) => {
+                    this.summary.set(summary);
+                    this.inProgressRequests.set(inProgress.items);
+                    this.agents.set(agents);
+                    this.updatedAt.set(new Date());
+                },
+                error: (error: unknown) => {
+                    this.error.set(apiErrorMessage(error));
+                }
+            });
     }
 }

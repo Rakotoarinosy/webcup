@@ -1,3 +1,4 @@
+import { LiveDataService } from '@/app/shared/live-data.service';
 import { DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
@@ -8,20 +9,11 @@ import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
 import { ToastModule } from 'primeng/toast';
-import { finalize, forkJoin } from 'rxjs';
+import { Subscription, finalize, forkJoin } from 'rxjs';
 
 import { AuthService } from '@/app/auth/auth.service';
 import { CitizenNotification, NotificationService } from '@/app/notifications/notification.service';
-import {
-    CitizenRequest,
-    CitizenRequestPage,
-    CitizenRequestQuery,
-    CreateCitizenRequestIn,
-    REQUEST_CATEGORIES,
-    REQUEST_STATUSES,
-    RequestCategory,
-    RequestStatus
-} from './request.model';
+import { CitizenRequest, CitizenRequestPage, CitizenRequestQuery, CreateCitizenRequestIn, REQUEST_CATEGORIES, REQUEST_STATUSES, RequestCategory, RequestStatus } from './request.model';
 import { CitizenRequestService } from './request.service';
 import { apiErrorMessage } from '@/app/users/user.service';
 
@@ -42,6 +34,7 @@ const EMPTY_FORM: RequestForm = { title: '', description: '', category: 'Autre',
     providers: [MessageService]
 })
 export class MyRequests implements OnInit {
+    private readonly live = inject(LiveDataService);
     private readonly requestsApi = inject(CitizenRequestService);
     private readonly notificationsApi = inject(NotificationService);
     private readonly route = inject(ActivatedRoute);
@@ -67,9 +60,24 @@ export class MyRequests implements OnInit {
     protected readonly categories = [...REQUEST_CATEGORIES];
     protected readonly statuses = [...REQUEST_STATUSES];
     protected form: RequestForm = { ...EMPTY_FORM };
+    private listSubscription?: Subscription;
+    private detailSubscription?: Subscription;
+    private attentionSubscription?: Subscription;
     private announcedSubmissionId: string | null = null;
 
     ngOnInit(): void {
+        this.live.watch(
+            this.destroyRef,
+            () => {
+                const id = this.route.snapshot.paramMap.get('id');
+                if (id) this.loadDetail(id);
+                else {
+                    this.load();
+                    this.loadAttention();
+                }
+            },
+            () => !this.loading() && !this.submitting()
+        );
         this.route.paramMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
             const id = params.get('id');
             this.detailMode.set(id !== null);
@@ -90,6 +98,7 @@ export class MyRequests implements OnInit {
     }
 
     protected load(page = this.page()): void {
+        this.listSubscription?.unsubscribe();
         const query: CitizenRequestQuery = {
             page,
             page_size: PAGE_SIZE,
@@ -102,11 +111,18 @@ export class MyRequests implements OnInit {
 
         this.loading.set(true);
         this.error.set(null);
-        this.requestsApi
+        this.listSubscription = this.requestsApi
             .list(query)
-            .pipe(finalize(() => this.loading.set(false)))
+            .pipe(
+                takeUntilDestroyed(this.destroyRef),
+                finalize(() => this.loading.set(false))
+            )
             .subscribe({
                 next: (result: CitizenRequestPage) => {
+                    if (result.total_pages > 0 && result.page > result.total_pages) {
+                        this.load(result.total_pages);
+                        return;
+                    }
                     this.requests.set(result.items);
                     this.total.set(result.total);
                     this.page.set(result.page);
@@ -164,11 +180,16 @@ export class MyRequests implements OnInit {
     }
 
     private loadDetail(id: string): void {
+        this.detailSubscription?.unsubscribe();
+        if (this.selectedRequest()?.id !== id) this.selectedRequest.set(null);
         this.loading.set(true);
         this.error.set(null);
-        this.requestsApi
+        this.detailSubscription = this.requestsApi
             .get(id)
-            .pipe(finalize(() => this.loading.set(false)))
+            .pipe(
+                takeUntilDestroyed(this.destroyRef),
+                finalize(() => this.loading.set(false))
+            )
             .subscribe({
                 next: (request) => {
                     this.selectedRequest.set(request);
@@ -181,7 +202,8 @@ export class MyRequests implements OnInit {
     }
 
     private loadAttention(): void {
-        forkJoin({
+        this.attentionSubscription?.unsubscribe();
+        this.attentionSubscription = forkJoin({
             notifications: this.notificationsApi.list(),
             pending: this.requestsApi.list({
                 page: 1,
@@ -191,13 +213,15 @@ export class MyRequests implements OnInit {
                 sort_order: 'desc',
                 mine: true
             })
-        }).subscribe({
-            next: ({ notifications, pending }) => {
-                this.notifications.set(notifications.items.filter((item) => !item.is_read));
-                this.actionable.set(pending.items);
-            },
-            error: (error: unknown) => this.attentionError.set(`Les éléments à surveiller n’ont pas pu être chargés : ${apiErrorMessage(error)}`)
-        });
+        })
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe({
+                next: ({ notifications, pending }) => {
+                    this.notifications.set(notifications.items.filter((item) => !item.is_read));
+                    this.actionable.set(pending.items);
+                },
+                error: (error: unknown) => this.attentionError.set(`Les éléments à surveiller n’ont pas pu être chargés : ${apiErrorMessage(error)}`)
+            });
     }
 
     private announceSubmission(request: CitizenRequest): void {

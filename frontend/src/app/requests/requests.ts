@@ -1,3 +1,4 @@
+import { LiveDataService } from '@/app/shared/live-data.service';
 import { DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
@@ -65,28 +66,13 @@ const SORT_FIELDS: RequestSortBy[] = ['created_at', 'title', 'category', 'priori
 
 @Component({
     selector: 'app-requests',
-    imports: [
-        DatePipe,
-        FormsModule,
-        ButtonModule,
-        ConfirmDialogModule,
-        DialogModule,
-        IconFieldModule,
-        InputIconModule,
-        InputTextModule,
-        SelectModule,
-        TableModule,
-        TagModule,
-        TextareaModule,
-        ToastModule,
-        ToolbarModule,
-        TooltipModule
-    ],
+    imports: [DatePipe, FormsModule, ButtonModule, ConfirmDialogModule, DialogModule, IconFieldModule, InputIconModule, InputTextModule, SelectModule, TableModule, TagModule, TextareaModule, ToastModule, ToolbarModule, TooltipModule],
     templateUrl: './requests.html',
     styleUrl: './requests.scss',
     providers: [MessageService, ConfirmationService]
 })
 export class Requests implements OnInit {
+    private readonly live = inject(LiveDataService);
     private readonly requestService = inject(CitizenRequestService);
     private readonly userService = inject(UserService);
     private readonly agentService = inject(AgentService);
@@ -99,9 +85,7 @@ export class Requests implements OnInit {
     readonly requests = signal<CitizenRequest[]>([]);
     readonly users = signal<User[]>([]);
     readonly userNames = computed(() => new Map(this.users().map((user) => [user.id, user.name])));
-    readonly userOptions = computed(() =>
-        this.users().map((user) => ({ label: `${user.name} (${user.email})`, value: user.id }))
-    );
+    readonly userOptions = computed(() => this.users().map((user) => ({ label: `${user.name} (${user.email})`, value: user.id })));
     readonly agents = signal<Agent[]>([]);
     readonly agentNames = computed(() => new Map(this.agents().map((agent) => [agent.id, agent.name])));
     // Seuls les agents actifs peuvent recevoir une demande.
@@ -162,12 +146,19 @@ export class Requests implements OnInit {
             )
             .subscribe();
 
-        this.searchChanges
-            .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
-            .subscribe(() => this.resetAndLoad());
+        this.searchChanges.pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef)).subscribe(() => this.resetAndLoad());
     }
 
     ngOnInit(): void {
+        this.live.watch(
+            this.destroyRef,
+            () => {
+                this.loadRequests();
+                this.loadUsers();
+                this.loadAgents();
+            },
+            () => !this.loading() && !this.saving() && !this.formDialogVisible && !this.detailsDialogVisible && !this.analysisDialogVisible
+        );
         this.loadUsers();
         this.loadAgents();
     }
@@ -265,7 +256,7 @@ export class Requests implements OnInit {
             .subscribe({
                 next: () => {
                     this.analysisDialogVisible = false;
-                    this.showSuccess('Suggestions de l\'IA appliquées');
+                    this.showSuccess("Suggestions de l'IA appliquées");
                     this.loadRequests();
                 },
                 error: (error: unknown) => this.showError(error)
@@ -285,9 +276,7 @@ export class Requests implements OnInit {
             location: this.form.location.trim()
         };
         const edited = this.editedRequest;
-        const request = edited
-            ? this.requestService.update(edited.id, payload)
-            : this.requestService.create(payload);
+        const request = edited ? this.requestService.update(edited.id, payload) : this.requestService.create(payload);
 
         this.saving.set(true);
         request.pipe(finalize(() => this.saving.set(false))).subscribe({

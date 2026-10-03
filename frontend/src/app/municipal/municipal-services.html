@@ -1,3 +1,6 @@
+@if (loading()) {
+    <p role="status">Actualisation des services…</p>
+}
 <section class="municipal-page">
     <p class="eyebrow">Informations utiles</p>
     <h1>Services municipaux</h1>
@@ -9,15 +12,24 @@
     </form>
     <p class="sr-only" aria-live="polite">{{ visibleServices().length }} service(s) trouvé(s).</p>
 
-    @if (error(); as message) { <p role="alert" class="mb-4 text-red-600">{{ message }}</p> }
+    @if (error(); as message) {
+        <p role="alert" class="mb-4 text-red-600">{{ message }}</p>
+    }
 
     <div class="service-grid">
         @for (service of visibleServices(); track service.id) {
             <p-card>
                 <ng-template #title><i [class]="'pi ' + service.icon" aria-hidden="true"></i> {{ service.name }}</ng-template>
                 <p>{{ service.description }}</p>
-                <dl><dt>Contact</dt><dd>{{ service.contact_details }}</dd><dt>Horaires</dt><dd>{{ service.opening_hours }}</dd></dl>
-                <button type="button" class="inline-flex rounded-lg border border-surface px-3 py-2 text-primary underline focus-visible:outline-2 focus-visible:outline-offset-2" (click)="startService(service)">Commencer une démarche auprès de ce service</button>
+                <dl>
+                    <dt>Contact</dt>
+                    <dd>{{ service.contact_details }}</dd>
+                    <dt>Horaires</dt>
+                    <dd>{{ service.opening_hours }}</dd>
+                </dl>
+                <button type="button" class="inline-flex rounded-lg border border-surface px-3 py-2 text-primary underline focus-visible:outline-2 focus-visible:outline-offset-2" (click)="startService(service)">
+                    Commencer une démarche auprès de ce service
+                </button>
 
                 @if (auth.hasRole('manager', 'admin')) {
                     <div class="mt-4 flex flex-wrap items-end gap-3 border-t border-surface pt-3">
