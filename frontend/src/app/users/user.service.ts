@@ -25,7 +25,7 @@ export class UserService {
     }
 
     update(id: string, payload: UpdateUserIn): Observable<User> {
-        return this.http.put<User>(`${this.baseUrl}/${id}`, payload);
+        return this.http.patch<User>(`${this.baseUrl}/${id}`, payload);
     }
 
     delete(id: string): Observable<void> {

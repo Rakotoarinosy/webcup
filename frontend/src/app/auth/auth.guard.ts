@@ -1,6 +1,6 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
-import { map } from 'rxjs';
+import { catchError, map, of, switchMap } from 'rxjs';
 
 import { AuthService } from './auth.service';
 
@@ -20,4 +20,14 @@ export const guestGuard: CanActivateFn = () => {
     return inject(AuthService)
         .restoreSession()
         .pipe(map((authenticated) => (authenticated ? router.createUrlTree(['/home/dashboard']) : true)));
+};
+
+export const roleGuard: CanActivateFn = (route) => {
+    const auth = inject(AuthService);
+    const router = inject(Router);
+    return auth.restoreSession().pipe(
+        switchMap((authenticated) => (authenticated ? auth.me() : of(null))),
+        map((user) => (user && (route.data['roles'] as string[]).includes(user.role) ? true : router.createUrlTree(['/home/requests']))),
+        catchError(() => of(router.createUrlTree(['/auth/login'])))
+    );
 };
