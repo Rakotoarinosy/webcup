@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { Observable, catchError, finalize, map, of, shareReplay, tap, throwError } from 'rxjs';
+import { Observable, catchError, finalize, map, of, shareReplay, switchMap, tap, throwError } from 'rxjs';
 
 import { environment } from '@/environments/environment';
 import { AuthUser, TokenResponse } from './auth.model';
@@ -38,10 +38,11 @@ export class AuthService {
     }
 
     register(name: string, email: string, password: string): Observable<AuthUser> {
-        return this.http.post<TokenResponse>(`${AUTH_URL}/register`, { name, email, password }, { withCredentials: true }).pipe(
-            tap((response) => this.setSession(response)),
-            map((response) => response.user)
-        );
+        return this.http.post<AuthUser>(`${AUTH_URL}/register`, { name, email, password }, { withCredentials: true }).pipe(switchMap(() => this.login(email, password)));
+    }
+
+    me(): Observable<AuthUser> {
+        return this.http.get<AuthUser>(`${AUTH_URL}/me`).pipe(tap((user) => this.user.set(user)));
     }
 
     /** Nouvel access token via le cookie. Les appels simultanés partagent la même requête. */

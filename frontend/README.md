@@ -16,6 +16,23 @@ Once the server is running, open your browser and navigate to `http://localhost:
 
 Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
 
+PS D:\projet\webcup\webcup\frontend> ng serve
+ng : Le terme «ng» n'est pas reconnu comme nom d'applet de commande, fonction, fichier de script ou programme exécutable. Vérifiez 
+l'orthographe du nom, ou si un chemin d'accès existe, vérifiez que le chemin d'accès est correct et réessayez.
+Au caractère Ligne:1 : 1
++ ng serve
++ ~~
+    + CategoryInfo          : ObjectNotFound: (ng:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+ 
+PS D:\projet\webcup\webcup\frontend> 
+
+
+
+
+
+
+
 ```bash
 ng generate component component-name
 ```
