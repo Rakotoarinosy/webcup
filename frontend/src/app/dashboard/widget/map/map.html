@@ -1,0 +1,14 @@
+<div class="card z-1">
+    <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div class="font-semibold text-xl">Carte des interventions en cours ({{ requests().length }})</div>
+        <div class="flex flex-wrap gap-4 text-sm text-muted-color">
+            @for (entry of priorityColors; track entry[0]) {
+                <span class="flex items-center gap-2">
+                    <span class="inline-block rounded-full" [style.background-color]="entry[1]" style="width: 0.75rem; height: 0.75rem"></span>
+                    {{ entry[0] }}
+                </span>
+            }
+        </div>
+    </div>
+    <div #mapContainer class="w-full rounded-border shadow-sm" style="height: 380px"></div>
+</div>

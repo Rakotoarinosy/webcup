@@ -1,0 +1,24 @@
+<p-toast />
+
+<div class="grid grid-cols-12 gap-6">
+    <div class="col-span-12 flex justify-end">
+        <p-button label="Actualiser" icon="pi pi-refresh" severity="secondary" [outlined]="true" [loading]="loading()" (onClick)="load()" />
+    </div>
+
+    <!-- Ligne 1 : Les 4 cartes de stats -->
+    <app-stats class="contents" [stats]="dashboardStats()" />
+
+    <!-- Ligne 2 : Graphiques d'évolution et catégorie -->
+    <div class="col-span-12 xl:col-span-8">
+        <app-trend-chart [trendData]="trendStats()" />
+    </div>
+
+    <div class="col-span-12 xl:col-span-4">
+        <app-category-chart [categoryData]="categoryStats()" />
+    </div>
+
+    <!-- Ligne 3 : La carte des demandes en cours -->
+    <div class="col-span-12">
+        <app-map [requests]="mapRequests()" />
+    </div>
+</div>

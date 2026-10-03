@@ -1,0 +1,135 @@
+<main class="grid min-h-dvh bg-white font-sans text-emerald-950 dark:bg-emerald-950 dark:text-emerald-50 lg:grid-cols-[minmax(26rem,57.3%)_1fr]">
+    <section
+        class="relative isolate hidden overflow-hidden bg-[radial-gradient(circle_at_90%_8%,#17845b_0,transparent_31%),linear-gradient(145deg,#062c21_0%,#07533a_59%,#03271d_100%)] px-[clamp(2rem,7vw,8.5rem)] py-[clamp(2rem,4vw,4.8rem)] text-white lg:flex lg:flex-col"
+        aria-label="Kotrana"
+    >
+        <a class="inline-flex w-fit items-center gap-3 text-[1.4rem] font-bold tracking-[-.04em]" routerLink="/auth/login" aria-label="Kotrana, accueil"
+            ><span class="grid size-8 place-items-center rounded-[.62rem] bg-emerald-500 text-xl font-black leading-none -skew-y-6">K</span><span>Kotrana</span></a
+        >
+        <div class="mt-[clamp(5rem,13vh,10rem)] max-w-xl">
+            <h1 class="m-0 !text-[clamp(2.7rem,4.5vw,5rem)] !text-white font-bold leading-[.99] tracking-[-.065em]">Une gestion publique<br /><span class="!text-emerald-300">plus proche.</span></h1>
+            <p class="mt-7 max-w-lg text-[1.06rem] leading-7 text-emerald-50/85">Créez votre espace Kotrana et donnez à chaque demande la suite qu’elle mérite.</p>
+        </div>
+        <ul class="mt-auto grid list-none gap-5 pb-8 pt-16">
+            <li class="flex items-center gap-4">
+                <i class="pi pi-users grid size-11 place-items-center rounded-full border border-emerald-200/40 text-emerald-100"></i
+                ><span class="grid gap-0.5"><strong class="text-[.94rem]">Des citoyens mieux accompagnés</strong><small class="text-[.81rem] text-emerald-100/75">Un suivi clair, au bon moment.</small></span>
+            </li>
+            <li class="flex items-center gap-4">
+                <i class="pi pi-shield grid size-11 place-items-center rounded-full border border-emerald-200/40 text-emerald-100"></i
+                ><span class="grid gap-0.5"><strong class="text-[.94rem]">Vos données protégées</strong><small class="text-[.81rem] text-emerald-100/75">Une plateforme conçue pour le service public.</small></span>
+            </li>
+        </ul>
+    </section>
+    <section class="grid place-items-center bg-white px-5 py-8 dark:bg-emerald-950 sm:px-8" aria-labelledby="register-title">
+        <div
+            class="w-full max-w-[27.5rem] rounded-2xl border border-transparent p-0 sm:max-lg:border-emerald-100 sm:max-lg:bg-white sm:max-lg:p-[clamp(1.6rem,6vw,3rem)] sm:max-lg:shadow-[0_18px_60px_rgba(19,74,50,.08)] dark:sm:max-lg:border-emerald-900 dark:sm:max-lg:bg-emerald-900/40"
+        >
+            <a class="mb-8 inline-flex w-fit items-center gap-3 text-[1.4rem] font-bold tracking-[-.04em] lg:hidden" routerLink="/auth/login"
+                ><span class="grid size-8 place-items-center rounded-[.62rem] bg-emerald-500 text-xl font-black leading-none text-white -skew-y-6">K</span><span>Kotrana</span></a
+            >
+            <header class="mb-6">
+                <h1 id="register-title" class="mb-2 text-[2rem] font-bold leading-tight tracking-[-.045em]">Créer votre compte</h1>
+                <p class="m-0 leading-6 text-emerald-950/60 dark:text-emerald-50/65">Quelques informations suffisent pour commencer.</p>
+            </header>
+            @if (errorMessage()) {
+                <p-message severity="error" [text]="errorMessage()!" icon="pi pi-exclamation-circle" styleClass="mb-4 block" role="alert" />
+            }
+            <form [formGroup]="registerForm" (ngSubmit)="submit()" novalidate class="space-y-2">
+                <div>
+                    <label for="name" class="mb-2 inline-block text-sm font-semibold">Nom complet</label
+                    ><span class="relative block"
+                        ><i class="pi pi-user absolute left-4 top-1/2 z-10 -translate-y-1/2 text-emerald-950/45 dark:text-emerald-50/50" aria-hidden="true"></i
+                        ><input
+                            pInputText
+                            #nameInput
+                            id="name"
+                            type="text"
+                            autocomplete="name"
+                            placeholder="Votre nom"
+                            class="w-full rounded-xl border-emerald-200 py-3 !pl-11 text-[.95rem] shadow-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/15 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-50"
+                            formControlName="name"
+                            [invalid]="registerForm.controls.name.invalid && registerForm.controls.name.touched"
+                            [disabled]="loading()" /></span
+                    ><small class="block min-h-4 pt-1 text-xs text-red-600">
+                        @if (registerForm.controls.name.invalid && registerForm.controls.name.touched) {
+                            Le nom est obligatoire.
+                        }
+                    </small>
+                </div>
+                <div>
+                    <label for="email" class="mb-2 inline-block text-sm font-semibold">Adresse email</label
+                    ><span class="relative block"
+                        ><i class="pi pi-envelope absolute left-4 top-1/2 z-10 -translate-y-1/2 text-emerald-950/45 dark:text-emerald-50/50" aria-hidden="true"></i
+                        ><input
+                            pInputText
+                            id="email"
+                            type="email"
+                            autocomplete="email"
+                            placeholder="vous@exemple.mg"
+                            class="w-full rounded-xl border-emerald-200 py-3 !pl-11 text-[.95rem] shadow-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/15 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-50"
+                            formControlName="email"
+                            [invalid]="registerForm.controls.email.invalid && registerForm.controls.email.touched"
+                            [disabled]="loading()" /></span
+                    ><small class="block min-h-4 pt-1 text-xs text-red-600">
+                        @if (registerForm.controls.email.invalid && registerForm.controls.email.touched) {
+                            {{ registerForm.controls.email.hasError('required') ? 'L’email est obligatoire.' : 'Saisissez une adresse email valide.' }}
+                        }
+                    </small>
+                </div>
+                <div>
+                    <label for="password" class="mb-2 inline-block text-sm font-semibold">Mot de passe</label
+                    ><p-password
+                        inputId="password"
+                        autocomplete="new-password"
+                        placeholder="Au moins 6 caractères"
+                        formControlName="password"
+                        [toggleMask]="true"
+                        [feedback]="true"
+                        [fluid]="true"
+                        inputStyleClass="rounded-xl border-emerald-200 py-3 !pr-11 text-[.95rem] shadow-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/15 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-50"
+                        [invalid]="registerForm.controls.password.invalid && registerForm.controls.password.touched"
+                        [disabled]="loading()"
+                    /><small class="block min-h-4 pt-1 text-xs text-red-600">
+                        @if (registerForm.controls.password.invalid && registerForm.controls.password.touched) {
+                            {{ registerForm.controls.password.hasError('required') ? 'Le mot de passe est obligatoire.' : 'Minimum 6 caractères requis.' }}
+                        }
+                    </small>
+                </div>
+                <div>
+                    <label for="confirmPassword" class="mb-2 inline-block text-sm font-semibold">Confirmer le mot de passe</label
+                    ><p-password
+                        inputId="confirmPassword"
+                        autocomplete="new-password"
+                        placeholder="Répétez votre mot de passe"
+                        formControlName="confirmPassword"
+                        [toggleMask]="true"
+                        [feedback]="false"
+                        [fluid]="true"
+                        inputStyleClass="rounded-xl border-emerald-200 py-3 !pr-11 text-[.95rem] shadow-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/15 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-50"
+                        [invalid]="registerForm.controls.confirmPassword.invalid && registerForm.controls.confirmPassword.touched"
+                        [disabled]="loading()"
+                    /><small class="block min-h-4 pt-1 text-xs text-red-600">
+                        @if (registerForm.controls.confirmPassword.invalid && registerForm.controls.confirmPassword.touched) {
+                            @if (registerForm.controls.confirmPassword.hasError('required')) {
+                                La confirmation est obligatoire.
+                            } @else if (registerForm.controls.confirmPassword.hasError('passwordMismatch')) {
+                                Les mots de passe ne correspondent pas.
+                            }
+                        }
+                    </small>
+                </div>
+                <p-button
+                    type="submit"
+                    label="Créer mon compte"
+                    icon="pi pi-arrow-right"
+                    iconPos="right"
+                    styleClass="mt-2 w-full rounded-xl border-0 bg-emerald-600 py-3 font-bold shadow-[0_10px_22px_rgba(22,163,106,.22)] hover:bg-emerald-700"
+                    [loading]="loading()"
+                />
+            </form>
+            <div class="mt-6 flex justify-center gap-1.5 text-sm text-emerald-950/60 dark:text-emerald-50/65"><span>Vous avez déjà un compte ?</span><a routerLink="/auth/login" class="font-bold text-emerald-600 hover:underline">Se connecter</a></div>
+        </div>
+    </section>
+</main>
+<app-floating-configurator />

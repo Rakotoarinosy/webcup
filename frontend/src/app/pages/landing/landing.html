@@ -1,0 +1,84 @@
+<main class="min-h-dvh bg-white text-emerald-950 dark:bg-emerald-950 dark:text-emerald-50">
+    <topbar-widget class="relative mx-auto flex max-w-7xl items-center justify-between px-6 py-5 lg:px-10" />
+    <section class="mx-auto grid max-w-7xl items-center gap-14 px-6 pb-24 pt-14 lg:grid-cols-2 lg:px-10 lg:py-24">
+        <div>
+            <h1 class="m-0 max-w-xl !text-5xl font-bold leading-[.98] tracking-[-.06em] text-emerald-950 dark:!text-white md:!text-7xl">Chaque demande mérite une réponse.</h1>
+            <p class="mt-7 max-w-xl text-lg leading-8 text-emerald-950/65 dark:text-emerald-50/70">
+                Kotrana aide les collectivités à centraliser, traiter et suivre les demandes des citoyens, pour des services publics plus réactifs et plus proches du terrain.
+            </p>
+            <div class="mt-9 flex flex-wrap gap-5">
+                <a routerLink="/auth/login" class="rounded-xl bg-emerald-600 px-6 py-3.5 font-bold text-white shadow-xl shadow-emerald-600/20">Accéder à Kotrana <i class="pi pi-arrow-right ml-2"></i></a
+                ><a href="#process" class="py-3.5 font-semibold text-emerald-700 dark:text-emerald-300">Découvrir le fonctionnement</a>
+            </div>
+        </div>
+        <div class="overflow-hidden rounded-2xl border border-emerald-100 bg-white p-3 shadow-2xl shadow-emerald-950/15 dark:border-emerald-800 dark:bg-emerald-900">
+            <div class="grid min-h-[25rem] grid-cols-[9rem_1fr] rounded-xl bg-emerald-50 dark:bg-emerald-950">
+                <aside class="hidden bg-emerald-950 p-5 text-xs text-emerald-100 md:block">
+                    <b class="mb-9 block text-white">● Kotrana</b>
+                    <div class="grid gap-4"><span class="rounded bg-emerald-800 p-2">⌂ Tableau de bord</span><span>☷ Demandes</span><span>⌖ Carte</span><span>☑ Tâches</span></div>
+                </aside>
+                <div class="p-6">
+                    <p class="m-0 text-xs text-emerald-700/60">Vue d’ensemble</p>
+                    <h2 class="m-0 !text-2xl font-bold dark:!text-white">Demandes</h2>
+                    <div class="my-5 rounded-lg border border-emerald-100 bg-white p-3 text-xs text-emerald-950/40 dark:border-emerald-800 dark:bg-emerald-900">⌕ Rechercher une demande…</div>
+                    <div class="grid gap-3">
+                        @for (item of ['Nid-de-poule sur la chaussée', 'Éclairage public défectueux', 'Collecte des déchets non assurée']; track item) {
+                            <div class="flex justify-between rounded-xl bg-white p-3 text-xs font-semibold shadow-sm dark:bg-emerald-900">
+                                <span>{{ item }}</span
+                                ><b class="text-emerald-600">En cours</b>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <section id="solution" class="border-y border-emerald-100 bg-emerald-50/70 py-24 dark:border-emerald-900 dark:bg-emerald-900/30">
+        <div class="mx-auto max-w-7xl px-6 lg:px-10">
+            <p class="text-sm font-bold uppercase tracking-[.14em] text-emerald-600">Pour les collectivités</p>
+            <h2 class="m-0 max-w-2xl !text-4xl font-bold leading-tight tracking-[-.045em] dark:!text-white">Une gestion plus simple pour des services plus efficaces.</h2>
+            <div class="mt-14 grid gap-10 md:grid-cols-3">
+                <article>
+                    <i class="pi pi-database mb-5 grid size-12 place-items-center rounded-full bg-white text-xl text-emerald-600"></i>
+                    <h3 class="m-0 !text-xl font-bold dark:!text-white">Centraliser</h3>
+                    <p class="text-emerald-950/65 dark:text-emerald-50/70">Toutes les demandes citoyennes, au même endroit.</p>
+                </article>
+                <article>
+                    <i class="pi pi-sort-amount-down mb-5 grid size-12 place-items-center rounded-full bg-white text-xl text-emerald-600"></i>
+                    <h3 class="m-0 !text-xl font-bold dark:!text-white">Prioriser</h3>
+                    <p class="text-emerald-950/65 dark:text-emerald-50/70">Identifier rapidement les demandes urgentes.</p>
+                </article>
+                <article>
+                    <i class="pi pi-eye mb-5 grid size-12 place-items-center rounded-full bg-white text-xl text-emerald-600"></i>
+                    <h3 class="m-0 !text-xl font-bold dark:!text-white">Suivre</h3>
+                    <p class="text-emerald-950/65 dark:text-emerald-50/70">Une visibilité partagée jusqu’à la résolution.</p>
+                </article>
+            </div>
+        </div>
+    </section>
+    <section id="process" class="bg-emerald-950 py-24 text-white">
+        <div class="mx-auto max-w-7xl px-6 lg:px-10">
+            <p class="text-sm font-bold uppercase tracking-[.14em] text-emerald-300">Du signalement au service rendu</p>
+            <h2 class="m-0 max-w-2xl !text-4xl font-bold leading-tight !text-white">Un processus clair, du citoyen à l’action.</h2>
+            <div class="mt-14 grid gap-8 md:grid-cols-3">
+                @for (step of ['Le citoyen signale une demande', 'L’équipe intervient', 'Le service est rendu']; track step; let i = $index) {
+                    <article>
+                        <b class="mb-5 grid size-10 place-items-center rounded-full bg-emerald-500">{{ i + 1 }}</b>
+                        <h3 class="m-0 !text-xl font-bold !text-white">{{ step }}</h3>
+                        <p class="text-emerald-100/70">Une information claire, suivie par la bonne personne, au bon moment.</p>
+                    </article>
+                }
+            </div>
+        </div>
+    </section>
+    <section id="securite" class="mx-auto max-w-4xl px-6 py-24 text-center">
+        <h2 class="m-0 !text-4xl font-bold leading-tight dark:!text-white">Prêt à simplifier la gestion des demandes citoyennes ?</h2>
+        <p class="mt-5 text-lg text-emerald-950/65 dark:text-emerald-50/70">Des services publics plus réactifs, plus transparents et plus proches des citoyens.</p>
+        <a routerLink="/auth/register" class="mt-8 inline-block rounded-xl bg-emerald-600 px-6 py-3.5 font-bold text-white shadow-xl shadow-emerald-600/20">Créer un compte <i class="pi pi-arrow-right ml-2"></i></a>
+    </section>
+    <footer class="border-t border-emerald-100 px-6 py-8 dark:border-emerald-900">
+        <div class="mx-auto flex max-w-7xl flex-col justify-between gap-4 text-sm text-emerald-950/55 dark:text-emerald-50/55 sm:flex-row">
+            <b class="text-emerald-950 dark:text-white">Kotrana</b><span>© 2026 Kotrana · Une gestion publique plus proche.</span><a href="mailto:contact@kotrana.mg">Contact</a>
+        </div>
+    </footer>
+</main>

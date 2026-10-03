@@ -1,0 +1,327 @@
+<p-toast />
+<p-confirmdialog [style]="{ width: '28rem' }" />
+
+<div class="card">
+    <p-toolbar styleClass="mb-5">
+        <ng-template #start>
+            <div>
+                <h1 class="m-0 text-xl font-semibold">Demandes citoyennes</h1>
+                <p class="mt-1 mb-0 text-sm text-muted-color">Recherche, suivi et traitement des signalements.</p>
+            </div>
+        </ng-template>
+        <ng-template #end>
+            <div class="flex gap-2">
+                <p-button label="Actualiser" icon="pi pi-refresh" severity="secondary" [outlined]="true" [loading]="loading()" (onClick)="loadRequests()" />
+                <p-button label="Nouvelle demande" icon="pi pi-plus" (onClick)="openNew()" />
+            </div>
+        </ng-template>
+    </p-toolbar>
+
+    <div class="mb-5 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <p-iconfield>
+            <p-inputicon styleClass="pi pi-search" />
+            <input
+                pInputText
+                type="search"
+                class="w-full"
+                aria-label="Rechercher une demande"
+                placeholder="Rechercher..."
+                [ngModel]="searchText"
+                (ngModelChange)="onSearchChange($event)"
+            />
+        </p-iconfield>
+
+        <p-select
+            [options]="categories"
+            [(ngModel)]="categoryFilter"
+            (ngModelChange)="applyFilters()"
+            [showClear]="true"
+            placeholder="Toutes les catégories"
+            ariaLabel="Filtrer par catégorie"
+            class="w-full"
+        />
+        <p-select
+            [options]="statuses"
+            [(ngModel)]="statusFilter"
+            (ngModelChange)="applyFilters()"
+            [showClear]="true"
+            placeholder="Tous les statuts"
+            ariaLabel="Filtrer par statut"
+            class="w-full"
+        />
+        <p-select
+            [options]="priorities"
+            [(ngModel)]="priorityFilter"
+            (ngModelChange)="applyFilters()"
+            [showClear]="true"
+            placeholder="Toutes les priorités"
+            ariaLabel="Filtrer par priorité"
+            class="w-full"
+        />
+    </div>
+    <div class="mb-4 flex justify-end">
+        <p-button label="Réinitialiser les filtres" icon="pi pi-filter-slash" severity="secondary" [text]="true" (onClick)="clearFilters()" />
+    </div>
+
+    <p-table
+        [value]="requests()"
+        [lazy]="true"
+        [paginator]="true"
+        [first]="first"
+        [rows]="pageSize"
+        [rowsPerPageOptions]="[10, 20, 50]"
+        [totalRecords]="total()"
+        [loading]="loading()"
+        [sortField]="sortBy"
+        [sortOrder]="sortOrder === 'asc' ? 1 : -1"
+        [tableStyle]="{ 'min-width': '82rem' }"
+        [rowHover]="true"
+        dataKey="id"
+        currentPageReportTemplate="Affichage {first} à {last} sur {totalRecords} demandes"
+        [showCurrentPageReport]="true"
+        (onLazyLoad)="onLazyLoad($event)"
+    >
+        <ng-template #header>
+            <tr>
+                <th style="min-width: 6rem">ID</th>
+                <th pSortableColumn="title" style="min-width: 14rem">Titre <p-sortIcon field="title" /></th>
+                <th pSortableColumn="category" style="min-width: 11rem">Catégorie <p-sortIcon field="category" /></th>
+                <th pSortableColumn="priority" style="min-width: 8rem">Priorité <p-sortIcon field="priority" /></th>
+                <th pSortableColumn="status" style="min-width: 9rem">Statut <p-sortIcon field="status" /></th>
+                <th style="min-width: 10rem">Citoyen</th>
+                <th pSortableColumn="created_at" style="min-width: 10rem">Créée le <p-sortIcon field="created_at" /></th>
+                <th style="min-width: 12rem">Localisation</th>
+                <th style="min-width: 10rem">Agent assigné</th>
+                <th style="width: 11rem">Actions</th>
+            </tr>
+        </ng-template>
+
+        <ng-template #body let-request>
+            <tr>
+                <td><span class="font-mono text-xs" [title]="request.id">{{ request.id.slice(0, 8) }}</span></td>
+                <td class="font-medium">{{ request.title }}</td>
+                <td>{{ request.category }}</td>
+                <td><p-tag [value]="request.priority" [severity]="prioritySeverity(request.priority)" /></td>
+                <td><p-tag [value]="request.status" [severity]="statusSeverity(request.status)" /></td>
+                <td>{{ userName(request.citizen_id) }}</td>
+                <td>{{ request.created_at | date: 'dd/MM/yyyy HH:mm' }}</td>
+                <td>{{ request.location }}</td>
+                <td>{{ agentName(request.assigned_agent_id) }}</td>
+                <td>
+                    <div class="flex gap-1">
+                        <p-button icon="pi pi-eye" [rounded]="true" [text]="true" ariaLabel="Consulter la demande" (onClick)="openDetails(request)" />
+                        <p-button icon="pi pi-sparkles" severity="help" [rounded]="true" [text]="true" ariaLabel="Analyser la demande avec l'IA" pTooltip="Analyser la demande" tooltipPosition="top" (onClick)="analyze(request)" />
+                        <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" ariaLabel="Modifier la demande" (onClick)="openEdit(request)" />
+                        <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [text]="true" ariaLabel="Supprimer la demande" (onClick)="confirmDelete(request)" />
+                    </div>
+                </td>
+            </tr>
+        </ng-template>
+
+        <ng-template #emptymessage>
+            <tr>
+                <td colspan="10" class="py-8 text-center text-muted-color">Aucune demande ne correspond aux critères.</td>
+            </tr>
+        </ng-template>
+    </p-table>
+</div>
+
+<p-dialog
+    [(visible)]="formDialogVisible"
+    [header]="editedRequest ? 'Modifier la demande' : 'Nouvelle demande citoyenne'"
+    [modal]="true"
+    [style]="{ width: 'min(48rem, 95vw)' }"
+>
+    <form #requestForm="ngForm" id="requestForm" class="grid grid-cols-1 gap-4 md:grid-cols-2" (ngSubmit)="save(requestForm)">
+        <div>
+            <label for="request-title" class="mb-2 block font-semibold">Titre</label>
+            <input pInputText id="request-title" name="title" [(ngModel)]="form.title" required maxlength="255" class="w-full" />
+        </div>
+        <div>
+            <label for="request-category" class="mb-2 block font-semibold">Catégorie</label>
+            <p-select
+                inputId="request-category"
+                name="category"
+                [(ngModel)]="form.category"
+                [options]="categories"
+                required
+                class="w-full"
+            />
+        </div>
+        <div class="md:col-span-2">
+            <label for="request-description" class="mb-2 block font-semibold">Description</label>
+            <textarea
+                pTextarea
+                id="request-description"
+                name="description"
+                [(ngModel)]="form.description"
+                required
+                maxlength="10000"
+                rows="4"
+                class="w-full"
+            ></textarea>
+        </div>
+        <div>
+            <label for="request-priority" class="mb-2 block font-semibold">Priorité</label>
+            <p-select
+                inputId="request-priority"
+                name="priority"
+                [(ngModel)]="form.priority"
+                [options]="priorities"
+                required
+                class="w-full"
+            />
+        </div>
+        <div>
+            <label for="request-status" class="mb-2 block font-semibold">Statut</label>
+            <p-select
+                inputId="request-status"
+                name="status"
+                [(ngModel)]="form.status"
+                [options]="statuses"
+                required
+                class="w-full"
+            />
+        </div>
+        <div>
+            <label for="request-citizen" class="mb-2 block font-semibold">Citoyen</label>
+            <p-select
+                inputId="request-citizen"
+                name="citizen_id"
+                [(ngModel)]="form.citizen_id"
+                [options]="userOptions()"
+                optionLabel="label"
+                optionValue="value"
+                placeholder="Sélectionner un citoyen"
+                required
+                class="w-full"
+            />
+        </div>
+        <div>
+            <label for="request-agent" class="mb-2 block font-semibold">Agent assigné</label>
+            <p-select
+                inputId="request-agent"
+                name="assigned_agent_id"
+                [(ngModel)]="form.assigned_agent_id"
+                [options]="agentOptions()"
+                optionLabel="label"
+                optionValue="value"
+                [showClear]="true"
+                placeholder="Non assigné"
+                class="w-full"
+            />
+        </div>
+        <div class="md:col-span-2">
+            <label for="request-location" class="mb-2 block font-semibold">Localisation</label>
+            <input pInputText id="request-location" name="location" [(ngModel)]="form.location" required maxlength="500" class="w-full" />
+        </div>
+    </form>
+
+    <ng-template #footer>
+        <button pButton type="button" label="Annuler" icon="pi pi-times" [text]="true" (click)="formDialogVisible = false"></button>
+        <button
+            pButton
+            type="submit"
+            form="requestForm"
+            label="Enregistrer"
+            icon="pi pi-check"
+            [loading]="saving()"
+            [disabled]="!requestForm.valid || saving()"
+        ></button>
+    </ng-template>
+</p-dialog>
+
+<p-dialog [(visible)]="detailsDialogVisible" header="Détail de la demande" [modal]="true" [style]="{ width: 'min(40rem, 95vw)' }">
+    @if (selectedRequest; as request) {
+        <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div><dt class="text-sm text-muted-color">ID</dt><dd class="mt-1 break-all font-mono text-sm">{{ request.id }}</dd></div>
+            <div><dt class="text-sm text-muted-color">Date de création</dt><dd class="mt-1">{{ request.created_at | date: 'dd/MM/yyyy HH:mm' }}</dd></div>
+            <div class="sm:col-span-2"><dt class="text-sm text-muted-color">Titre</dt><dd class="mt-1 font-semibold">{{ request.title }}</dd></div>
+            <div class="sm:col-span-2"><dt class="text-sm text-muted-color">Description</dt><dd class="mt-1 whitespace-pre-wrap">{{ request.description }}</dd></div>
+            <div><dt class="text-sm text-muted-color">Catégorie</dt><dd class="mt-1">{{ request.category }}</dd></div>
+            <div><dt class="text-sm text-muted-color">Priorité</dt><dd class="mt-1"><p-tag [value]="request.priority" [severity]="prioritySeverity(request.priority)" /></dd></div>
+            <div><dt class="text-sm text-muted-color">Statut</dt><dd class="mt-1"><p-tag [value]="request.status" [severity]="statusSeverity(request.status)" /></dd></div>
+            <div><dt class="text-sm text-muted-color">Localisation</dt><dd class="mt-1">{{ request.location }}</dd></div>
+            <div><dt class="text-sm text-muted-color">Citoyen</dt><dd class="mt-1">{{ userName(request.citizen_id) }}</dd></div>
+            <div><dt class="text-sm text-muted-color">Agent assigné</dt><dd class="mt-1">{{ agentName(request.assigned_agent_id) }}</dd></div>
+        </dl>
+    }
+    <ng-template #footer>
+        @if (selectedRequest; as request) {
+            <p-button label="Analyser la demande" icon="pi pi-sparkles" severity="help" (onClick)="analyze(request)" />
+        }
+    </ng-template>
+</p-dialog>
+
+<p-dialog [(visible)]="analysisDialogVisible" [modal]="true" [style]="{ width: 'min(42rem, 95vw)' }">
+    <ng-template #header>
+        <div class="flex items-center gap-2 font-semibold text-xl"><i class="pi pi-sparkles text-purple-500"></i>Analyse IA de la demande</div>
+    </ng-template>
+
+    @if (analyzedRequest; as request) {
+        <p class="mt-0 mb-5 text-muted-color">« {{ request.title }} »</p>
+    }
+
+    @if (analyzing()) {
+        <div class="flex flex-col items-center gap-3 py-10 text-muted-color" role="status" aria-live="polite">
+            <i class="pi pi-spin pi-spinner text-3xl"></i>
+            <span>Analyse en cours…</span>
+        </div>
+    } @else if (analysisError()) {
+        <div class="flex items-start gap-3 rounded-border bg-red-50 p-4 text-red-700 dark:bg-red-400/10 dark:text-red-300" role="alert">
+            <i class="pi pi-exclamation-triangle mt-1"></i>
+            <span>{{ analysisError() }}</span>
+        </div>
+    } @else if (analysis(); as result) {
+        <dl class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+            <div>
+                <dt class="text-sm text-muted-color">Catégorie</dt>
+                <dd class="mt-1 font-semibold">
+                    {{ result.category }}
+                    @if (analyzedRequest && analyzedRequest.category !== result.category) {
+                        <span class="ml-1 text-sm font-normal text-muted-color">(actuellement : {{ analyzedRequest.category }})</span>
+                    }
+                </dd>
+            </div>
+            <div>
+                <dt class="text-sm text-muted-color">Priorité</dt>
+                <dd class="mt-1">
+                    <p-tag [value]="result.priority" [severity]="prioritySeverity(result.priority)" />
+                    @if (analyzedRequest && analyzedRequest.priority !== result.priority) {
+                        <span class="ml-2 text-sm text-muted-color">(actuellement : {{ analyzedRequest.priority }})</span>
+                    }
+                </dd>
+            </div>
+            <div class="sm:col-span-2">
+                <dt class="text-sm text-muted-color">Résumé</dt>
+                <dd class="mt-1">{{ result.summary }}</dd>
+            </div>
+            <div class="sm:col-span-2">
+                <dt class="text-sm text-muted-color">Agent recommandé</dt>
+                <dd class="mt-1">
+                    @if (result.recommended_agent; as agent) {
+                        <span class="font-semibold">{{ agent.name }}</span>
+                        <span class="text-muted-color"> — {{ agent.department }} · {{ agent.interventions }} intervention(s)</span>
+                    } @else {
+                        <span class="text-muted-color">Aucun agent adapté parmi les agents actifs.</span>
+                    }
+                </dd>
+            </div>
+            <div class="sm:col-span-2">
+                <dt class="text-sm text-muted-color">Raison</dt>
+                <dd class="mt-1 whitespace-pre-wrap">{{ result.reason }}</dd>
+            </div>
+        </dl>
+        <p class="mt-5 mb-0 text-xs text-muted-color"><i class="pi pi-info-circle mr-1"></i>Suggestion générée par IA : vérifiez-la avant de l'appliquer.</p>
+    }
+
+    <ng-template #footer>
+        <p-button label="Fermer" severity="secondary" [text]="true" (onClick)="analysisDialogVisible = false" />
+        @if (analysisError() && analyzedRequest) {
+            <p-button label="Réessayer" icon="pi pi-refresh" severity="secondary" [outlined]="true" (onClick)="analyze(analyzedRequest)" />
+        }
+        @if (analysis()) {
+            <p-button label="Appliquer les suggestions" icon="pi pi-check" [loading]="applyingAnalysis()" (onClick)="applyAnalysis()" />
+        }
+    </ng-template>
+</p-dialog>
