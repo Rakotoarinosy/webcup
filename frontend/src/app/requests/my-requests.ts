@@ -1,4 +1,3 @@
-import { LiveDataService } from '@/app/shared/live-data.service';
 import { DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
@@ -8,7 +7,7 @@ import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { StepperModule } from 'primeng/stepper';
-import { Subscription, finalize } from 'rxjs';
+import { finalize } from 'rxjs';
 
 import { Agent } from '@/app/agents/agent.model';
 import { AgentService } from '@/app/agents/agent.service';
@@ -43,7 +42,6 @@ const EMPTY_FORM: RequestForm = { title: '', description: '', category: 'Autre',
     templateUrl: './my-requests.html'
 })
 export class MyRequests implements OnInit {
-    private readonly live = inject(LiveDataService);
     private readonly requestsApi = inject(CitizenRequestService);
     private readonly agentsApi = inject(AgentService);
     private readonly auth = inject(AuthService);
@@ -74,18 +72,6 @@ export class MyRequests implements OnInit {
     protected form: RequestForm = { ...EMPTY_FORM };
 
     ngOnInit(): void {
-        this.live.watch(
-            this.destroyRef,
-            () => {
-                const id = this.route.snapshot.paramMap.get('id');
-                if (id) this.loadDetail(id);
-                else {
-                    this.load();
-                    this.loadAttention();
-                }
-            },
-            () => !this.loading() && !this.submitting()
-        );
         this.route.paramMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
             const id = params.get('id');
             this.detailMode.set(id !== null);
@@ -99,7 +85,6 @@ export class MyRequests implements OnInit {
     }
 
     protected load(page = this.page()): void {
-        this.listSubscription?.unsubscribe();
         const query: CitizenRequestQuery = {
             page,
             page_size: PAGE_SIZE,
@@ -116,18 +101,11 @@ export class MyRequests implements OnInit {
 
         this.loading.set(true);
         this.error.set(null);
-        this.listSubscription = this.requestsApi
+        this.requestsApi
             .list(query)
-            .pipe(
-                takeUntilDestroyed(this.destroyRef),
-                finalize(() => this.loading.set(false))
-            )
+            .pipe(finalize(() => this.loading.set(false)))
             .subscribe({
                 next: (result: CitizenRequestPage) => {
-                    if (result.total_pages > 0 && result.page > result.total_pages) {
-                        this.load(result.total_pages);
-                        return;
-                    }
                     this.requests.set(result.items);
                     this.total.set(result.total);
                     this.page.set(result.page);
@@ -236,16 +214,11 @@ export class MyRequests implements OnInit {
     }
 
     private loadDetail(id: string): void {
-        this.detailSubscription?.unsubscribe();
-        if (this.selectedRequest()?.id !== id) this.selectedRequest.set(null);
         this.loading.set(true);
         this.error.set(null);
-        this.detailSubscription = this.requestsApi
+        this.requestsApi
             .get(id)
-            .pipe(
-                takeUntilDestroyed(this.destroyRef),
-                finalize(() => this.loading.set(false))
-            )
+            .pipe(finalize(() => this.loading.set(false)))
             .subscribe({
                 next: (request) => {
                     this.selectedRequest.set(request);

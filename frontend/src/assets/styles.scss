@@ -1,16 +1,36 @@
 /* You can add global styles to this file, and also import other style files */
 @use 'primeicons/primeicons.css';
 @use './layout/layout.scss';
-html[data-font-size='small'] { font-size: 14px; }
-html[data-font-size='medium'] { font-size: 16px; }
-html[data-font-size='large'] { font-size: 18px; }
-html[data-font-family='system'] { --app-font-family: 'Lato', sans-serif; }
-html[data-font-family='inter'] { --app-font-family: 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
-html[data-font-family='poppins'] { --app-font-family: 'Poppins', 'Trebuchet MS', Arial, sans-serif; }
-html[data-font-family='manrope'] { --app-font-family: 'Manrope', Avenir, 'Segoe UI', Verdana, sans-serif; }
-html[data-font-family='source'] { --app-font-family: 'Source Sans 3', 'Helvetica Neue', Arial, sans-serif; }
-html[data-font-family='serif'] { --app-font-family: 'Merriweather', Georgia, serif; }
-html[data-font-family='mono'] { --app-font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+html[data-font-size='small'] {
+    font-size: calc(14px * var(--font-scale, 1));
+}
+html[data-font-size='medium'] {
+    font-size: calc(16px * var(--font-scale, 1));
+}
+html[data-font-size='large'] {
+    font-size: calc(18px * var(--font-scale, 1));
+}
+html[data-font-family='system'] {
+    --app-font-family: 'Lato', sans-serif;
+}
+html[data-font-family='inter'] {
+    --app-font-family: 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+html[data-font-family='poppins'] {
+    --app-font-family: 'Poppins', 'Trebuchet MS', Arial, sans-serif;
+}
+html[data-font-family='manrope'] {
+    --app-font-family: 'Manrope', Avenir, 'Segoe UI', Verdana, sans-serif;
+}
+html[data-font-family='source'] {
+    --app-font-family: 'Source Sans 3', 'Helvetica Neue', Arial, sans-serif;
+}
+html[data-font-family='serif'] {
+    --app-font-family: 'Merriweather', Georgia, serif;
+}
+html[data-font-family='mono'] {
+    --app-font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
 
 /* Tables : même rythme visuel pour toutes les listes, y compris en thème sombre. */
 .p-datatable {

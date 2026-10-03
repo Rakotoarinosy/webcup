@@ -13,12 +13,7 @@ import { AppFontSize } from '../fontsize/app.fontsize';
 
 import { AuthService } from '@/app/auth/auth.service';
 import { LayoutConfig, LayoutService } from '@/app/layout/service/layout.service';
-import {
-    FontFamily,
-    FontSize,
-    PreferencesService,
-    UserPreferences
-} from '@/app/preferences/preferences.service';
+import { FontFamily, FontSize, PreferencesService, UserPreferences } from '@/app/preferences/preferences.service';
 
 const presets = {
     Aura,

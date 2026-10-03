@@ -1,15 +1,5 @@
 @if (detailMode()) {
     <section class="card" aria-labelledby="request-detail-title">
-        @if (submitted() && selectedRequest(); as request) {
-            <div class="mb-5 rounded-lg border border-green-300 bg-green-50 p-4 text-green-900 dark:border-green-800 dark:bg-green-950 dark:text-green-100" role="status">
-                <h2 class="m-0 text-lg font-semibold">Votre demande a bien été envoyée</h2>
-                <p class="mb-0 mt-2">
-                    Référence <strong>#{{ request.id.slice(0, 8) }}</strong> · envoyée le <strong>{{ request.created_at | date: 'dd/MM/yyyy à HH:mm' }}</strong> · statut <strong>{{ request.status }}</strong
-                    >. Vous n’avez pas besoin de la renvoyer.
-                </p>
-            </div>
-        }
-        <a routerLink="/home/my-requests" class="mb-4 inline-flex items-center gap-2 text-primary focus-visible:outline-2 focus-visible:outline-offset-2"> <i class="pi pi-arrow-left" aria-hidden="true"></i> Retour à mes demandes </a>
         <a routerLink="/home/my-requests" class="mb-4 inline-flex items-center gap-2 text-primary focus-visible:outline-2 focus-visible:outline-offset-2">
             <i class="pi pi-arrow-left" aria-hidden="true"></i> Retour à mes demandes
         </a>
@@ -21,14 +11,10 @@
             <h1 id="request-detail-title">{{ request.title }}</h1>
             <p>{{ request.description }}</p>
             <dl>
-                <dt>Référence</dt>
-                <dd>#{{ request.id.slice(0, 8) }}</dd>
-                <dt>Statut</dt>
-                <dd>{{ request.status }}</dd>
-                <dt>Créée le</dt>
-                <dd>{{ request.created_at | date: 'dd/MM/yyyy à HH:mm' }}</dd>
-                <dt>Lieu</dt>
-                <dd>{{ request.location }}</dd>
+                <dt>Référence</dt><dd>#{{ request.id.slice(0, 8) }}</dd>
+                <dt>Statut</dt><dd>{{ request.status }}</dd>
+                <dt>Créée le</dt><dd>{{ request.created_at | date: 'dd/MM/yyyy à HH:mm' }}</dd>
+                <dt>Lieu</dt><dd>{{ request.location }}</dd>
             </dl>
         }
     </section>
@@ -55,9 +41,7 @@
                     <span class="mb-1 block font-medium">Statut</span>
                     <select class="w-full rounded border border-surface bg-transparent p-2" aria-label="Filtrer mes demandes par statut" [ngModel]="statusFilter()" (ngModelChange)="filterChanged($event)">
                         <option [ngValue]="null">Tous les statuts</option>
-                        @for (status of statuses; track status) {
-                            <option [ngValue]="status">{{ status }}</option>
-                        }
+                        @for (status of statuses; track status) { <option [ngValue]="status">{{ status }}</option> }
                     </select>
                 </label>
             </div>
