@@ -4,11 +4,10 @@ import { ButtonModule } from 'primeng/button';
 import { StyleClassModule } from 'primeng/styleclass';
 
 import { AppConfigurator } from '../configurator/app.configurator';
-import { AppThemeSwitcher } from '../themeswitcher/app.themeswitcher';
 
 @Component({
     selector: 'app-floating-configurator',
-    imports: [CommonModule, ButtonModule, StyleClassModule, AppConfigurator, AppThemeSwitcher],
+    imports: [CommonModule, ButtonModule, StyleClassModule, AppConfigurator],
     templateUrl: './app.floatingconfigurator.html',
     styleUrl: './app.floatingconfigurator.scss'
 })

@@ -1,3 +1,5 @@
+import { PreferencesService } from '@/app/preferences/preferences.service';
+import { of } from 'rxjs';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
@@ -12,7 +14,7 @@ describe('AuthService session lifecycle', () => {
     let auth: AuthService;
     let http: HttpTestingController;
     beforeEach(() => {
-        TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])] });
+        TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([]), { provide: PreferencesService, useValue: { load: () => of(null) } }] });
         auth = TestBed.inject(AuthService);
         http = TestBed.inject(HttpTestingController);
     });

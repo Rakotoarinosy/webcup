@@ -1,3 +1,5 @@
+import { PreferencesService } from '@/app/preferences/preferences.service';
+import { of } from 'rxjs';
 import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
@@ -13,7 +15,7 @@ describe('Auth interceptor', () => {
     let client: HttpClient;
     let auth: AuthService;
     beforeEach(() => {
-        TestBed.configureTestingModule({ providers: [provideRouter([]), provideHttpClient(withInterceptors([authInterceptor])), provideHttpClientTesting()] });
+        TestBed.configureTestingModule({ providers: [provideRouter([]), provideHttpClient(withInterceptors([authInterceptor])), provideHttpClientTesting(), { provide: PreferencesService, useValue: { load: () => of(null) } }] });
         http = TestBed.inject(HttpTestingController);
         client = TestBed.inject(HttpClient);
         auth = TestBed.inject(AuthService);

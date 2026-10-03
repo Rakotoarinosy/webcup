@@ -198,3 +198,23 @@ async def test_anonymous_access_is_rejected(platform: Platform) -> None:
         assert (
             await platform.client.get(API + path, headers={"Authorization": ""})
         ).status_code == 401
+
+
+async def test_citizen_search_filters_and_pagination_stay_owner_scoped(platform: Platform) -> None:
+    for index in range(3):
+        await platform.submit("c1", title=f"Canalisation bouchée {index}", category="Eau")
+    await platform.submit("c1", title="Lampadaire éteint", category="Éclairage public")
+    await platform.submit("c2", title="Canalisation du voisin", category="Eau")
+
+    async def page(**params) -> dict:
+        response = await platform.client.get(REQUESTS, headers=platform.as_("c1"), params=params)
+        assert response.status_code == 200, response.text
+        return response.json()
+
+    found = await page(search="canalisation", page_size=2)
+    assert found["total"] == 3 and found["total_pages"] == 2 and len(found["items"]) == 2
+    assert (await page(search="canalisation", page_size=2, page=2))["items"][0][
+        "citizen_id"
+    ] == platform.users["c1"]
+    assert (await page(category="Éclairage public"))["total"] == 1
+    assert (await page(status="Résolu"))["total"] == 0

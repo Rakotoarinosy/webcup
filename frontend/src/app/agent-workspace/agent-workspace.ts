@@ -70,6 +70,12 @@ export class AgentWorkspace {
         this.refresh();
     }
 
+    protected pageNumbers(): number[] {
+        const total = this.pages();
+        const first = Math.max(1, Math.min(this.page() - 2, total - 4));
+        return Array.from({ length: Math.min(5, total) }, (_, index) => first + index);
+    }
+
     protected actions(item: CitizenRequest): { target: RequestStatus; label: string }[] {
         return STATUS_TRANSITIONS[item.status]
             .filter((target) => AGENT_TARGETS.includes(target))

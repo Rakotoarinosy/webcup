@@ -19,7 +19,8 @@ describe('Menu follows the authenticated role', () => {
             expect(labels.includes('Comptes citoyens')).toBe(value === 'agent' || value === 'manager');
             expect(labels.includes('Utilisateurs')).toBe(value === 'admin');
             expect(labels.includes('Instituts')).toBe(value === 'admin');
-            expect(labels.includes('Agents')).toBe(value === 'manager' || value === 'admin');
+            // Les comptes agents sont gérés dans Utilisateurs ▸ Agents (admin) : plus d'entrée « Agents » au premier niveau.
+            expect(labels).not.toContain('Agents');
             expect(labels).not.toContain('Transaction');
             expect(menu.model().some((group) => group.label === 'Terra Nova')).toBe(value !== 'citizen');
             const municipal = menu.model().find((group) => group.label === 'La mairie')!;
