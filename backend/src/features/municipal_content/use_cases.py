@@ -12,6 +12,7 @@ from src.domain.municipal_content import (
 from src.features.municipal_content.schemas import (
     CreateContactMessageIn,
     UpdateMunicipalServiceCatalogIn,
+    UpdateServiceLocationIn,
 )
 
 
@@ -44,6 +45,17 @@ def update_municipal_service_catalog(
     updated = repo.update_service_catalog(
         service_id,
         **dto.model_dump(exclude_unset=True),
+    )
+    if updated is None:
+        raise MunicipalServiceNotFoundError(service_id)
+    return updated
+
+
+def update_municipal_service_location(
+    service_id: str, dto: UpdateServiceLocationIn, repo: MunicipalContentRepository
+) -> MunicipalService:
+    updated = repo.update_service_location(
+        service_id, address=dto.address, latitude=dto.latitude, longitude=dto.longitude
     )
     if updated is None:
         raise MunicipalServiceNotFoundError(service_id)

@@ -1,0 +1,49 @@
+/* Accessibilité transverse (RGAA / WCAG 2.2) : lien d’évitement, focus visible, mouvements réduits. */
+
+/* Lien d’évitement : hors écran tant qu’il n’a pas le focus clavier. */
+.skip-link {
+    position: fixed;
+    top: 0.75rem;
+    left: 0.75rem;
+    z-index: 10000;
+    padding: 0.75rem 1.25rem;
+    border-radius: var(--content-border-radius, 6px);
+    background: var(--primary-color);
+    color: var(--primary-contrast-color);
+    font-weight: 600;
+    text-decoration: none;
+    transform: translateY(-250%);
+
+    &:focus,
+    &:focus-visible {
+        transform: none;
+        outline: 3px solid var(--text-color);
+        outline-offset: 2px;
+    }
+}
+
+/* Cible du lien d’évitement : reçoit le focus par programme, sans cadre parasite. */
+#main-content:focus {
+    outline: none;
+}
+
+/*
+ * Focus clavier toujours visible pour les éléments natifs. `:where()` garde une spécificité minimale :
+ * les anneaux de focus propres à PrimeNG et le mode contraste élevé restent prioritaires.
+ */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+/* Respect du réglage système « réduire les animations ». */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}

@@ -1,13 +1,15 @@
 <div class="layout-wrapper" [ngClass]="containerClass()">
+    <!-- Lien d’évitement : premier élément focalisable de la page (RGAA 12.7) -->
+    <a class="skip-link" href="#main-content" (click)="skipToContent($event)">Aller au contenu principal</a>
     <app-topbar></app-topbar>
     <app-sidebar></app-sidebar>
 
     <!-- Main content -->
     <div class="layout-main-container">
-        <div class="layout-main">
+        <main id="main-content" class="layout-main" tabindex="-1">
             <app-breadcrumb />
             <router-outlet></router-outlet>
-        </div>
+        </main>
         <app-footer></app-footer>
     </div>
 

@@ -74,4 +74,12 @@ import { AuthService } from '../auth/auth.service';
 })
 export class MunicipalLayout {
     readonly auth = inject(AuthService);
+
+    /** Lien d'évitement : focus sur le contenu sans changer d'URL (la base href ferait recharger la page). */
+    skipToContent(event: Event): void {
+        event.preventDefault();
+        const main = document.getElementById('main-content');
+        main?.focus();
+        main?.scrollIntoView();
+    }
 }

@@ -96,6 +96,22 @@ class SqlAlchemyMunicipalContentRepository(MunicipalContentRepository):
         self.db.refresh(row)
         return self._service(row)
 
+    def update_service_location(
+        self,
+        service_id: str,
+        *,
+        address: str | None,
+        latitude: float | None,
+        longitude: float | None,
+    ) -> MunicipalService | None:
+        row = self.db.get(MunicipalServiceModel, service_id)
+        if row is None:
+            return None
+        row.address, row.latitude, row.longitude = address, latitude, longitude
+        self.db.commit()
+        self.db.refresh(row)
+        return self._service(row)
+
     def list_publications(self, category: str | None, limit: int) -> list[MunicipalPublication]:
         statement = (
             select(MunicipalPublicationModel)
@@ -151,6 +167,9 @@ class SqlAlchemyMunicipalContentRepository(MunicipalContentRepository):
             row.is_featured,
             row.usage_count,
             row.is_active,
+            row.address,
+            row.latitude,
+            row.longitude,
         )
 
     def _publication(self, row: MunicipalPublicationModel) -> MunicipalPublication:

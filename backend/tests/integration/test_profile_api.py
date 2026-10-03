@@ -9,6 +9,7 @@ from src.domain.user import Role
 from src.infrastructure.persistence.models import (
     CitizenRequestEventModel,
     CitizenRequestModel,
+    DataConcernModel,
     NotificationReadModel,
     RefreshTokenModel,
     TerraRequestReadModel,
@@ -304,3 +305,25 @@ async def test_delete_unused_account_does_not_create_an_archive(
         )
     ).status_code == 204
     assert list(db_session.scalars(select(UserModel))) == []
+
+
+async def test_deletion_keeps_data_concerns_under_the_archived_identity(
+    client: httpx.AsyncClient, db_session: Session
+) -> None:
+    profile, payload = await signup(client)
+    headers = await signin(client, payload)
+    concern = await client.post(
+        "/api/v1/data-concerns",
+        headers=headers,
+        json={"topic": "Conservation", "message": "Combien de temps gardez-vous mes données ?"},
+    )
+    assert concern.status_code == 201, concern.text
+    deleted = await client.request(
+        "DELETE", f"{AUTH}/me", headers=headers, json={"current_password": PASSWORD}
+    )
+    assert deleted.status_code == 204, deleted.text
+    db_session.expire_all()
+    kept = db_session.get(DataConcernModel, concern.json()["id"])
+    assert kept is not None and kept.user_id != profile["id"]
+    archived = db_session.get(UserModel, kept.user_id)
+    assert archived is not None and archived.name == "Compte supprimé"

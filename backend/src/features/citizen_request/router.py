@@ -4,6 +4,7 @@ Aucun contrôle de rôle ici : chaque use case reçoit l'Actor et applique domai
 Le router se contente d'authentifier (get_current_actor) et de câbler les implémentations.
 """
 
+from datetime import datetime
 from functools import lru_cache
 
 from fastapi import APIRouter, Depends, Query, status
@@ -11,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from src.domain.agent import Agent, AgentRepository
 from src.domain.citizen_request import (
+    ActivityQuery,
     Actor,
     AnalysisUnavailableError,
     CitizenRequest,
@@ -20,9 +22,11 @@ from src.domain.citizen_request import (
     CitizenRequestRepository,
     DashboardStats,
     MapPoint,
+    RequestActivityLog,
     RequestAnalysis,
     RequestAnalyzer,
     RequestCategory,
+    RequestEventType,
     RequestPriority,
     RequestSortBy,
     RequestStatus,
@@ -44,6 +48,8 @@ from src.features.citizen_request.schemas import (
     PriorityQueueOut,
     PublicDashboardOut,
     RecommendedAgentOut,
+    RequestActivityOut,
+    RequestActivityPageOut,
     RequestAnalysisOut,
     RequestEventOut,
     SubmitRequestIn,
@@ -57,6 +63,7 @@ from src.features.citizen_request.use_cases import (
     get_dashboard,
     get_public_dashboard,
     get_request,
+    list_activity,
     list_map_points,
     list_request_events,
     list_requests,
@@ -97,6 +104,10 @@ def get_request_repo(db: Session = Depends(get_db)) -> CitizenRequestRepository:
 
 
 def get_event_repo(db: Session = Depends(get_db)) -> CitizenRequestEventRepository:
+    return SqlAlchemyCitizenRequestEventRepository(db)
+
+
+def get_activity_log(db: Session = Depends(get_db)) -> RequestActivityLog:
     return SqlAlchemyCitizenRequestEventRepository(db)
 
 
@@ -219,6 +230,43 @@ def refresh_priorities_endpoint(
 ) -> dict[str, int]:
     """Recalcule le score de toutes les demandes ouvertes (l'ancienneté fait monter la priorité)."""
     return {"level_changes": priorities.refresh_scores()}
+
+
+@request_router.get("/activity", response_model=RequestActivityPageOut)
+def list_activity_endpoint(
+    type: list[RequestEventType] = Query(default=[]),
+    since: datetime | None = None,
+    until: datetime | None = None,
+    search: str | None = Query(default=None, max_length=100),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+    actor: Actor = Depends(get_current_actor),
+    events: RequestActivityLog = Depends(get_activity_log),
+    agents: AgentRepository = Depends(get_agents_repo),
+) -> RequestActivityPageOut:
+    query = ActivityQuery(
+        types=frozenset(type),
+        since=since,
+        until=until,
+        search=search,
+        page=page,
+        page_size=page_size,
+    )
+    items, total = list_activity(actor, events, agents, query)
+    return RequestActivityPageOut(
+        items=[
+            RequestActivityOut(
+                event=RequestEventOut.model_validate(item.event),
+                request_title=item.request_title,
+                request_status=item.request_status,
+            )
+            for item in items
+        ],
+        total=total,
+        page=page,
+        page_size=page_size,
+        total_pages=(total + page_size - 1) // page_size,
+    )
 
 
 @request_router.get("/map", response_model=list[MapPointOut])

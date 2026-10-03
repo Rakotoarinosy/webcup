@@ -33,6 +33,16 @@ class MunicipalContentRepository(ABC):
     ) -> MunicipalService | None: ...
 
     @abstractmethod
+    def update_service_location(
+        self,
+        service_id: str,
+        *,
+        address: str | None,
+        latitude: float | None,
+        longitude: float | None,
+    ) -> MunicipalService | None: ...
+
+    @abstractmethod
     def list_publications(self, category: str | None, limit: int) -> list[MunicipalPublication]: ...
 
     @abstractmethod

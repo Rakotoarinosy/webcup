@@ -21,7 +21,10 @@ describe('MunicipalHome', () => {
         icon: 'pi-building',
         display_order: 0,
         is_featured: false,
-        usage_count
+        usage_count,
+        address: null,
+        latitude: null,
+        longitude: null
     });
 
     async function createComponent(popular: MunicipalService[]): Promise<void> {
@@ -70,7 +73,7 @@ describe('MunicipalHome', () => {
 describe('MunicipalHome cards', () => {
     let fixture: ComponentFixture<MunicipalHome>;
     let api: jasmine.SpyObj<MunicipalContentService>;
-    const service = { id: 'roads', name: 'Voirie', category: 'Travaux', description: 'Routes', contact_details: 'Mairie', opening_hours: '8h-16h', icon: 'pi-building', display_order: 1, is_featured: true, usage_count: 2 };
+    const service = { id: 'roads', name: 'Voirie', category: 'Travaux', description: 'Routes', contact_details: 'Mairie', opening_hours: '8h-16h', icon: 'pi-building', display_order: 1, is_featured: true, usage_count: 2, address: null, latitude: null, longitude: null };
     beforeEach(async () => {
         api = jasmine.createSpyObj('MunicipalContentService', ['popularServices', 'publications', 'startService']);
         api.popularServices.and.returnValue(of([service]));

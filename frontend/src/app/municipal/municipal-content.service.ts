@@ -3,7 +3,7 @@ import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { environment } from '@/environments/environment';
-import { ContactMessageIn, ContactReceipt, MunicipalPublication, MunicipalService } from './municipal-content.model';
+import { ContactMessageIn, ContactReceipt, MunicipalPublication, MunicipalService, ServiceLocationIn } from './municipal-content.model';
 
 @Injectable({ providedIn: 'root' })
 export class MunicipalContentService {
@@ -21,6 +21,10 @@ export class MunicipalContentService {
     popularServices(limit = 6): Observable<MunicipalService[]> {
         const params = new HttpParams().set('limit', Math.min(Math.max(limit, 1), 6));
         return this.http.get<MunicipalService[]>(`${this.baseUrl}/services/popular`, { params });
+    }
+
+    updateServiceLocation(id: string, location: ServiceLocationIn): Observable<MunicipalService> {
+        return this.http.patch<MunicipalService>(`${this.baseUrl}/services/${encodeURIComponent(id)}/location`, location);
     }
 
     updateFeaturedService(id: string, isFeatured: boolean, displayOrder: number): Observable<MunicipalService> {

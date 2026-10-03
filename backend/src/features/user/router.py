@@ -6,6 +6,8 @@ from sqlalchemy.orm import Session
 from src.domain.agent import AgentRepository
 from src.domain.institut import InstitutRepository
 from src.domain.user import PasswordHasher, RefreshTokenRepository, Role, User, UserRepository
+from src.features.audit.recording import AuditTrail
+from src.features.audit.router import get_audit_trail
 from src.features.user.schemas import CreateUserIn, UpdateCitizenAccountIn, UpdateUserIn, UserOut
 from src.features.user.use_cases import (
     create_user,
@@ -49,8 +51,9 @@ def create_user_endpoint(
     payload: CreateUserIn,
     repo: UserRepository = Depends(get_user_repo),
     hasher: PasswordHasher = Depends(get_password_hasher),
+    audit: AuditTrail = Depends(get_audit_trail),
 ) -> User:
-    return create_user(payload, repo, hasher)
+    return create_user(payload, repo, hasher, audit)
 
 
 @router.get(
@@ -93,8 +96,11 @@ def update_account_endpoint(
     hasher: PasswordHasher = Depends(get_password_hasher),
     agents: AgentRepository = Depends(get_agent_repo),
     instituts: InstitutRepository = Depends(get_institut_repo),
+    audit: AuditTrail = Depends(get_audit_trail),
 ) -> User:
-    return update_account(user_id, payload, repo, refresh_repo, hasher, agents, instituts)
+    return update_account(
+        user_id, payload, repo, refresh_repo, hasher, agents, instituts, audit=audit
+    )
 
 
 @router.get(
@@ -116,5 +122,6 @@ def update_user_endpoint(
     payload: UpdateCitizenAccountIn,
     repo: UserRepository = Depends(get_user_repo),
     refresh_repo: RefreshTokenRepository = Depends(get_refresh_token_repo),
+    audit: AuditTrail = Depends(get_audit_trail),
 ) -> User:
-    return update_citizen_account(user_id, payload, repo, refresh_repo)
+    return update_citizen_account(user_id, payload, repo, refresh_repo, audit)

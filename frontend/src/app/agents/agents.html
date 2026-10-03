@@ -21,7 +21,7 @@
 
     <div class="mb-5 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
         <p-iconfield>
-            <p-inputicon styleClass="pi pi-search" />
+            <p-inputicon styleClass="pi pi-search" aria-hidden="true" />
             <input pInputText type="search" class="w-full" aria-label="Rechercher un agent" placeholder="Nom ou email..." [ngModel]="searchText" (ngModelChange)="onSearchChange($event)" />
         </p-iconfield>
         @if (auth.hasRole('admin')) {
@@ -35,6 +35,8 @@
     </div>
 
     <p-table
+        role="region"
+        aria-label="Liste des agents"
         [value]="agents()"
         [loading]="loading()"
         [paginator]="true"
@@ -73,14 +75,14 @@
                 <td>{{ agent.interventions }}</td>
                 <td>
                     <div class="flex gap-1">
-                        <p-button icon="pi pi-list" [rounded]="true" [text]="true" ariaLabel="Voir ses interventions" pTooltip="Voir ses interventions" tooltipPosition="top" (onClick)="openInterventions(agent)" />
+                        <p-button icon="pi pi-list" [rounded]="true" [text]="true" [ariaLabel]="'Voir les interventions de ' + agent.name" pTooltip="Voir ses interventions" tooltipPosition="top" (onClick)="openInterventions(agent)" />
                         @if (auth.hasRole('admin')) {
-                            <p-button icon="pi pi-arrow-right-arrow-left" [rounded]="true" [text]="true" ariaLabel="Changer d'institut" pTooltip="Changer d'institut" tooltipPosition="top" (onClick)="openMove(agent)" />
+                            <p-button icon="pi pi-arrow-right-arrow-left" [rounded]="true" [text]="true" [ariaLabel]="'Changer d’institut : ' + agent.name" pTooltip="Changer d'institut" tooltipPosition="top" (onClick)="openMove(agent)" />
                         }
                         @if (agent.is_active) {
-                            <p-button icon="pi pi-ban" severity="danger" [rounded]="true" [text]="true" ariaLabel="Désactiver l'agent" pTooltip="Désactiver" tooltipPosition="top" (onClick)="confirmDeactivate(agent)" />
+                            <p-button icon="pi pi-ban" severity="danger" [rounded]="true" [text]="true" [ariaLabel]="'Désactiver l’agent ' + agent.name" pTooltip="Désactiver" tooltipPosition="top" (onClick)="confirmDeactivate(agent)" />
                         } @else {
-                            <p-button icon="pi pi-replay" severity="success" [rounded]="true" [text]="true" ariaLabel="Réactiver l'agent" pTooltip="Réactiver" tooltipPosition="top" (onClick)="toggleActivation(agent)" />
+                            <p-button icon="pi pi-replay" severity="success" [rounded]="true" [text]="true" [ariaLabel]="'Réactiver l’agent ' + agent.name" pTooltip="Réactiver" tooltipPosition="top" (onClick)="toggleActivation(agent)" />
                         }
                     </div>
                 </td>
@@ -96,51 +98,148 @@
 </div>
 
 <p-dialog [(visible)]="formDialogVisible" header="Ajouter un agent" [modal]="true" [style]="{ width: 'min(36rem, 95vw)' }">
-    <form #agentForm="ngForm" id="agentForm" class="grid grid-cols-1 gap-4" (ngSubmit)="save(agentForm)">
+    <form #agentForm="ngForm" id="agentForm" class="grid grid-cols-1 gap-4" novalidate (ngSubmit)="save(agentForm)">
+        <p class="m-0 text-sm text-muted-color">Les champs marqués d’un astérisque (<span aria-hidden="true">*</span>) sont obligatoires.</p>
+        @if (agentForm.submitted && agentForm.invalid) {
+            <p role="alert" class="m-0 rounded-border border border-red-300 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-100">Le formulaire contient des erreurs : corrigez les champs signalés.</p>
+        }
         <div>
-            <span class="mb-2 block font-semibold">Compte</span>
-            <p-select name="mode" [(ngModel)]="form.mode" [options]="modeOptions" optionLabel="label" optionValue="value" ariaLabel="Type de compte" class="w-full" />
+            <span id="agent-mode-label" class="mb-2 block font-semibold">Compte</span>
+            <p-select name="mode" [(ngModel)]="form.mode" [options]="modeOptions" optionLabel="label" optionValue="value" ariaLabelledBy="agent-mode-label" class="w-full" />
         </div>
         @if (form.mode === 'existing') {
             <div>
-                <label for="agent-account" class="mb-2 block font-semibold">Compte agent</label>
-                <p-select inputId="agent-account" name="user_id" [(ngModel)]="form.user_id" [options]="accountOptions()" optionLabel="label" optionValue="value" [filter]="true" placeholder="Compte « agent » sans profil" emptyMessage="Tous les comptes agents ont déjà un profil" required class="w-full" />
+                <label for="agent-account" id="agent-account-label" class="mb-2 block font-semibold">Compte agent <span class="text-red-600" aria-hidden="true">*</span></label>
+                <p-select
+                    #accountModel="ngModel"
+                    inputId="agent-account"
+                    name="user_id"
+                    [(ngModel)]="form.user_id"
+                    [options]="accountOptions()"
+                    optionLabel="label"
+                    optionValue="value"
+                    [filter]="true"
+                    ariaFilterLabel="Rechercher un compte agent"
+                    placeholder="Compte « agent » sans profil"
+                    emptyMessage="Tous les comptes agents ont déjà un profil"
+                    required
+                    ariaLabelledBy="agent-account-label agent-account-error"
+                    [invalid]="!!accountModel.invalid && !!accountModel.touched"
+                    class="w-full"
+                />
+                <small id="agent-account-error" class="field-error block text-sm text-red-600 dark:text-red-300">
+                    @if (accountModel.invalid && accountModel.touched) {
+                        <span class="block pt-1">Choisissez un compte agent.</span>
+                    }
+                </small>
             </div>
         } @else {
             <div>
-                <label for="agent-name" class="mb-2 block font-semibold">Nom</label>
-                <input pInputText id="agent-name" name="name" [(ngModel)]="form.name" required maxlength="255" class="w-full" />
+                <label for="agent-name" class="mb-2 block font-semibold">Nom <span class="text-red-600" aria-hidden="true">*</span></label>
+                <input
+                    pInputText
+                    #nameModel="ngModel"
+                    id="agent-name"
+                    name="name"
+                    [(ngModel)]="form.name"
+                    required
+                    maxlength="255"
+                    autocomplete="off"
+                    aria-describedby="agent-name-error"
+                    [attr.aria-invalid]="nameModel.invalid && nameModel.touched"
+                    class="w-full"
+                />
+                <small id="agent-name-error" class="field-error block text-sm text-red-600 dark:text-red-300">
+                    @if (nameModel.invalid && nameModel.touched) {
+                        <span class="block pt-1">Le nom est obligatoire.</span>
+                    }
+                </small>
             </div>
             <div>
-                <label for="agent-email" class="mb-2 block font-semibold">Email</label>
-                <input pInputText id="agent-email" name="email" type="email" [(ngModel)]="form.email" required email maxlength="320" class="w-full" />
+                <label for="agent-email" class="mb-2 block font-semibold">Email <span class="text-red-600" aria-hidden="true">*</span></label>
+                <input
+                    pInputText
+                    #emailModel="ngModel"
+                    id="agent-email"
+                    name="email"
+                    type="email"
+                    [(ngModel)]="form.email"
+                    required
+                    email
+                    maxlength="320"
+                    autocomplete="off"
+                    aria-describedby="agent-email-error"
+                    [attr.aria-invalid]="emailModel.invalid && emailModel.touched"
+                    class="w-full"
+                />
+                <small id="agent-email-error" class="field-error block text-sm text-red-600 dark:text-red-300">
+                    @if (emailModel.invalid && emailModel.touched) {
+                        <span class="block pt-1">{{ emailModel.hasError('required') ? 'L’email est obligatoire.' : 'Saisissez une adresse email valide.' }}</span>
+                    }
+                </small>
             </div>
             <div>
-                <label for="agent-password" class="mb-2 block font-semibold">Mot de passe initial</label>
-                <input pInputText id="agent-password" name="password" type="password" [(ngModel)]="form.password" required minlength="10" autocomplete="new-password" class="w-full" />
-                <small class="mt-1 block text-muted-color">10 caractères minimum, avec une minuscule, une majuscule et un chiffre.</small>
+                <label for="agent-password" class="mb-2 block font-semibold">Mot de passe initial <span class="text-red-600" aria-hidden="true">*</span></label>
+                <input
+                    pInputText
+                    #passwordModel="ngModel"
+                    id="agent-password"
+                    name="password"
+                    type="password"
+                    [(ngModel)]="form.password"
+                    required
+                    minlength="10"
+                    autocomplete="new-password"
+                    aria-describedby="agent-password-help agent-password-error"
+                    [attr.aria-invalid]="passwordModel.invalid && passwordModel.touched"
+                    class="w-full"
+                />
+                <small id="agent-password-help" class="mt-1 block text-muted-color">10 caractères minimum, avec une minuscule, une majuscule et un chiffre.</small>
+                <small id="agent-password-error" class="field-error block text-sm text-red-600 dark:text-red-300">
+                    @if (passwordModel.invalid && passwordModel.touched) {
+                        <span class="block pt-1">{{ passwordModel.hasError('required') ? 'Le mot de passe initial est obligatoire.' : 'Le mot de passe doit contenir au moins 10 caractères.' }}</span>
+                    }
+                </small>
             </div>
         }
         <div>
-            <label for="agent-institut" class="mb-2 block font-semibold">Institut</label>
-            <p-select inputId="agent-institut" name="institut_id" [(ngModel)]="form.institut_id" [options]="institutOptions()" optionLabel="label" optionValue="value" placeholder="Institut de rattachement" required class="w-full" />
+            <label for="agent-institut" id="agent-institut-label" class="mb-2 block font-semibold">Institut <span class="text-red-600" aria-hidden="true">*</span></label>
+            <p-select
+                #institutModel="ngModel"
+                inputId="agent-institut"
+                name="institut_id"
+                [(ngModel)]="form.institut_id"
+                [options]="institutOptions()"
+                optionLabel="label"
+                optionValue="value"
+                placeholder="Institut de rattachement"
+                required
+                ariaLabelledBy="agent-institut-label agent-institut-error"
+                [invalid]="!!institutModel.invalid && !!institutModel.touched"
+                class="w-full"
+            />
+            <small id="agent-institut-error" class="field-error block text-sm text-red-600 dark:text-red-300">
+                @if (institutModel.invalid && institutModel.touched) {
+                    <span class="block pt-1">Choisissez l’institut de rattachement.</span>
+                }
+            </small>
         </div>
         <div>
-            <label for="agent-status" class="mb-2 block font-semibold">Disponibilité</label>
-            <p-select inputId="agent-status" name="status" [(ngModel)]="form.status" [options]="statusOptions" optionLabel="label" optionValue="value" required class="w-full" />
+            <label for="agent-status" id="agent-status-label" class="mb-2 block font-semibold">Disponibilité <span class="text-red-600" aria-hidden="true">*</span></label>
+            <p-select inputId="agent-status" name="status" [(ngModel)]="form.status" [options]="statusOptions" optionLabel="label" optionValue="value" required ariaLabelledBy="agent-status-label" class="w-full" />
         </div>
     </form>
 
     <ng-template #footer>
         <button pButton type="button" label="Annuler" icon="pi pi-times" [text]="true" (click)="formDialogVisible = false"></button>
-        <button pButton type="submit" form="agentForm" label="Enregistrer" icon="pi pi-check" [loading]="saving()" [disabled]="!agentForm.valid || saving()"></button>
+        <button pButton type="submit" form="agentForm" label="Enregistrer" icon="pi pi-check" [loading]="saving()" [disabled]="saving()"></button>
     </ng-template>
 </p-dialog>
 
 <p-dialog [(visible)]="moveDialogVisible" [header]="'Changer d\'institut — ' + (movedAgent?.name ?? '')" [modal]="true" [style]="{ width: 'min(28rem, 95vw)' }">
-    <label for="move-institut" class="mb-2 block font-semibold">Nouvel institut</label>
-    <p-select inputId="move-institut" [(ngModel)]="moveInstitutId" [options]="institutOptions()" optionLabel="label" optionValue="value" class="w-full" appendTo="body" />
-    <p class="mb-0 text-sm text-muted-color">Ses demandes en cours restent attribuées ; les nouvelles viendront du nouvel institut.</p>
+    <label for="move-institut" id="move-institut-label" class="mb-2 block font-semibold">Nouvel institut</label>
+    <p-select inputId="move-institut" ariaLabelledBy="move-institut-label move-institut-help" [(ngModel)]="moveInstitutId" [options]="institutOptions()" optionLabel="label" optionValue="value" class="w-full" appendTo="body" />
+    <p id="move-institut-help" class="mb-0 text-sm text-muted-color">Ses demandes en cours restent attribuées ; les nouvelles viendront du nouvel institut.</p>
     <ng-template #footer>
         <p-button label="Annuler" severity="secondary" [text]="true" (onClick)="moveDialogVisible = false" />
         <p-button label="Déplacer" icon="pi pi-check" [disabled]="!moveInstitutId || moveInstitutId === movedAgent?.institut_id" (onClick)="saveMove()" />
@@ -148,7 +247,7 @@
 </p-dialog>
 
 <p-dialog [(visible)]="interventionsDialogVisible" [header]="'Interventions — ' + (selectedAgent?.name ?? '')" [modal]="true" [style]="{ width: 'min(56rem, 95vw)' }">
-    <p-table [value]="interventions()" [loading]="interventionsLoading()" [paginator]="interventions().length > 10" [rows]="10" [tableStyle]="{ 'min-width': '44rem' }">
+    <p-table role="region" [attr.aria-label]="'Interventions de ' + (selectedAgent?.name ?? 'l’agent')" [value]="interventions()" [loading]="interventionsLoading()" [paginator]="interventions().length > 10" [rows]="10" [tableStyle]="{ 'min-width': '44rem' }">
         <ng-template #header>
             <tr>
                 <th>Demande</th>
