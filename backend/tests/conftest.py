@@ -1,7 +1,6 @@
 """Fixtures partagées : une base SQLite en mémoire, neuve pour chaque test."""
 
 from collections.abc import AsyncIterator, Iterator
-from datetime import UTC, datetime
 
 import httpx
 import pytest
@@ -9,10 +8,8 @@ from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from src.domain.user import Role, User
 from src.infrastructure.persistence import models  # noqa: F401  (enregistre les tables)
 from src.infrastructure.persistence.database import Base, get_db
-from src.infrastructure.security.deps import get_current_user
 from src.main import app
 
 
@@ -52,17 +49,25 @@ async def client(engine: Engine) -> AsyncIterator[httpx.AsyncClient]:
             db.close()
 
     app.dependency_overrides[get_db] = override_get_db
-    # Les tests e2e de gestion représentent le back-office : ils disposent d'un ADMIN
-    # explicite, sans contourner les règles de rôle dans le code applicatif.
-    app.dependency_overrides[get_current_user] = lambda: User(
-        id="test-admin",
-        email="admin@test.mg",
-        name="Test Admin",
-        created_at=datetime.now(UTC),
-        password_hash="",
-        role=Role.ADMIN,
-    )
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as http_client:
         yield http_client
     app.dependency_overrides.clear()
+
+
+@pytest.fixture
+async def admin_client(client: httpx.AsyncClient, db_session: Session) -> httpx.AsyncClient:
+    from dataclasses import replace
+
+    from src.domain.user import Role
+    from src.infrastructure.persistence.user_repository import SqlAlchemyUserRepository
+
+    payload = {"email": "admin@test.mg", "name": "Admin", "password": "Motdepasse123"}
+    profile = (await client.post("/api/v1/auth/register", json=payload)).json()
+    repo = SqlAlchemyUserRepository(db_session)
+    user = repo.get_by_id(profile["id"])
+    assert user is not None
+    repo.update(replace(user, role=Role.ADMIN))
+    session = (await client.post("/api/v1/auth/login", json=payload)).json()
+    client.headers["Authorization"] = f"Bearer {session['access_token']}"
+    return client

@@ -1,49 +1,10 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, computed } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { MenuItem } from 'primeng/api';
 
-import { Role } from '@/app/auth/auth.model';
 import { AuthService } from '@/app/auth/auth.service';
 import { AppMenuitem } from '../menuitem/app.menuitem';
-
-interface RoleMenuItem extends MenuItem {
-    roles?: Role[];
-    items?: RoleMenuItem[];
-}
-
-const ALL_ROLES: Role[] = ['admin', 'manager', 'agent', 'citizen'];
-const STAFF_ROLES: Role[] = ['admin', 'manager'];
-const TERRA_NOVA_ROLES: Role[] = ['admin', 'manager', 'agent'];
-
-const MENU_MODEL: RoleMenuItem[] = [
-    {
-        label: 'Home',
-        items: [
-            { label: 'Dashboard', icon: 'pi pi-fw pi-home', routerLink: ['/home/dashboard'], roles: STAFF_ROLES },
-            { label: 'Demandes citoyennes', icon: 'pi pi-fw pi-inbox', routerLink: ['/home/requests'], roles: ALL_ROLES },
-            { label: 'Accueil municipal', icon: 'pi pi-fw pi-building', routerLink: ['/home/municipal'], roles: ALL_ROLES },
-            { label: 'Services municipaux', icon: 'pi pi-fw pi-map-marker', routerLink: ['/home/municipal/services'], roles: ALL_ROLES },
-            { label: 'Publications', icon: 'pi pi-fw pi-megaphone', routerLink: ['/home/municipal/publications'], roles: ALL_ROLES },
-            { label: 'Contacter la mairie', icon: 'pi pi-fw pi-envelope', routerLink: ['/home/municipal/contact'], roles: ALL_ROLES },
-            { label: 'Mes interventions', icon: 'pi pi-fw pi-briefcase', routerLink: ['/home/agent'], roles: ['agent'] },
-            { label: 'Agents', icon: 'pi pi-fw pi-id-card', routerLink: ['/home/agents'], roles: STAFF_ROLES }
-        ]
-    },
-    {
-        label: 'Terra Nova',
-        items: [
-            { label: 'Tableau de bord', icon: 'pi pi-fw pi-chart-line', routerLink: ['/home/terra-nova'], routerLinkActiveOptions: { exact: true }, roles: TERRA_NOVA_ROLES },
-            { label: 'Demandes API', icon: 'pi pi-fw pi-list', routerLink: ['/home/terra-nova/demandes'], roles: TERRA_NOVA_ROLES },
-            { label: 'Notifications', icon: 'pi pi-fw pi-bell', routerLink: ['/home/terra-nova/notifications'], roles: TERRA_NOVA_ROLES },
-            { label: 'Pipeline', icon: 'pi pi-fw pi-objects-column', routerLink: ['/home/terra-nova/pipeline'], roles: TERRA_NOVA_ROLES }
-        ]
-    },
-    {
-        label: 'Démo API',
-        items: [{ label: 'Utilisateurs', icon: 'pi pi-fw pi-users', routerLink: ['/home/users'], roles: ['admin'] }]
-    }
-];
 
 @Component({
     selector: 'app-menu',
@@ -54,16 +15,49 @@ const MENU_MODEL: RoleMenuItem[] = [
 export class AppMenu {
     private readonly auth = inject(AuthService);
 
-    /** Menu dérivé du rôle chargé depuis `/auth/login` ou `/auth/refresh`. */
-    readonly model = computed<MenuItem[]>(() => filterMenu(MENU_MODEL, this.auth.user()?.role));
-}
+    readonly model = computed<MenuItem[]>(() => {
+        const items: MenuItem[] = [{ label: 'Mon espace', icon: 'pi pi-fw pi-user', routerLink: ['/home/account'] }];
 
-function filterMenu(items: RoleMenuItem[], role: Role | undefined): MenuItem[] {
-    return items
-        .filter((item) => !item.roles || (role !== undefined && item.roles.includes(role)))
-        .map((item) => {
-            const children = item.items ? filterMenu(item.items, role) : undefined;
-            return { ...item, ...(children ? { items: children } : {}) };
-        })
-        .filter((item) => !('items' in item) || (item.items?.length ?? 0) > 0);
+        if (this.auth.hasRole('agent')) {
+            items.push({ label: 'Mes interventions', icon: 'pi pi-fw pi-inbox', routerLink: ['/home/agent'] });
+        }
+        if (this.auth.hasRole('manager', 'admin')) {
+            items.push(
+                { label: 'Tableau de bord', icon: 'pi pi-fw pi-home', routerLink: ['/home/dashboard'] },
+                { label: 'Agents', icon: 'pi pi-fw pi-id-card', routerLink: ['/home/agents'] }
+            );
+        }
+        if (this.auth.hasRole('admin')) {
+            items.push(
+                { label: 'Demandes historiques', icon: 'pi pi-fw pi-inbox', routerLink: ['/home/requests'] },
+                { label: 'Utilisateurs', icon: 'pi pi-fw pi-users', routerLink: ['/home/users'] }
+            );
+        }
+        items.push({ label: 'Accueil', icon: 'pi pi-fw pi-globe', routerLink: ['/'] });
+
+        const groups: MenuItem[] = [{ label: 'Kotrana', items }];
+
+        groups.push({
+            label: 'La mairie',
+            items: [
+                { label: 'Accueil municipal', icon: 'pi pi-fw pi-building', routerLink: ['/home/municipal'], routerLinkActiveOptions: { exact: true } },
+                { label: 'Services municipaux', icon: 'pi pi-fw pi-map-marker', routerLink: ['/home/municipal/services'] },
+                { label: 'Publications', icon: 'pi pi-fw pi-megaphone', routerLink: ['/home/municipal/publications'] },
+                { label: 'Contacter la mairie', icon: 'pi pi-fw pi-envelope', routerLink: ['/home/municipal/contact'] }
+            ]
+        });
+
+        if (this.auth.hasRole('agent', 'manager', 'admin')) {
+            groups.push({
+                label: 'Terra Nova',
+                items: [
+                    { label: 'Tableau de bord', icon: 'pi pi-fw pi-chart-line', routerLink: ['/home/terra-nova'], routerLinkActiveOptions: { exact: true } },
+                    { label: 'Demandes API', icon: 'pi pi-fw pi-list', routerLink: ['/home/terra-nova/demandes'] },
+                    { label: 'Notifications', icon: 'pi pi-fw pi-bell', routerLink: ['/home/terra-nova/notifications'] },
+                    { label: 'Pipeline', icon: 'pi pi-fw pi-objects-column', routerLink: ['/home/terra-nova/pipeline'] }
+                ]
+            });
+        }
+        return groups;
+    });
 }

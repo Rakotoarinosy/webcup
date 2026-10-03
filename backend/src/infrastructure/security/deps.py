@@ -83,10 +83,8 @@ def get_current_user(
 
 
 def require_roles(*roles: Role) -> Callable[..., User]:
-    allowed = frozenset(roles)
-
     def dependency(user: User = Depends(get_current_user)) -> User:
-        if user.role is not Role.ADMIN and user.role not in allowed:
+        if not user.has_role(*roles):
             raise ForbiddenError()
         return user
 

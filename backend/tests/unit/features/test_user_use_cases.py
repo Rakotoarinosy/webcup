@@ -1,3 +1,4 @@
+
 import pytest
 
 from src.domain.user import User, UserAlreadyExistsError, UserNotFoundError

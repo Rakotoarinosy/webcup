@@ -1,0 +1,44 @@
+<section class="card" aria-labelledby="account-title">
+    <p class="mb-2 font-semibold text-primary">Mon espace personnel</p>
+    <h1 id="account-title" class="mb-3 text-3xl font-bold">Bonjour {{ auth.user()?.name }}</h1>
+    <p>{{ auth.user()?.email }} · {{ auth.roleLabel() }}</p>
+    <p class="text-muted-color">Vous êtes connecté à votre compte Kotrana.</p>
+    @if (auth.hasRole('manager', 'admin')) {
+        <a routerLink="/home/dashboard" class="mt-3 inline-block font-semibold text-primary">Ouvrir le tableau de bord</a>
+    }
+</section>
+<section class="card" aria-labelledby="demande-title">
+    <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <h2 id="demande-title" class="m-0 text-2xl font-semibold">{{ title() }}</h2>
+        @if (agentLinked()) {
+            <button type="button" (click)="load(result()?.page ?? 1)" [disabled]="loading()" class="rounded-lg border border-surface px-4 py-2">Actualiser</button>
+        }
+    </div>
+    @if (!agentLinked()) {
+        <p>Votre compte agent n’est pas encore rattaché à une fiche d’intervention. Contactez un administrateur.</p>
+    } @else if (loading()) {
+        <p role="status">Chargement de vos demandes…</p>
+    } @else if (error()) {
+        <p role="alert" class="text-red-600">{{ error() }}</p>
+    } @else {
+        @for (demande of result()?.items ?? []; track demande.id) {
+            <article class="border-b border-surface py-5">
+                <div class="flex flex-wrap justify-between gap-3">
+                    <h3 class="m-0 text-lg font-semibold">{{ demande.title }}</h3>
+                    <span class="rounded-lg bg-emphasis px-3 py-1 text-sm">{{ statuses[demande.status] ?? demande.status }}</span>
+                </div>
+                <p class="whitespace-pre-line">{{ demande.description }}</p>
+                <p class="mb-0 text-sm text-muted-color">{{ demande.address }} · {{ demande.created_at | date: 'dd/MM/yyyy' }}</p>
+            </article>
+        } @empty {
+            <p>{{ auth.hasRole('agent') ? 'Aucune intervention ne vous est attribuée pour le moment.' : 'Aucune demande pour le moment.' }}</p>
+        }
+        @if ((result()?.pages ?? 0) > 1) {
+            <nav class="mt-6 flex items-center gap-4" aria-label="Pagination des demandes">
+                <button type="button" (click)="load(result()!.page - 1)" [disabled]="result()!.page <= 1" class="rounded-lg border border-surface px-4 py-2">Précédent</button>
+                <span>Page {{ result()?.page }} sur {{ result()?.pages }}</span>
+                <button type="button" (click)="load(result()!.page + 1)" [disabled]="result()!.page >= result()!.pages" class="rounded-lg border border-surface px-4 py-2">Suivant</button>
+            </nav>
+        }
+    }
+</section>

@@ -4,7 +4,7 @@
         aria-label="Kotrana"
     >
         <div class="pointer-events-none absolute -right-64 -top-72 -z-10 h-[38rem] w-[52rem] rotate-[-17deg] rounded-[49%_51%_54%_46%/42%_45%_55%_58%] border border-emerald-200/25"></div>
-        <a class="inline-flex w-fit items-center gap-3 text-[1.4rem] font-bold tracking-[-.04em]" routerLink="/auth/login" aria-label="Kotrana, accueil"
+        <a class="inline-flex w-fit items-center gap-3 text-[1.4rem] font-bold tracking-[-.04em]" routerLink="/" aria-label="Kotrana, accueil"
             ><span class="grid size-8 place-items-center rounded-[.62rem] bg-emerald-500 text-xl font-black leading-none -skew-y-6">K</span><span>Kotrana</span></a
         >
         <div class="mt-[clamp(5rem,13vh,10rem)] max-w-xl">
@@ -30,7 +30,7 @@
         <div
             class="w-full max-w-[27.5rem] rounded-2xl border border-transparent p-0 sm:max-lg:border-emerald-100 sm:max-lg:bg-white sm:max-lg:p-[clamp(1.6rem,6vw,3rem)] sm:max-lg:shadow-[0_18px_60px_rgba(19,74,50,.08)] dark:sm:max-lg:border-emerald-900 dark:sm:max-lg:bg-emerald-900/40"
         >
-            <a class="mb-14 inline-flex w-fit items-center gap-3 text-[1.4rem] font-bold tracking-[-.04em] lg:hidden" routerLink="/auth/login"
+            <a class="mb-14 inline-flex w-fit items-center gap-3 text-[1.4rem] font-bold tracking-[-.04em] lg:hidden" routerLink="/"
                 ><span class="grid size-8 place-items-center rounded-[.62rem] bg-emerald-500 text-xl font-black leading-none text-white -skew-y-6">K</span><span>Kotrana</span></a
             >
             <header class="mb-8">
@@ -54,8 +54,7 @@
                             placeholder="vous@exemple.mg"
                             class="w-full rounded-xl border-emerald-200 py-3 !pl-11 text-[.95rem] shadow-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/15 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-50"
                             formControlName="email"
-                            [invalid]="loginForm.controls.email.invalid && loginForm.controls.email.touched"
-                            [disabled]="loading()" /></span
+                            [invalid]="loginForm.controls.email.invalid && loginForm.controls.email.touched" /></span
                     ><small class="block min-h-4 pt-1 text-xs text-red-600">
                         @if (loginForm.controls.email.invalid && loginForm.controls.email.touched) {
                             {{ loginForm.controls.email.hasError('required') ? 'L’email est obligatoire.' : 'Saisissez une adresse email valide.' }}
@@ -74,7 +73,6 @@
                         [fluid]="true"
                         inputStyleClass="rounded-xl border-emerald-200 py-3 !pr-11 text-[.95rem] shadow-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/15 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-50"
                         [invalid]="loginForm.controls.password.invalid && loginForm.controls.password.touched"
-                        [disabled]="loading()"
                     /><small class="block min-h-4 pt-1 text-xs text-red-600">
                         @if (loginForm.controls.password.invalid && loginForm.controls.password.touched) {
                             Le mot de passe est obligatoire.

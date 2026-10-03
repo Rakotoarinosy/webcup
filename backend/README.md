@@ -20,9 +20,26 @@ Depuis `backend/` :
 
 ```bash
 make install    # dépendances + .env créé depuis .env.example
-make migrate    # crée ./app.db (SQLite) et la table users
+make migrate    # crée ./app.db (SQLite) et applique toutes les migrations
 make dev        # http://localhost:8000
 ```
+
+Après un `git pull` ou une fusion qui ajoute des migrations, relancer `make migrate`
+avant de démarrer l'API. La migration `a7d3e91b4c20` crée notamment
+`terra_requests`, `terra_sessions` et `terra_request_reads` ; sans elle, la
+synchronisation Terra Nova échoue avec `no such table: terra_sessions`.
+
+Sous PowerShell, sans `make`, exécuter depuis `backend/` :
+
+```powershell
+uv sync --extra dev
+uv run alembic upgrade head
+uv run alembic current  # doit afficher la révision courante (head)
+uv run uvicorn src.main:app --reload
+```
+
+Avec l'URL SQLite par défaut (`sqlite:///./app.db`), lancer Alembic et l'API depuis
+le même dossier `backend/` pour utiliser la même base.
 
 | URL | Contenu |
 |---|---|
@@ -44,11 +61,27 @@ Toutes les variables sont dans [.env.example](.env.example) :
 | `ENVIRONMENT` | `development` | `production` : logs JSON, documentation masquée |
 | `DATABASE_URL` | `sqlite:///./app.db` | PostgreSQL : `postgresql+psycopg://user:pass@host:5432/db` |
 | `CORS_ORIGINS` | `http://localhost:4200` | Origines autorisées, séparées par des virgules |
-| `LOG_LEVEL` | `INFO` | `DEBUG`, `INFO`, `WARNING`, `ERROR` |
-| `SECRET_KEY` | `change-me-in-production` | À remplacer en production |
+| `APP_TIMEZONE` | `Indian/Antananarivo` | Fuseau utilisé pour les dates du tableau de bord |
+| `LOG_LEVEL` | `INFO` | `DEBUG`, `INFO`, `WARNING`, `ERROR` ou `CRITICAL` |
+| `SECRET_KEY` | `change-me-in-production` | Signature JWT ; obligatoire en production, aléatoire et d'au moins 32 caractères |
+| `ACCESS_TOKEN_TTL_MINUTES` | `15` | Durée de vie du token d'accès |
+| `REFRESH_TOKEN_TTL_DAYS` | `7` | Durée de vie du refresh token |
+| `MAX_FAILED_LOGIN_ATTEMPTS` | `5` | Échecs de connexion avant verrouillage temporaire |
+| `LOCKOUT_MINUTES` | `15` | Durée du verrouillage après trop d'échecs |
+| `COOKIE_SAMESITE` | `lax` | Politique SameSite du cookie de refresh : `lax`, `strict` ou `none` |
+| `BOOTSTRAP_ADMIN_EMAIL` | — | Email du premier administrateur ; création au démarrage avec un mot de passe défini |
+| `BOOTSTRAP_ADMIN_PASSWORD` | — | Mot de passe initial du premier administrateur ; à retirer après sa création |
+| `BOOTSTRAP_ADMIN_NAME` | `Administrateur` | Nom du premier administrateur |
+| `GEMINI_API_KEY` | — | Clé Gemini ; sans clé, l'analyse IA est désactivée |
+| `GEMINI_MODEL` | `gemini-2.5-flash` | Modèle Gemini pour l'analyse des demandes |
+| `TERRA_NOVA_API_URL` | URL de l'API WebCup | URL des demandes Terra Nova |
 | `TERRA_NOVA_API_KEY` | — | Clé de l'équipe pour l'API Terra Nova (suivi `/home/terra-nova`) |
 | `TERRA_NOVA_SYNC_SECONDS` | `30` | Intervalle d'interrogation de l'API Terra Nova |
+| `TERRA_NOVA_TIMEOUT_SECONDS` | `15` | Délai maximal d'attente de la réponse Terra Nova |
 | `TERRA_NOVA_BACKGROUND_SYNC` | `true` | `false` : pas de boucle de fond, synchro à la lecture seulement |
+
+Les clés Gemini et Terra Nova sont facultatives, mais les fonctions associées ne seront pas
+disponibles sans elles. Ne partagez et ne commitez jamais un vrai fichier `.env`.
 
 ## Exemples d'appels (domaine `user`)
 

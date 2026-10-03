@@ -11,12 +11,10 @@ import { AppFloatingConfigurator } from '../../layout/component/floatingconfigur
 import { AuthService } from '@/app/auth/auth.service';
 import { apiErrorMessage } from '@/app/users/user.service';
 
-const DEFAULT_REDIRECT = '/home/dashboard';
-
 @Component({
     selector: 'app-login',
     imports: [ButtonModule, InputTextModule, MessageModule, PasswordModule, ReactiveFormsModule, RouterModule, AppFloatingConfigurator],
-    templateUrl: './login.html',
+    templateUrl: './login.html'
 })
 export class Login implements AfterViewInit {
     private readonly auth = inject(AuthService);
@@ -47,11 +45,13 @@ export class Login implements AfterViewInit {
         this.errorMessage.set(null);
 
         const { email, password } = this.loginForm.getRawValue();
+        this.loginForm.disable();
 
         this.auth.login(email.trim(), password).subscribe({
             next: () => this.router.navigateByUrl(this.redirectUrl()),
             error: (error: unknown) => {
                 this.loading.set(false);
+                this.loginForm.enable();
                 this.loginForm.patchValue({ password: '' });
                 this.errorMessage.set(loginErrorMessage(error));
             }
@@ -62,7 +62,7 @@ export class Login implements AfterViewInit {
     private redirectUrl(): string {
         const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
 
-        return returnUrl && returnUrl.startsWith('/') && !returnUrl.startsWith('//') && !returnUrl.startsWith('/auth') ? returnUrl : DEFAULT_REDIRECT;
+        return returnUrl && returnUrl.startsWith('/') && !returnUrl.startsWith('//') && !returnUrl.startsWith('/auth') ? returnUrl : this.auth.homeUrl();
     }
 }
 

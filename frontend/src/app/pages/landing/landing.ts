@@ -1,5 +1,6 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterModule } from '@angular/router';
+import { AuthService } from '@/app/auth/auth.service';
 import { TopbarWidget } from './components/topbarwidget/topbarwidget.component';
 
 @Component({
@@ -8,4 +9,6 @@ import { TopbarWidget } from './components/topbarwidget/topbarwidget.component';
     templateUrl: './landing.html',
     styleUrl: './landing.scss'
 })
-export class Landing {}
+export class Landing {
+    readonly auth = inject(AuthService);
+}

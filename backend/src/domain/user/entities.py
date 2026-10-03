@@ -26,6 +26,10 @@ class User:
     failed_login_attempts: int = 0
     locked_until: datetime | None = None
 
+    def has_role(self, *roles: Role) -> bool:
+        """Active administrators can access every role-protected operation."""
+        return self.is_active and (self.role is Role.ADMIN or self.role in roles)
+
     def is_locked(self, now: datetime) -> bool:
         return self.locked_until is not None and self.locked_until > now
 

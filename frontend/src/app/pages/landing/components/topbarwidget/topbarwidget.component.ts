@@ -3,6 +3,7 @@ import { Router, RouterModule } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { RippleModule } from 'primeng/ripple';
 import { StyleClassModule } from 'primeng/styleclass';
+import { AuthService } from '@/app/auth/auth.service';
 import { AppFloatingConfigurator } from '@/app/layout/component/floatingconfigurator/app.floatingconfigurator';
 
 @Component({
@@ -13,6 +14,7 @@ import { AppFloatingConfigurator } from '@/app/layout/component/floatingconfigur
 })
 export class TopbarWidget {
     readonly router = inject(Router);
+    readonly auth = inject(AuthService);
 
     readonly navItems: readonly { label: string; fragment: string }[] = [
         { label: 'Solution', fragment: 'solution' },
