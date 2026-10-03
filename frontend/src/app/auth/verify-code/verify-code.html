@@ -5,9 +5,9 @@
             ><span class="grid size-8 place-items-center rounded-[.62rem] bg-emerald-500 text-xl font-black leading-none text-white -skew-y-6">K</span><span>Kotrana</span></a
         >
         <header class="mb-6">
-            <h1 id="verify-title" class="mb-2 text-[2rem] font-bold leading-tight tracking-[-.045em]">Vérifiez votre email</h1>
+            <h1 id="verify-title" class="mb-2 text-[2rem] font-bold leading-tight tracking-[-.045em]">{{ challenge()?.channel === 'sms' ? 'Vérifiez votre téléphone' : 'Vérifiez votre email' }}</h1>
             <p class="m-0 leading-6 text-emerald-950/60 dark:text-emerald-50/65">
-                Nous avons envoyé un code à 6 chiffres à <strong class="break-words">{{ challenge()?.email }}</strong
+                Nous avons envoyé un code à 6 chiffres à <strong class="break-words">{{ challenge()?.destination ?? challenge()?.email }}</strong
                 >. Il expire dans {{ expiresInMinutes() }} minutes.
             </p>
         </header>

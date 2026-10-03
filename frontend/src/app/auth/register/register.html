@@ -31,7 +31,7 @@
             >
             <header class="mb-6">
                 <h1 id="register-title" class="mb-2 text-[2rem] font-bold leading-tight tracking-[-.045em]">Créer votre compte</h1>
-                <p class="m-0 leading-6 text-emerald-950/60 dark:text-emerald-50/65">Quelques informations suffisent pour commencer. Un code de confirmation sera envoyé à votre adresse email.</p>
+                <p class="m-0 leading-6 text-emerald-950/60 dark:text-emerald-50/65">Quelques informations suffisent pour commencer. Un code de confirmation sera envoyé {{ method() === 'phone' ? 'par SMS à votre numéro de téléphone' : 'à votre adresse email' }}.</p>
             </header>
             @if (errorMessage()) {
                 <p-message severity="error" [text]="errorMessage()!" icon="pi pi-exclamation-circle" styleClass="mb-4 block" role="alert" />
@@ -72,27 +72,34 @@
                         }
                     </small>
                 </div>
+                <div role="group" aria-label="Méthode de confirmation" class="grid grid-cols-2 gap-1 rounded-xl bg-emerald-50 p-1 dark:bg-emerald-900/60">
+                    <button type="button" [class]="tabClass('email')" [attr.aria-pressed]="method() === 'email'" (click)="setMethod('email')"><i class="pi pi-envelope mr-2" aria-hidden="true"></i>Email</button>
+                    <button type="button" [class]="tabClass('phone')" [attr.aria-pressed]="method() === 'phone'" (click)="setMethod('phone')"><i class="pi pi-phone mr-2" aria-hidden="true"></i>Téléphone</button>
+                </div>
                 <div>
-                    <label for="email" class="mb-2 inline-block text-sm font-semibold">Adresse email</label
+                    <label for="contact" class="mb-2 inline-block text-sm font-semibold">{{ method() === 'phone' ? 'Numéro de téléphone' : 'Adresse email' }}</label
                     ><span class="relative block"
-                        ><i class="pi pi-envelope absolute left-4 top-1/2 z-10 -translate-y-1/2 text-emerald-950/45 dark:text-emerald-50/50" aria-hidden="true"></i
+                        ><i [class]="method() === 'phone' ? 'pi pi-phone' : 'pi pi-envelope'" class="absolute left-4 top-1/2 z-10 -translate-y-1/2 text-emerald-950/45 dark:text-emerald-50/50" aria-hidden="true"></i
                         ><input
                             pInputText
-                            id="email"
-                            type="email"
-                            autocomplete="email"
-                            inputmode="email"
-                            placeholder="vous@exemple.mg"
+                            #contactInput
+                            id="contact"
+                            [type]="method() === 'phone' ? 'tel' : 'email'"
+                            [attr.inputmode]="method() === 'phone' ? 'tel' : 'email'"
+                            [attr.autocomplete]="method() === 'phone' ? 'tel' : 'email'"
+                            [attr.placeholder]="method() === 'phone' ? '034 12 345 67' : 'vous@exemple.mg'"
+                            [attr.maxlength]="method() === 'phone' ? 32 : 320"
                             required
-                            maxlength="320"
-                            aria-describedby="email-error"
-                            [attr.aria-invalid]="registerForm.controls.email.invalid && registerForm.controls.email.touched"
+                            aria-describedby="contact-help contact-error"
+                            [attr.aria-invalid]="registerForm.controls.contact.invalid && registerForm.controls.contact.touched"
                             class="w-full rounded-xl border-emerald-200 py-3 !pl-11 text-[.95rem] shadow-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/15 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-50"
-                            formControlName="email"
-                            [invalid]="registerForm.controls.email.invalid && registerForm.controls.email.touched" /></span
-                    ><small id="email-error" class="field-error block min-h-4 pt-1 text-xs text-red-600 dark:text-red-300">
-                        @if (registerForm.controls.email.invalid && registerForm.controls.email.touched) {
-                            {{ emailError() }}
+                            formControlName="contact"
+                            [invalid]="registerForm.controls.contact.invalid && registerForm.controls.contact.touched" /></span
+                    >@if (method() === 'phone') {
+                        <small id="contact-help" class="block pt-1 text-xs text-emerald-950/60 dark:text-emerald-50/65">Format local (034 12 345 67) ou international (+261 34 12 345 67).</small>
+                    }<small id="contact-error" class="field-error block min-h-4 pt-1 text-xs text-red-600 dark:text-red-300">
+                        @if (registerForm.controls.contact.invalid && registerForm.controls.contact.touched) {
+                            {{ contactError() }}
                         }
                     </small>
                 </div>

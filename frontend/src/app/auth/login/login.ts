@@ -1,6 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { AfterViewInit, Component, ElementRef, Injector, afterNextRender, inject, signal, viewChild } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, ValidatorFn, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
@@ -9,6 +9,8 @@ import { AppFloatingConfigurator } from '../../layout/component/floatingconfigur
 
 import { AuthService } from '@/app/auth/auth.service';
 import { authErrorMessage } from '../auth-errors';
+import { ContactMethod } from '../auth.model';
+import { normalizePhone, phoneValidator } from '../auth.validators';
 import { GoogleButton } from '../google-button/google-button';
 import { safeReturnUrl } from '../return-url';
 
@@ -23,11 +25,16 @@ export class Login implements AfterViewInit {
     private readonly route = inject(ActivatedRoute);
     private readonly fb = inject(FormBuilder);
     private readonly injector = inject(Injector);
-    private readonly emailInput = viewChild<ElementRef<HTMLInputElement>>('emailInput');
+    private readonly identifierInput = viewChild<ElementRef<HTMLInputElement>>('identifierInput');
     private readonly errorSummary = viewChild<ElementRef<HTMLElement>>('errorSummary');
 
+    /** Moyen de connexion choisi : le code de confirmation part par ce canal (email ou SMS). */
+    readonly method = signal<ContactMethod>('email');
+
+    private readonly identifierValidator: ValidatorFn = (control) => (this.method() === 'phone' ? phoneValidator(control) : Validators.email(control));
+
     readonly loginForm = this.fb.nonNullable.group({
-        email: ['', [Validators.required, Validators.email]],
+        identifier: ['', [Validators.required, this.identifierValidator]],
         password: ['', [Validators.required]]
     });
 
@@ -39,7 +46,25 @@ export class Login implements AfterViewInit {
     readonly accountDeleted = this.route.snapshot.queryParamMap.get('accountDeleted') === '1';
 
     ngAfterViewInit(): void {
-        this.emailInput()?.nativeElement.focus();
+        this.identifierInput()?.nativeElement.focus();
+    }
+
+    setMethod(method: ContactMethod): void {
+        if (this.method() === method || this.loading()) return;
+
+        this.method.set(method);
+        this.loginForm.controls.identifier.reset('');
+        this.errorMessage.set(null);
+        this.submitAttempted.set(false);
+        afterNextRender(() => this.identifierInput()?.nativeElement.focus(), { injector: this.injector });
+    }
+
+    /** Classes de l'onglet Email / Téléphone selon qu'il est actif ou non. */
+    tabClass(method: ContactMethod): string {
+        const base = 'rounded-lg px-3 py-2 text-sm font-semibold transition-colors';
+        return this.method() === method
+            ? `${base} bg-white text-emerald-700 shadow-sm dark:bg-emerald-700 dark:text-white`
+            : `${base} text-emerald-950/60 hover:text-emerald-950 dark:text-emerald-50/65 dark:hover:text-emerald-50`;
     }
 
     submit(): void {
@@ -55,13 +80,15 @@ export class Login implements AfterViewInit {
         this.loading.set(true);
         this.errorMessage.set(null);
 
-        const { email, password } = this.loginForm.getRawValue();
+        const { identifier, password } = this.loginForm.getRawValue();
+        // Téléphone : envoyé au format international (+261...), comme l'API le stocke.
+        const value = this.method() === 'phone' ? (normalizePhone(identifier) ?? identifier.trim()) : identifier.trim();
         this.loginForm.disable();
 
-        this.auth.login(email.trim(), password).subscribe({
+        this.auth.login(value, password).subscribe({
             next: (outcome) =>
                 outcome === 'verification-required'
-                    ? // Un code vient d'être envoyé : aucune session avant sa validation.
+                    ? // Un code vient d'être envoyé (email ou SMS) : aucune session avant sa validation.
                       this.router.navigate(['/auth/verify-code'], { queryParams: { returnUrl: this.route.snapshot.queryParamMap.get('returnUrl') } })
                     : this.router.navigateByUrl(this.redirectUrl()),
             error: (error: unknown) => {
@@ -73,15 +100,19 @@ export class Login implements AfterViewInit {
         });
     }
 
-    emailError(): string {
-        return this.loginForm.controls.email.hasError('required') ? 'L’email est obligatoire.' : 'Saisissez une adresse email valide.';
+    identifierError(): string {
+        const phone = this.method() === 'phone';
+        if (this.loginForm.controls.identifier.hasError('required')) {
+            return phone ? 'Le numéro de téléphone est obligatoire.' : 'L’email est obligatoire.';
+        }
+        return phone ? 'Saisissez un numéro valide, par exemple 034 12 345 67 ou +261 34 12 345 67.' : 'Saisissez une adresse email valide.';
     }
 
     /** Erreurs du formulaire, dans l’ordre des champs, pour le récapitulatif. */
     formErrors(): { field: string; message: string }[] {
-        const { email, password } = this.loginForm.controls;
+        const { identifier, password } = this.loginForm.controls;
         const errors: { field: string; message: string }[] = [];
-        if (email.invalid) errors.push({ field: 'email', message: this.emailError() });
+        if (identifier.invalid) errors.push({ field: 'identifier', message: this.identifierError() });
         if (password.invalid) errors.push({ field: 'password', message: 'Le mot de passe est obligatoire.' });
         return errors;
     }
@@ -103,15 +134,20 @@ function loginErrorMessage(error: unknown): string {
         return 'Erreur inattendue, veuillez réessayer.';
     }
 
+    // 429 peut aussi venir du délai anti-spam des codes (ex. email puis téléphone à quelques secondes d'intervalle).
+    if (error.error?.error === 'CodeResendLockedError') {
+        return authErrorMessage(error);
+    }
+
     switch (error.status) {
         case 401:
-            return 'Email ou mot de passe incorrect.';
+            return 'Identifiant ou mot de passe incorrect.';
         case 403:
             return 'Ce compte est désactivé. Contactez un administrateur.';
         case 429:
             return 'Trop de tentatives échouées : le compte est temporairement verrouillé. Réessayez dans quelques minutes.';
         case 422:
-            return 'Vérifiez le format de votre email.';
+            return 'Vérifiez le format de votre email ou de votre numéro de téléphone.';
         default:
             return authErrorMessage(error);
     }
