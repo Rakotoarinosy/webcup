@@ -5,7 +5,8 @@ import { Observable, Subject, catchError, finalize, map, of, shareReplay, switch
 
 import { environment } from '@/environments/environment';
 import { PreferencesService } from '@/app/preferences/preferences.service';
-import { AuthUser, ROLE_LABELS, Role, TokenResponse } from './auth.model';
+import { AuthUser, LoginOutcome, ROLE_LABELS, Role, TokenResponse, VerificationChallenge, isChallenge } from './auth.model';
+import { ChallengeStore } from './challenge.store';
 
 export const AUTH_URL = `${environment.apiUrl}/auth`;
 
@@ -15,12 +16,17 @@ export const AUTH_URL = `${environment.apiUrl}/auth`;
  * L'access token reste en mémoire (jamais dans localStorage : résistant au XSS). Le refresh token
  * est un cookie HttpOnly posé par l'API sur /api/v1/auth : après un rafraîchissement de page,
  * `restoreSession()` appelle /auth/refresh pour récupérer un nouvel access token.
+ *
+ * Confirmation par email : `register` et `login` ne donnent pas de session,
+ * seulement un challenge (voir ChallengeStore). La session s'ouvre après `VerificationService.verify`,
+ * qui appelle `acceptSession`.
  */
 @Injectable({ providedIn: 'root' })
 export class AuthService {
     private readonly http = inject(HttpClient);
     private readonly router = inject(Router);
     private readonly preferences = inject(PreferencesService);
+    private readonly challenges = inject(ChallengeStore);
 
     private readonly token = signal<string | null>(null);
     private readonly sessionEnded = new Subject<void>();
@@ -44,20 +50,63 @@ export class AuthService {
         return this.token();
     }
 
-    login(email: string, password: string): Observable<AuthUser> {
-        return this.http.post<TokenResponse>(`${AUTH_URL}/login`, { email, password }, { withCredentials: true }).pipe(
+    /** Installe une session reçue de l'API (login, code validé, profil ou mot de passe modifié). */
+    acceptSession(response: TokenResponse): void {
+        this.sessionVersion++;
+        this.sessionReplaced.next();
+        this.setSession(response);
+        this.challenges.clear();
+    }
+
+    /**
+     * `'authenticated'` : session ouverte.
+     * `'verification-required'` : code de connexion requis, un code vient d'être envoyé (challenge dans le store).
+     */
+    login(email: string, password: string): Observable<LoginOutcome> {
+        return this.http.post<TokenResponse | VerificationChallenge>(`${AUTH_URL}/login`, { email, password }, { withCredentials: true }).pipe(
             takeUntil(this.sessionEnded),
-            tap((response) => {
-                this.sessionVersion++;
-                this.sessionReplaced.next();
-                this.setSession(response);
-            }),
+            map((body): LoginOutcome => {
+                if (isChallenge(body)) {
+                    this.challenges.set(body);
+                    return 'verification-required';
+                }
+                this.acceptSession(body);
+                return 'authenticated';
+            })
+        );
+    }
+
+    /** Crée le compte non confirmé et envoie le code. Pas de session avant la saisie du code. */
+    register(name: string, email: string, password: string): Observable<LoginOutcome> {
+        return this.http.post<AuthUser | VerificationChallenge>(`${AUTH_URL}/register`, { name, email, password }, { withCredentials: true }).pipe(
+            takeUntil(this.sessionEnded),
+            map((body): LoginOutcome => {
+                if (!isChallenge(body)) {
+                    throw new Error('VERIFICATION_REQUIRED');
+                }
+                this.challenges.set(body);
+                return 'verification-required';
+            })
+        );
+    }
+
+    verifyCode(challenge_id: string, code: string): Observable<AuthUser> {
+        return this.http.post<TokenResponse>(`${AUTH_URL}/verify-code`, { challenge_id, code }, { withCredentials: true }).pipe(
+            takeUntil(this.sessionEnded),
+            tap((response) => this.acceptSession(response)),
             map((response) => response.user)
         );
     }
 
-    register(name: string, email: string, password: string): Observable<AuthUser> {
-        return this.http.post<AuthUser>(`${AUTH_URL}/register`, { name, email, password }, { withCredentials: true }).pipe(switchMap(() => this.login(email, password)));
+    resendCode(challenge_id: string): Observable<VerificationChallenge> {
+        return this.http.post<VerificationChallenge>(`${AUTH_URL}/resend-code`, { challenge_id }, { withCredentials: true }).pipe(takeUntil(this.sessionEnded));
+    }
+
+    requestGoogleLogin(credential: string): Observable<VerificationChallenge> {
+        return this.http.post<VerificationChallenge>(`${AUTH_URL}/google`, { credential }, { withCredentials: true }).pipe(
+            takeUntil(this.sessionEnded),
+            tap((challenge) => this.challenges.set(challenge))
+        );
     }
 
     me(): Observable<AuthUser> {
@@ -127,11 +176,7 @@ export class AuthService {
     updateProfile(name: string, email: string, current_password: string): Observable<AuthUser> {
         return this.http.patch<TokenResponse>(`${AUTH_URL}/me`, { name, email, current_password }, { withCredentials: true }).pipe(
             takeUntil(this.sessionEnded),
-            tap((response) => {
-                this.sessionVersion++;
-                this.sessionReplaced.next();
-                this.setSession(response);
-            }),
+            tap((response) => this.acceptSession(response)),
             map((response) => response.user)
         );
     }
@@ -139,11 +184,7 @@ export class AuthService {
     changePassword(current_password: string, new_password: string): Observable<AuthUser> {
         return this.http.post<TokenResponse>(`${AUTH_URL}/change-password`, { current_password, new_password }, { withCredentials: true }).pipe(
             takeUntil(this.sessionEnded),
-            tap((response) => {
-                this.sessionVersion++;
-                this.sessionReplaced.next();
-                this.setSession(response);
-            }),
+            tap((response) => this.acceptSession(response)),
             map((response) => response.user)
         );
     }
@@ -159,6 +200,7 @@ export class AuthService {
 
     logout(): void {
         this.sessionEnded.next();
+        this.challenges.clear();
         // Déconnexion locale immédiate ; la révocation côté API se fait en arrière-plan.
         this.http.post<void>(`${AUTH_URL}/logout`, {}, { withCredentials: true }).subscribe({ error: () => undefined });
         this.clearSession();
@@ -179,6 +221,9 @@ export class AuthService {
         this.sessionChecked = true;
         this.token.set(response.access_token);
         this.user.set(response.user);
-        this.preferences.load().subscribe({ error: () => undefined });
+        this.preferences
+            .load()
+            .pipe(takeUntil(this.sessionEnded), takeUntil(this.sessionReplaced))
+            .subscribe({ error: () => undefined });
     }
 }

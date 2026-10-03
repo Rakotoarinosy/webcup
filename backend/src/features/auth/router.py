@@ -14,14 +14,19 @@ from src.domain.user import (
     User,
     UserRepository,
 )
+from src.domain.user.ports import GoogleIdentityVerifier
 from src.features.auth.schemas import (
+    ChallengeOut,
     ChangePasswordIn,
     DeleteAccountIn,
+    GoogleLoginIn,
     LoginIn,
     ProfileOut,
     RegisterIn,
+    ResendCodeIn,
     TokenOut,
     UpdateProfileIn,
+    VerifyCodeIn,
 )
 from src.features.auth.use_cases import (
     AuthSession,
@@ -32,8 +37,12 @@ from src.features.auth.use_cases import (
     logout_all,
     refresh,
     register,
+    resend_code,
+    start_google_login,
     update_profile,
+    verify_code,
 )
+from src.features.auth.verification import EmailVerifier, VerificationChallenge
 from src.infrastructure.config.settings import Settings, get_settings
 from src.infrastructure.security.deps import (
     ActorResolver,
@@ -45,8 +54,16 @@ from src.infrastructure.security.deps import (
     get_token_service,
     get_user_repo,
 )
+from src.infrastructure.security.email_verification import get_email_verifier, get_google_verifier
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+@router.get("/config")
+def auth_config(response: Response, settings: Settings = Depends(get_settings)) -> dict[str, str | None]:
+    """Configuration publique uniquement : aucun secret SMTP ou OAuth."""
+    response.headers["Cache-Control"] = "no-store"
+    return {"google_client_id": settings.google_client_id}
+
 
 REFRESH_COOKIE = "refresh_token"
 REFRESH_COOKIE_PATH = "/api/v1/auth"
@@ -84,6 +101,8 @@ def _profile(user: User, resolve: ActorResolver) -> ProfileOut:
         created_at=user.created_at,
         agent_id=actor.agent_id,
         institut_id=actor.institut_id,
+        email_verified=user.email_verified,
+        avatar_url=user.avatar_url,
     )
 
 
@@ -100,16 +119,45 @@ def _respond(
     )
 
 
-@router.post("/register", response_model=ProfileOut, status_code=status.HTTP_201_CREATED)
+def _challenge_out(challenge: VerificationChallenge, response: Response) -> ChallengeOut:
+    response.headers["Cache-Control"] = "no-store"
+
+    return ChallengeOut(
+        challenge_id=challenge.challenge_id,
+        email=challenge.email,
+        expires_in=challenge.expires_in,
+        resend_after=challenge.resend_after,
+    )
+
+
+@router.post(
+    "/register", response_model=ProfileOut | ChallengeOut, status_code=status.HTTP_201_CREATED
+)
 def register_endpoint(
     payload: RegisterIn,
+    response: Response,
     users: UserRepository = Depends(get_user_repo),
     hasher: PasswordHasher = Depends(get_password_hasher),
-) -> User:
-    return register(payload, users, hasher)
+    verifier: EmailVerifier = Depends(get_email_verifier),
+    settings: Settings = Depends(get_settings),
+    resolve: ActorResolver = Depends(get_actor_resolver),
+) -> ProfileOut | ChallengeOut:
+    result = register(
+        payload, users, hasher, verifier
+    )
+    if isinstance(result, VerificationChallenge):
+        return _challenge_out(result, response)
+    response.headers["Cache-Control"] = "no-store"
+    return _profile(result, resolve)
 
 
-@router.post("/login", response_model=TokenOut)
+@router.post(
+    "/login",
+    response_model=TokenOut | ChallengeOut,
+    responses={
+        202: {"model": ChallengeOut, "description": "Double authentification : un code a été envoyé"}
+    },
+)
 def login_endpoint(
     payload: LoginIn,
     response: Response,
@@ -118,12 +166,58 @@ def login_endpoint(
     hasher: PasswordHasher = Depends(get_password_hasher),
     tokens: AccessTokenService = Depends(get_token_service),
     policy: AuthPolicy = Depends(get_auth_policy),
+    verifier: EmailVerifier = Depends(get_email_verifier),
+    settings: Settings = Depends(get_settings),
+    resolve: ActorResolver = Depends(get_actor_resolver),
+) -> TokenOut | ChallengeOut:
+    result = login(payload, users, refresh_repo, hasher, tokens, policy, verifier)
+    if isinstance(result, VerificationChallenge):
+        response.status_code = status.HTTP_202_ACCEPTED
+
+        return _challenge_out(result, response)
+
+    return _respond(result, response, settings, resolve)
+
+
+@router.post("/google", response_model=ChallengeOut)
+def google_login_endpoint(
+    payload: GoogleLoginIn,
+    response: Response,
+    users: UserRepository = Depends(get_user_repo),
+    google: GoogleIdentityVerifier = Depends(get_google_verifier),
+    verifier: EmailVerifier = Depends(get_email_verifier),
+) -> ChallengeOut:
+    """Valide l'ID token Google puis envoie le code par email (à chaque connexion)."""
+    return _challenge_out(start_google_login(payload, users, google, verifier), response)
+
+
+@router.post("/verify-code", response_model=TokenOut)
+def verify_code_endpoint(
+    payload: VerifyCodeIn,
+    response: Response,
+    users: UserRepository = Depends(get_user_repo),
+    refresh_repo: RefreshTokenRepository = Depends(get_refresh_token_repo),
+    verifier: EmailVerifier = Depends(get_email_verifier),
+    tokens: AccessTokenService = Depends(get_token_service),
+    policy: AuthPolicy = Depends(get_auth_policy),
     settings: Settings = Depends(get_settings),
     resolve: ActorResolver = Depends(get_actor_resolver),
 ) -> TokenOut:
-    session = login(payload, users, refresh_repo, hasher, tokens, policy)
+    """Valide le code reçu par email (inscription, email non confirmé ou Google) et ouvre la session."""
+    session = verify_code(payload, users, refresh_repo, verifier, tokens, policy)
 
     return _respond(session, response, settings, resolve)
+
+
+@router.post("/resend-code", response_model=ChallengeOut)
+def resend_code_endpoint(
+    payload: ResendCodeIn,
+    response: Response,
+    users: UserRepository = Depends(get_user_repo),
+    verifier: EmailVerifier = Depends(get_email_verifier),
+) -> ChallengeOut:
+    """Renvoie un code (nouveau challenge_id). 429 pendant le délai anti-spam."""
+    return _challenge_out(resend_code(payload, users, verifier), response)
 
 
 @router.post("/refresh", response_model=TokenOut)

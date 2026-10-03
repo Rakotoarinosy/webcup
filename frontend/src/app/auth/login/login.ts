@@ -9,11 +9,13 @@ import { PasswordModule } from 'primeng/password';
 import { AppFloatingConfigurator } from '../../layout/component/floatingconfigurator/app.floatingconfigurator';
 
 import { AuthService } from '@/app/auth/auth.service';
-import { apiErrorMessage } from '@/app/users/user.service';
+import { authErrorMessage } from '../auth-errors';
+import { GoogleButton } from '../google-button/google-button';
+import { safeReturnUrl } from '../return-url';
 
 @Component({
     selector: 'app-login',
-    imports: [ButtonModule, InputTextModule, MessageModule, PasswordModule, ReactiveFormsModule, RouterModule, AppFloatingConfigurator],
+    imports: [ButtonModule, InputTextModule, MessageModule, PasswordModule, ReactiveFormsModule, RouterModule, AppFloatingConfigurator, GoogleButton],
     templateUrl: './login.html'
 })
 export class Login implements AfterViewInit {
@@ -49,7 +51,11 @@ export class Login implements AfterViewInit {
         this.loginForm.disable();
 
         this.auth.login(email.trim(), password).subscribe({
-            next: () => this.router.navigateByUrl(this.redirectUrl()),
+            next: (outcome) =>
+                outcome === 'verification-required'
+                    ? // Un code vient d'être envoyé : aucune session avant sa validation.
+                      this.router.navigate(['/auth/verify-code'], { queryParams: { returnUrl: this.route.snapshot.queryParamMap.get('returnUrl') } })
+                    : this.router.navigateByUrl(this.redirectUrl()),
             error: (error: unknown) => {
                 this.loading.set(false);
                 this.loginForm.enable();
@@ -61,9 +67,7 @@ export class Login implements AfterViewInit {
 
     /** Page demandée avant la connexion (?returnUrl=), limitée aux chemins internes. */
     private redirectUrl(): string {
-        const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
-
-        return returnUrl && returnUrl.startsWith('/') && !returnUrl.startsWith('//') && !returnUrl.startsWith('/auth') ? returnUrl : this.auth.homeUrl();
+        return safeReturnUrl(this.route.snapshot.queryParamMap.get('returnUrl')) ?? this.auth.homeUrl();
     }
 }
 
@@ -82,6 +86,6 @@ function loginErrorMessage(error: unknown): string {
         case 422:
             return 'Vérifiez le format de votre email.';
         default:
-            return apiErrorMessage(error);
+            return authErrorMessage(error);
     }
 }

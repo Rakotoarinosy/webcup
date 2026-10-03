@@ -9,6 +9,7 @@ Convention (voir shared/errors/handlers.py) : le suffixe du nom fixe le code HTT
   *LockedError          → 429
   *DisabledError        → 403
   *ForbiddenError       → 403
+  *UnavailableError     → 503
   autre DomainError     → 400
 """
 
@@ -27,7 +28,7 @@ class UserAlreadyExistsError(DomainError):
 
 class UserConflictError(DomainError):
     def __init__(self) -> None:
-        super().__init__("Email conflicts with existing data")
+        super().__init__("Email or agent link conflicts with existing data")
 
 
 class InvalidCredentialsError(DomainError):
@@ -70,3 +71,47 @@ class PasswordReuseError(DomainError):
 class LastAdminError(DomainError):
     def __init__(self) -> None:
         super().__init__("At least one active administrator must remain")
+
+
+# ─── Confirmation par email ─────────────────────────────────────────
+
+
+class InvalidVerificationCodeError(DomainError):
+    """Message unique pour code faux, expiré ou challenge inconnu : aucune information en plus."""
+
+    def __init__(self) -> None:
+        super().__init__("Invalid or expired verification code")
+
+
+class VerificationCodeLockedError(DomainError):
+    def __init__(self) -> None:
+        super().__init__("Too many incorrect codes, request a new one")
+
+
+class CodeResendLockedError(DomainError):
+    def __init__(self, retry_after: int) -> None:
+        self.retry_after = retry_after
+        super().__init__(f"A code was just sent, try again in {retry_after} seconds")
+
+
+class EmailDeliveryUnavailableError(DomainError):
+    def __init__(self) -> None:
+        super().__init__("The verification email could not be sent, try again later")
+
+
+# ─── Google ─────────────────────────────────────────────────────────
+
+
+class InvalidGoogleTokenError(DomainError):
+    def __init__(self) -> None:
+        super().__init__("Invalid Google credential")
+
+
+class GoogleSignInUnavailableError(DomainError):
+    def __init__(self) -> None:
+        super().__init__("Google sign-in is currently unavailable")
+
+
+class GoogleEmailNotVerifiedError(DomainError):
+    def __init__(self) -> None:
+        super().__init__("The Google account email is not verified")

@@ -44,12 +44,17 @@ describe('Font size preference', () => {
         });
     }
     it('works for the session when browser storage is blocked', () => {
-        spyOn(Storage.prototype, 'getItem').and.throwError('Storage blocked');
-        spyOn(Storage.prototype, 'setItem').and.throwError('Storage blocked');
-        const service = TestBed.inject(FontScaleService);
-        service.increase();
-        expect(() => TestBed.tick()).not.toThrow();
-        expect(service.scale()).toBe(1.15);
-        expect(document.documentElement.style.getPropertyValue('--font-scale')).toBe('1.15');
+        const read = spyOn(Storage.prototype, 'getItem').and.throwError('Storage blocked');
+        const write = spyOn(Storage.prototype, 'setItem').and.throwError('Storage blocked');
+        try {
+            const service = TestBed.inject(FontScaleService);
+            service.increase();
+            expect(() => TestBed.tick()).not.toThrow();
+            expect(service.scale()).toBe(1.15);
+            expect(document.documentElement.style.getPropertyValue('--font-scale')).toBe('1.15');
+        } finally {
+            read.and.callThrough();
+            write.and.callThrough();
+        }
     });
 });

@@ -2,6 +2,9 @@
 
 Refresh tokens : opaques, stockés hachés (SHA-256), rotatifs (un usage), groupés en « familles ».
 La réutilisation d'un token déjà consommé révoque toute la famille (détection de vol).
+
+Confirmation par email : inscription et connexion Google envoient un code à 6 chiffres ; la session
+n'est délivrée qu'après `verify_code`. Voir verification.py.
 """
 
 import hashlib
@@ -27,8 +30,26 @@ from src.domain.user import (
     UserAlreadyExistsError,
     UserRepository,
 )
-from src.features.auth.schemas import ChangePasswordIn, LoginIn, RegisterIn, UpdateProfileIn
+from src.domain.user.exceptions import (
+    GoogleEmailNotVerifiedError,
+    InvalidVerificationCodeError,
+    UserConflictError,
+)
+from src.domain.user.ports import GoogleIdentityVerifier, GoogleProfile
+from src.domain.user.rules import normalize_email
+from src.features.auth.schemas import (
+    ChangePasswordIn,
+    GoogleLoginIn,
+    LoginIn,
+    RegisterIn,
+    ResendCodeIn,
+    UpdateProfileIn,
+    VerifyCodeIn,
+)
+from src.features.auth.verification import EmailVerifier, VerificationChallenge
 from src.features.user.use_cases import delete_own_account, update_own_profile
+
+GOOGLE_NAME_MAX_LENGTH = 100
 
 
 @dataclass(frozen=True)
@@ -65,20 +86,46 @@ def _issue_session(
     return AuthSession(user=user, access_token=tokens.create(user.id), refresh_token=raw)
 
 
-def register(dto: RegisterIn, users: UserRepository, hasher: PasswordHasher) -> User:
-    if users.get_by_email(dto.email):
+def register(
+    dto: RegisterIn,
+    users: UserRepository,
+    hasher: PasswordHasher,
+    verifier: EmailVerifier | None = None,
+) -> User | VerificationChallenge:
+    """Crée le compte (non confirmé) et envoie le code. La session vient après `verify_code`."""
+    existing = users.get_by_email(dto.email)
+
+    if existing is None:
+        user = users.add(
+            User(
+                id=str(uuid.uuid4()),
+                email=dto.email,
+                name=dto.name,
+                created_at=datetime.now(UTC),
+                password_hash=hasher.hash(dto.password),
+                role=Role.CITIZEN,  # toujours CITIZEN : seul un admin peut changer le rôle
+                email_verified=verifier is None,
+            )
+        )
+
+        return verifier.start(user) if verifier else user
+
+    if verifier is None or not _is_pending_signup(existing):
         raise UserAlreadyExistsError(dto.email)
 
-    user = User(
-        id=str(uuid.uuid4()),
-        email=dto.email,
-        name=dto.name,
-        created_at=datetime.now(UTC),
-        password_hash=hasher.hash(dto.password),
-        role=Role.CITIZEN,  # toujours CITIZEN : seul un admin peut changer le rôle
-    )
+    # Inscription jamais confirmée (faute de frappe, abandon, ou squat de l'email d'autrui) :
+    # on la reprend avec les nouvelles données plutôt que de bloquer l'adresse pour toujours.
+    # `strict=True` AVANT la mise à jour : pendant le délai anti-spam on ne touche à rien, donc
+    # personne ne peut écraser le mot de passe d'une inscription en cours de confirmation.
+    # Le nouveau code invalide l'ancien challenge : seul le dernier inscrit peut confirmer.
+    challenge = verifier.start(existing, strict=True)
+    users.update(replace(existing, name=dto.name, password_hash=hasher.hash(dto.password)))
 
-    return users.add(user)
+    return challenge
+
+
+def _is_pending_signup(user: User) -> bool:
+    return not user.email_verified and user.google_id is None and user.is_active
 
 
 def login(
@@ -88,7 +135,8 @@ def login(
     hasher: PasswordHasher,
     tokens: AccessTokenService,
     policy: AuthPolicy,
-) -> AuthSession:
+    verifier: EmailVerifier | None = None,
+) -> AuthSession | VerificationChallenge:
     now = datetime.now(UTC)
     user = users.get_by_email(dto.email)
 
@@ -126,9 +174,121 @@ def login(
             )
         )
 
+    if verifier is not None:
+        # Chaque connexion exige un code, même si l'adresse est déjà confirmée.
+        return verifier.start(user)
+
+    if not user.email_verified:
+        raise InvalidCredentialsError()
+
     refresh_repo.delete_expired(now)
 
     return _issue_session(user, str(uuid.uuid4()), refresh_repo, tokens, policy, now)
+
+
+def start_google_login(
+    dto: GoogleLoginIn,
+    users: UserRepository,
+    google: GoogleIdentityVerifier,
+    verifier: EmailVerifier,
+) -> VerificationChallenge:
+    """Valide l'ID token Google, crée/retrouve/lie le compte, puis envoie le code par email.
+
+    Le code est demandé à CHAQUE connexion Google (double authentification).
+    """
+    profile = google.verify(dto.credential)
+    if not profile.email_verified:
+        raise GoogleEmailNotVerifiedError()
+
+    user = users.get_by_google_id(profile.subject)
+    if user is None:
+        by_email = users.get_by_email(normalize_email(profile.email))
+        if by_email is None:
+            user = _create_google_user(profile, users)
+        else:
+            user = _link_google(by_email, profile, users)
+    elif profile.picture and profile.picture != user.avatar_url:
+        user = users.update(replace(user, avatar_url=profile.picture))
+
+    if not user.is_active:
+        raise InvalidCredentialsError()  # même réponse qu'un mauvais mot de passe
+
+    return verifier.start(user)
+
+
+def _create_google_user(profile: GoogleProfile, users: UserRepository) -> User:
+    email = normalize_email(profile.email)
+    name = (profile.name or "").strip() or email.split("@")[0]
+
+    return users.add(
+        User(
+            id=str(uuid.uuid4()),
+            email=email,
+            name=name[:GOOGLE_NAME_MAX_LENGTH],
+            created_at=datetime.now(UTC),
+            password_hash="",  # compte Google : pas de mot de passe
+            role=Role.CITIZEN,
+            email_verified=False,  # passe à True à la première confirmation du code
+            google_id=profile.subject,
+            avatar_url=profile.picture,
+        )
+    )
+
+
+def _link_google(user: User, profile: GoogleProfile, users: UserRepository) -> User:
+    """Rattache Google à un compte existant ayant le même email (Google a vérifié cet email)."""
+    if user.google_id is not None and user.google_id != profile.subject:
+        raise UserConflictError()
+    if not user.is_active:
+        raise InvalidCredentialsError()
+
+    return users.update(
+        replace(
+            user,
+            google_id=profile.subject,
+            avatar_url=user.avatar_url or profile.picture,
+            # Anti « pré-piratage » : un compte jamais confirmé a pu être créé par un tiers avec
+            # un mot de passe qu'il connaît. Le vrai propriétaire de l'email arrive via Google :
+            # on efface ce mot de passe.
+            password_hash=user.password_hash if user.email_verified else "",
+        )
+    )
+
+
+def verify_code(
+    dto: VerifyCodeIn,
+    users: UserRepository,
+    refresh_repo: RefreshTokenRepository,
+    verifier: EmailVerifier,
+    tokens: AccessTokenService,
+    policy: AuthPolicy,
+) -> AuthSession:
+    """Valide le code (inscription, connexion Google ou connexion email) et ouvre la session."""
+    user_id = verifier.check(dto.challenge_id, dto.code)
+
+    now = datetime.now(UTC)
+    user = users.get_by_id(user_id)
+    if user is None or not user.is_active:
+        raise InvalidVerificationCodeError()
+    if user.is_locked(now):
+        raise AccountLockedError()
+
+    if not user.email_verified:
+        user = users.update(replace(user, email_verified=True))
+
+    refresh_repo.delete_expired(now)
+
+    return _issue_session(user, str(uuid.uuid4()), refresh_repo, tokens, policy, now)
+
+
+def resend_code(
+    dto: ResendCodeIn, users: UserRepository, verifier: EmailVerifier
+) -> VerificationChallenge:
+    user = users.get_by_id(verifier.owner_of(dto.challenge_id))
+    if user is None or not user.is_active:
+        raise InvalidVerificationCodeError()
+
+    return verifier.start(user, strict=True)
 
 
 def refresh(

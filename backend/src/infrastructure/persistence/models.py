@@ -55,6 +55,13 @@ class UserModel(Base):
     locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
+    # server_default true : les comptes existants sont considérés comme déjà confirmés.
+    email_verified: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true())
+    google_id: Mapped[str | None] = mapped_column(
+        String(64), unique=True, index=True, nullable=True
+    )
+    avatar_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
+
 
 class RefreshTokenModel(Base):
     __tablename__ = "refresh_tokens"
@@ -71,6 +78,18 @@ class RefreshTokenModel(Base):
 
 
 # ─── institut ───────────────────────────────────────────────────────
+
+
+class VerificationCodeModel(Base):
+    __tablename__ = "verification_codes"
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), unique=True, index=True
+    )
+    code_hash: Mapped[str] = mapped_column(String(64))
+    attempts: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
 
 class InstitutModel(Base):

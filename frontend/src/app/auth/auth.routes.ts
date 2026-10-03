@@ -4,10 +4,12 @@ import { Access } from './access/access';
 import { Error } from './error/error';
 import { Login } from './login/login';
 import { Register } from './register/register';
+import { VerifyCode } from './verify-code/verify-code';
 
 export default [
     { path: 'access', component: Access },
     { path: 'error', component: Error },
     { path: 'login', component: Login, canActivate: [guestGuard] },
-    { path: 'register', component: Register, canActivate: [guestGuard] }
+    { path: 'register', component: Register, canActivate: [guestGuard] },
+    { path: 'verify-code', component: VerifyCode, canActivate: [guestGuard] }
 ] as Routes;

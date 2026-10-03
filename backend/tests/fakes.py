@@ -1,5 +1,6 @@
 """Repositories en mémoire pour les tests unitaires : ni base de données, ni HTTP."""
 
+import builtins
 from datetime import datetime
 
 from src.domain.user import RefreshToken, RefreshTokenRepository, Role, User, UserRepository
@@ -16,13 +17,16 @@ class FakeUserRepository(UserRepository):
     def get_by_email(self, email: str) -> User | None:
         return next((user for user in self.users.values() if user.email == email), None)
 
+    def get_by_google_id(self, google_id: str) -> User | None:
+        return next((user for user in self.users.values() if user.google_id == google_id), None)
+
     def count_active_by_role(self, role: Role) -> int:
         return sum(user.role is role and user.is_active for user in self.users.values())
 
     def list(self) -> list[User]:
         return list(self.users.values())
 
-    def list_citizens(self, search: str | None = None) -> "list[User]":
+    def list_citizens(self, search: str | None = None) -> builtins.list[User]:
         users = [user for user in self.users.values() if user.role is Role.CITIZEN]
         if search:
             search = search.casefold()

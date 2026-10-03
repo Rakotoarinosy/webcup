@@ -23,8 +23,16 @@ class User:
     password_hash: str
     role: Role = Role.CITIZEN
     is_active: bool = True
+    # Pour un utilisateur AGENT : lien vers sa fiche agent (« Mes interventions »).
+    agent_id: str | None = None
     failed_login_attempts: int = 0
     locked_until: datetime | None = None
+    # True par défaut : les comptes existants et ceux créés par un admin n'ont pas à confirmer.
+    # Seules l'inscription publique (register) et la 1re connexion Google démarrent à False.
+    email_verified: bool = True
+    # Identifiant stable « sub » de Google (jamais l'email, qui peut changer).
+    google_id: str | None = None
+    avatar_url: str | None = None
 
     def has_role(self, *roles: Role) -> bool:
         """Active administrators can access every role-protected operation."""
@@ -45,6 +53,8 @@ class User:
             is_active=False,
             failed_login_attempts=0,
             locked_until=None,
+            google_id=None,  # unique : l'archive coexiste avec le compte avant sa suppression
+            avatar_url=None,
         )
 
     def is_locked(self, now: datetime) -> bool:
@@ -62,3 +72,19 @@ class RefreshToken:
     expires_at: datetime
     created_at: datetime
     revoked_at: datetime | None = None
+
+
+@dataclass
+class VerificationCode:
+    """Code de confirmation par email (6 chiffres), stocké haché.
+
+    `id` est le « challenge_id » : un secret opaque renvoyé au client qui a déclenché l'envoi.
+    Il faut le posséder pour valider ou renvoyer le code, donc connaître l'email ne suffit pas.
+    """
+
+    id: str
+    user_id: str
+    code_hash: str
+    expires_at: datetime
+    created_at: datetime
+    attempts: int = 0
