@@ -38,9 +38,10 @@ export class VerifyCode {
     readonly expiresInMinutes = computed(() => Math.max(1, Math.round((this.challenge()?.expires_in ?? 0) / 60)));
 
     constructor() {
-        // Pas de challenge (rechargement de page, accès direct) : retour à la connexion.
+        // Pas de challenge (rechargement de page, accès direct) : ne jamais laisser un
+        // utilisateur connecté revenir vers l'écran de connexion.
         if (!this.store.challenge()) {
-            this.router.navigate(['/auth/login']);
+            this.router.navigateByUrl(this.auth.isAuthenticated() ? this.auth.homeUrl() : '/auth/login');
         }
         interval(1000)
             .pipe(takeUntilDestroyed())

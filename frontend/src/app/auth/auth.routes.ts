@@ -11,5 +11,7 @@ export default [
     { path: 'error', component: Error },
     { path: 'login', component: Login, canActivate: [guestGuard] },
     { path: 'register', component: Register, canActivate: [guestGuard] },
-    { path: 'verify-code', component: VerifyCode, canActivate: [guestGuard] }
+    // Le challenge est déjà protégé en mémoire par VerifyCode. Éviter guestGuard ici
+    // empêche une tentative de refresh de session d'interrompre la redirection après /login.
+    { path: 'verify-code', component: VerifyCode }
 ] as Routes;
