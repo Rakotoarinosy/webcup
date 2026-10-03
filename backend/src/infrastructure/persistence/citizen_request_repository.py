@@ -37,6 +37,7 @@ class SqlAlchemyCitizenRequestRepository(CitizenRequestRepository):
         category: RequestCategory | None,
         priority: RequestPriority | None,
         status: RequestStatus | None,
+        citizen_id: str | None,
         sort_by: RequestSortBy,
         sort_order: SortOrder,
     ) -> tuple[list[CitizenRequest], int]:
@@ -56,6 +57,8 @@ class SqlAlchemyCitizenRequestRepository(CitizenRequestRepository):
             filters.append(CitizenRequestModel.priority == priority.value)
         if status is not None:
             filters.append(CitizenRequestModel.status == status.value)
+        if citizen_id is not None:
+            filters.append(CitizenRequestModel.citizen_id == citizen_id)
 
         total = self.db.scalar(
             select(func.count()).select_from(CitizenRequestModel).where(*filters)

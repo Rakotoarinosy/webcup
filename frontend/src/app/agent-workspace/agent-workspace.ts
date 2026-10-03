@@ -20,6 +20,10 @@ export class AgentWorkspace {
     protected readonly error = signal<string | null>(null);
     protected readonly resolving = signal<string | null>(null);
     protected readonly actionRequired = computed(() => this.items().filter((item) => item.status === 'en_cours'));
+    protected readonly pendingCount = computed(() => {
+        const stats = this.summary();
+        return stats ? stats.nouveau + stats.en_attente : 0;
+    });
 
     constructor() {
         this.refresh();

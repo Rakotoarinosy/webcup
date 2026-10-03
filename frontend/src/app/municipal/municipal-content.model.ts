@@ -1,11 +1,14 @@
 export interface MunicipalService {
     id: string;
     name: string;
+    category: string;
     description: string;
     contact_details: string;
     opening_hours: string;
     icon: string;
     display_order: number;
+    is_featured: boolean;
+    usage_count: number;
 }
 
 export interface MunicipalPublication {

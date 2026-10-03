@@ -37,6 +37,9 @@ export class CitizenRequestService {
         if (query.status) {
             params = params.set('status', query.status);
         }
+        if (query.mine) {
+            params = params.set('mine', true);
+        }
 
         return this.http.get<CitizenRequestPage>(this.baseUrl, { params });
     }

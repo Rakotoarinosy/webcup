@@ -1,0 +1,23 @@
+@if (items().length) {
+    <nav class="mb-5 flex items-center justify-between gap-4" aria-label="Fil d’Ariane">
+        <ol class="m-0 flex list-none flex-wrap items-center gap-2 p-0 text-sm">
+            @for (item of items(); track item.url; let last = $last) {
+                <li class="flex items-center gap-2">
+                    @if (last) {
+                        <span class="font-medium text-color" aria-current="page">{{ item.label }}</span>
+                    } @else {
+                        <a class="rounded-sm text-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" [routerLink]="item.url">{{ item.label }}</a>
+                        <i class="pi pi-angle-right text-xs text-muted-color" aria-hidden="true"></i>
+                    }
+                </li>
+            }
+        </ol>
+
+        @if (previous(); as parent) {
+            <a class="inline-flex shrink-0 items-center gap-2 rounded-lg border border-surface px-3 py-2 text-sm text-color hover:bg-emphasis focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" [routerLink]="parent.url">
+                <i class="pi pi-arrow-left" aria-hidden="true"></i>
+                Retour
+            </a>
+        }
+    </nav>
+}

@@ -1,1 +1,40 @@
-<section class="municipal-page"><p class="eyebrow">Informations utiles</p><h1>Services municipaux</h1><p class="intro">Trouvez le bon interlocuteur, ses horaires et les informations pratiques pour vos démarches.</p><div class="service-grid">@for (service of services(); track service.id) { <p-card><ng-template #title><i [class]="'pi ' + service.icon"></i> {{ service.name }}</ng-template><p>{{ service.description }}</p><dl><dt>Contact</dt><dd>{{ service.contact_details }}</dd><dt>Horaires</dt><dd>{{ service.opening_hours }}</dd></dl></p-card> } @empty { <p>Aucun service n'est disponible pour le moment.</p> }</div></section>
+<section class="municipal-page">
+    <p class="eyebrow">Informations utiles</p>
+    <h1>Services municipaux</h1>
+    <p class="intro">Trouvez le bon interlocuteur, ses horaires et les informations pratiques pour vos démarches.</p>
+
+    <form role="search" aria-label="Rechercher un service municipal" class="mb-5">
+        <label for="service-search" class="mb-2 block font-semibold">Rechercher par nom ou catégorie</label>
+        <input id="service-search" type="search" class="w-full rounded border border-surface bg-transparent p-3" [ngModel]="search()" (ngModelChange)="search.set($event)" name="service-search" aria-label="Nom ou catégorie du service" />
+    </form>
+    <p class="sr-only" aria-live="polite">{{ visibleServices().length }} service(s) trouvé(s).</p>
+
+    @if (error(); as message) { <p role="alert" class="mb-4 text-red-600">{{ message }}</p> }
+
+    <div class="service-grid">
+        @for (service of visibleServices(); track service.id) {
+            <p-card>
+                <ng-template #title><i [class]="'pi ' + service.icon" aria-hidden="true"></i> {{ service.name }}</ng-template>
+                <p>{{ service.description }}</p>
+                <dl><dt>Contact</dt><dd>{{ service.contact_details }}</dd><dt>Horaires</dt><dd>{{ service.opening_hours }}</dd></dl>
+                <button type="button" class="inline-flex rounded-lg border border-surface px-3 py-2 text-primary underline focus-visible:outline-2 focus-visible:outline-offset-2" (click)="startService(service)">Commencer une démarche auprès de ce service</button>
+
+                @if (auth.hasRole('manager', 'admin')) {
+                    <div class="mt-4 flex flex-wrap items-end gap-3 border-t border-surface pt-3">
+                        <label class="flex items-center gap-2">
+                            <input type="checkbox" [checked]="service.is_featured" [disabled]="saving() === service.id" (change)="onFeaturedChange(service, $event)" />
+                            <span>Mettre en avant</span>
+                        </label>
+                        <label class="flex items-center gap-2">
+                            <span>Ordre</span>
+                            <input #orderInput type="number" min="0" class="w-20 rounded border border-surface bg-transparent p-2" [value]="service.display_order" [disabled]="saving() === service.id" />
+                        </label>
+                        <button type="button" class="rounded border border-surface px-3 py-2 focus-visible:outline-2" [disabled]="saving() === service.id" (click)="updateFeatured(service, service.is_featured, +orderInput.value)">Enregistrer</button>
+                    </div>
+                }
+            </p-card>
+        } @empty {
+            <p>Aucun service ne correspond à votre recherche.</p>
+        }
+    </div>
+</section>

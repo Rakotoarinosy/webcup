@@ -81,6 +81,7 @@ export interface CitizenRequestQuery {
     status?: RequestStatus;
     sort_by: RequestSortBy;
     sort_order: 'asc' | 'desc';
+    mine?: boolean;
 }
 
 /** Suggestion de l'IA (POST /requests/{id}/analyze) : rien n'est appliqué sans validation. */

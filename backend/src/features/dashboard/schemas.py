@@ -23,6 +23,7 @@ class DashboardStatsOut(BaseModel):
     rejected: int
     resolution_rate: float
     interventions_today: int
+    pending_count: int
     by_status: dict[str, int]
     by_category: dict[str, int]
     by_priority: dict[str, int]

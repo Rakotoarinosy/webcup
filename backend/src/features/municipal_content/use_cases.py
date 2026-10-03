@@ -7,12 +7,41 @@ from src.domain.municipal_content import (
     MunicipalPublication,
     MunicipalPublicationNotFoundError,
     MunicipalService,
+    MunicipalServiceNotFoundError,
 )
-from src.features.municipal_content.schemas import CreateContactMessageIn
+from src.features.municipal_content.schemas import (
+    CreateContactMessageIn,
+    UpdateMunicipalServiceCatalogIn,
+)
 
 
 def list_municipal_services(repo: MunicipalContentRepository) -> list[MunicipalService]:
     return repo.list_services()
+
+
+def list_featured_municipal_services(repo: MunicipalContentRepository) -> list[MunicipalService]:
+    return repo.list_featured_services()
+
+
+def start_municipal_service(service_id: str, repo: MunicipalContentRepository) -> MunicipalService:
+    service = repo.increment_service_usage(service_id)
+    if service is None:
+        raise MunicipalServiceNotFoundError(service_id)
+    return service
+
+
+def update_municipal_service_catalog(
+    service_id: str,
+    dto: UpdateMunicipalServiceCatalogIn,
+    repo: MunicipalContentRepository,
+) -> MunicipalService:
+    updated = repo.update_service_catalog(
+        service_id,
+        **dto.model_dump(exclude_unset=True),
+    )
+    if updated is None:
+        raise MunicipalServiceNotFoundError(service_id)
+    return updated
 
 
 def list_municipal_publications(

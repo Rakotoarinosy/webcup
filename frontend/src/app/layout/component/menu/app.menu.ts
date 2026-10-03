@@ -21,6 +21,9 @@ export class AppMenu {
         if (this.auth.hasRole('agent')) {
             items.push({ label: 'Mes interventions', icon: 'pi pi-fw pi-inbox', routerLink: ['/home/agent'] });
         }
+        if (this.auth.hasRole('citizen')) {
+            items.push({ label: 'Mes demandes', icon: 'pi pi-fw pi-list', routerLink: ['/home/my-requests'] });
+        }
         if (this.auth.hasRole('manager', 'admin')) {
             items.push(
                 { label: 'Tableau de bord', icon: 'pi pi-fw pi-home', routerLink: ['/home/dashboard'] },

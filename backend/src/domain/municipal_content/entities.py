@@ -8,11 +8,14 @@ from datetime import datetime
 class MunicipalService:
     id: str
     name: str
+    category: str
     description: str
     contact_details: str
     opening_hours: str
     icon: str
     display_order: int
+    is_featured: bool
+    usage_count: int
     is_active: bool
 
 
