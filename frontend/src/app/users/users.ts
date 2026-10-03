@@ -1,6 +1,6 @@
 import { DatePipe } from '@angular/common';
 import { Component, inject, OnInit, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
@@ -8,25 +8,40 @@ import { DialogModule } from 'primeng/dialog';
 import { IconFieldModule } from 'primeng/iconfield';
 import { InputIconModule } from 'primeng/inputicon';
 import { InputTextModule } from 'primeng/inputtext';
+import { SelectModule } from 'primeng/select';
+import { CheckboxModule } from 'primeng/checkbox';
+import { PasswordModule } from 'primeng/password';
 import { Table, TableModule } from 'primeng/table';
 import { ToastModule } from 'primeng/toast';
 import { ToolbarModule } from 'primeng/toolbar';
 
-import { CreateUserIn, User } from './user.model';
+import { AgentService } from '../agents/agent.service';
+import { Agent } from '../agents/agent.model';
+import { AuthService } from '../auth/auth.service';
+import { Role, ROLE_LABELS } from '../auth/auth.model';
+import { NAME_VALIDATORS, PASSWORD_VALIDATORS } from '../auth/auth.validators';
+import { CreateUserIn, UpdateUserIn, User } from './user.model';
 import { apiErrorMessage, UserService } from './user.service';
 
-const EMPTY_FORM: CreateUserIn = { email: '', name: '' };
+const EMPTY_FORM = { email: '', name: '', password: '', role: 'citizen' as Role, agent_id: null as string | null, is_active: true };
 
-/** Page de démo branchée sur le backend : CRUD complet sur /api/v1/users. */
+/** Administration des comptes et de leurs autorisations. */
 @Component({
     selector: 'app-users',
-    imports: [DatePipe, FormsModule, ButtonModule, ConfirmDialogModule, DialogModule, IconFieldModule, InputIconModule, InputTextModule, TableModule, ToastModule, ToolbarModule],
+    imports: [DatePipe, ReactiveFormsModule, SelectModule, CheckboxModule, PasswordModule, ButtonModule, ConfirmDialogModule, DialogModule, IconFieldModule, InputIconModule, InputTextModule, TableModule, ToastModule, ToolbarModule],
     templateUrl: './users.html',
     styleUrl: './users.scss',
     providers: [MessageService, ConfirmationService]
 })
 export class Users implements OnInit {
     private readonly userService = inject(UserService);
+    private readonly agentService = inject(AgentService);
+    private readonly auth = inject(AuthService);
+    private readonly fb = inject(FormBuilder);
+    readonly roles = Object.entries(ROLE_LABELS).map(([value, label]) => ({ value, label }));
+    readonly agents = signal<Agent[]>([]);
+    readonly agentsLoading = signal(false);
+    readonly agentError = signal('');
 
     private readonly messageService = inject(MessageService);
 
@@ -43,7 +58,38 @@ export class Users implements OnInit {
     /** Utilisateur en cours d'édition ; null = création. */
     readonly editedUser = signal<User | null>(null);
 
-    form: CreateUserIn = { ...EMPTY_FORM };
+    readonly form = this.fb.nonNullable.group({
+        name: ['', NAME_VALIDATORS],
+        email: ['', [Validators.required, Validators.email]],
+        password: ['', PASSWORD_VALIDATORS],
+        role: ['citizen' as Role, Validators.required],
+        agent_id: this.fb.control<string | null>(null),
+        is_active: [true]
+    });
+
+    roleLabel(role: Role): string {
+        return ROLE_LABELS[role];
+    }
+
+    availableAgents(): Agent[] {
+        const current = this.editedUser();
+        return this.agents().filter((agent) => (agent.is_active || agent.id === current?.agent_id) && !this.users().some((user) => user.id !== current?.id && user.agent_id === agent.id));
+    }
+
+    private loadAgents() {
+        this.agentsLoading.set(true);
+        this.agentError.set('');
+        this.agentService.list().subscribe({
+            next: (agents) => {
+                this.agents.set(agents);
+                this.agentsLoading.set(false);
+            },
+            error: () => {
+                this.agentsLoading.set(false);
+                this.agentError.set('Impossible de charger les fiches agents. Réessayez en rouvrant le formulaire.');
+            }
+        });
+    }
 
     ngOnInit() {
         this.loadUsers();
@@ -65,19 +111,50 @@ export class Users implements OnInit {
 
     openNew() {
         this.editedUser.set(null);
-        this.form = { ...EMPTY_FORM };
+        this.form.reset(EMPTY_FORM);
+        this.form.controls.password.setValidators([Validators.required, ...PASSWORD_VALIDATORS]);
+        this.form.controls.password.updateValueAndValidity();
+        this.loadAgents();
         this.dialogVisible.set(true);
     }
 
     openEdit(user: User) {
         this.editedUser.set(user);
-        this.form = { email: user.email, name: user.name };
+        this.form.reset({ ...user, password: '' });
+        this.form.controls.password.setValidators(PASSWORD_VALIDATORS);
+        this.form.controls.password.updateValueAndValidity();
+        this.loadAgents();
         this.dialogVisible.set(true);
     }
 
     save() {
+        if (this.form.invalid || this.saving()) {
+            this.form.markAllAsTouched();
+            return;
+        }
         const edited = this.editedUser();
-        const request = edited ? this.userService.update(edited.id, this.form) : this.userService.create(this.form);
+        const values = this.form.getRawValue();
+        const payload: CreateUserIn = {
+            name: values.name.trim(),
+            email: values.email.trim().toLowerCase(),
+            password: values.password,
+            role: values.role,
+            agent_id: values.role === 'agent' ? values.agent_id : null
+        };
+        const changes: UpdateUserIn = {};
+        if (edited) {
+            if (payload.name !== edited.name) changes.name = payload.name;
+            if (payload.email !== edited.email) changes.email = payload.email;
+            if (payload.role !== edited.role) changes.role = payload.role;
+            if (payload.agent_id !== edited.agent_id) changes.agent_id = payload.agent_id;
+            if (values.is_active !== edited.is_active) changes.is_active = values.is_active;
+            if (payload.password) changes.password = payload.password;
+            if (Object.keys(changes).length === 0) {
+                this.dialogVisible.set(false);
+                return;
+            }
+        }
+        const request = edited ? this.userService.update(edited.id, changes) : this.userService.create(payload);
 
         this.saving.set(true);
         request.subscribe({
@@ -86,6 +163,11 @@ export class Users implements OnInit {
                 this.showSuccess(edited ? 'Utilisateur modifié' : 'Utilisateur créé');
                 this.saving.set(false);
                 this.dialogVisible.set(false);
+                this.form.controls.password.reset('');
+                if (saved.id === this.auth.user()?.id) {
+                    if (['role', 'is_active', 'email', 'password'].some((key) => key in changes)) this.auth.logout();
+                    else this.auth.me().subscribe({ error: (error) => this.showError(error) });
+                }
             },
             error: (error) => {
                 this.saving.set(false);
@@ -116,6 +198,7 @@ export class Users implements OnInit {
             next: () => {
                 this.users.update((users) => users.filter((u) => u.id !== user.id));
                 this.showSuccess('Utilisateur supprimé');
+                if (user.id === this.auth.user()?.id) this.auth.logout();
             },
             error: (error) => this.showError(error)
         });

@@ -1,80 +1,103 @@
 <p-toast />
-
 <div class="card">
-    <!-- Toolbar -->
     <p-toolbar styleClass="mb-6">
-        <ng-template #start>
-            <p-button label="Nouvel utilisateur" icon="pi pi-plus" (onClick)="openNew()" />
-        </ng-template>
-
-        <ng-template #end>
-            <p-button icon="pi pi-refresh" severity="secondary" [text]="true" [loading]="loading()" (onClick)="loadUsers()" ariaLabel="Recharger" />
-        </ng-template>
+        <ng-template #start><p-button label="Nouvel utilisateur" icon="pi pi-plus" (onClick)="openNew()" /></ng-template>
+        <ng-template #end><p-button icon="pi pi-refresh" severity="secondary" [text]="true" [loading]="loading()" (onClick)="loadUsers()" ariaLabel="Recharger" /></ng-template>
     </p-toolbar>
-
-    <!-- Users table -->
-    <p-table #dt [value]="users()" [loading]="loading()" [rows]="10" [paginator]="users().length > 10" [globalFilterFields]="['name', 'email']" [rowHover]="true" dataKey="id">
+    <p-table #dt [value]="users()" [loading]="loading()" [rows]="10" [paginator]="users().length > 10" [globalFilterFields]="['name', 'email', 'role']" [rowHover]="true" dataKey="id" [tableStyle]="{ 'min-width': '48rem' }">
         <ng-template #caption>
-            <div class="flex items-center justify-between">
+            <div class="users-caption">
                 <div>
                     <h5 class="m-0">Utilisateurs</h5>
-                    <span class="text-muted-color text-sm">Données servies par le backend : GET /api/v1/users</span>
+                    <span class="text-muted-color">Comptes, profils et autorisations</span>
                 </div>
-                <p-iconfield>
-                    <p-inputicon styleClass="pi pi-search" />
-                    <input pInputText type="text" (input)="onGlobalFilter(dt, $event)" placeholder="Rechercher..." />
-                </p-iconfield>
+                <p-iconfield><p-inputicon styleClass="pi pi-search" /><input pInputText type="search" (input)="onGlobalFilter(dt, $event)" placeholder="Rechercher..." aria-label="Rechercher un utilisateur" /></p-iconfield>
             </div>
         </ng-template>
-
-        <ng-template #header>
-            <tr>
+        <ng-template #header
+            ><tr>
                 <th pSortableColumn="name">Nom <p-sortIcon field="name" /></th>
                 <th pSortableColumn="email">Email <p-sortIcon field="email" /></th>
-                <th pSortableColumn="created_at">Créé le <p-sortIcon field="created_at" /></th>
-                <th style="width: 8rem"></th>
-            </tr>
-        </ng-template>
-
-        <ng-template #body let-user>
-            <tr>
+                <th pSortableColumn="role">Profil <p-sortIcon field="role" /></th>
+                <th>Compte</th>
+                <th>Créé le</th>
+                <th>Actions</th>
+            </tr></ng-template
+        >
+        <ng-template #body let-user
+            ><tr>
                 <td>{{ user.name }}</td>
                 <td>{{ user.email }}</td>
-                <td>{{ user.created_at | date: 'dd/MM/yyyy HH:mm' }}</td>
-                <td class="text-right">
-                    <p-button icon="pi pi-pencil" [rounded]="true" [outlined]="true" class="mr-2" (onClick)="openEdit(user)" ariaLabel="Modifier" />
-                    <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (onClick)="confirmDelete(user)" ariaLabel="Supprimer" />
+                <td>
+                    {{ roleLabel(user.role) }}
+                    @if (user.agent_id) {
+                        <small class="block text-muted-color">Fiche agent liée</small>
+                    }
                 </td>
-            </tr>
-        </ng-template>
-
-        <ng-template #emptymessage>
-            <tr>
-                <td colspan="4" class="text-center py-8 text-muted-color">Aucun utilisateur. Cliquez sur « Nouvel utilisateur » pour en créer un.</td>
-            </tr>
-        </ng-template>
+                <td>{{ user.is_active ? 'Actif' : 'Désactivé' }}</td>
+                <td>{{ user.created_at | date: 'dd/MM/yyyy HH:mm' }}</td>
+                <td>
+                    <div class="flex gap-2">
+                        <p-button icon="pi pi-pencil" [rounded]="true" [outlined]="true" (onClick)="openEdit(user)" [ariaLabel]="'Modifier ' + user.name" />
+                        <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (onClick)="confirmDelete(user)" [ariaLabel]="'Supprimer ' + user.name" />
+                    </div>
+                </td></tr
+        ></ng-template>
+        <ng-template #emptymessage
+            ><tr>
+                <td colspan="6" class="text-center py-8 text-muted-color">Aucun utilisateur.</td>
+            </tr></ng-template
+        >
     </p-table>
 </div>
-
-<!-- Create / edit dialog -->
-<p-dialog [(visible)]="dialogVisible" [header]="editedUser() ? 'Modifier l\'utilisateur' : 'Nouvel utilisateur'" [modal]="true" [style]="{ width: '28rem' }">
-    <form #userForm="ngForm" id="userForm" class="flex flex-col gap-6" (ngSubmit)="save()">
+<p-dialog [(visible)]="dialogVisible" [header]="editedUser() ? 'Modifier le compte' : 'Nouvel utilisateur'" [modal]="true" [style]="{ width: '36rem', maxWidth: 'calc(100vw - 2rem)' }" (onHide)="form.controls.password.reset('')">
+    <form [formGroup]="form" id="userForm" class="user-form" (ngSubmit)="save()">
         <div>
-            <label for="name" class="block font-bold mb-3">Nom</label>
-            <input pInputText id="name" name="name" [(ngModel)]="form.name" required maxlength="255" class="w-full" autofocus />
+            <label for="user-name">Nom complet</label><input pInputText id="user-name" formControlName="name" autocomplete="off" class="w-full" />
+            @if (form.controls.name.invalid && form.controls.name.touched) {
+                <small class="text-red-600">Saisissez un nom de 1 à 255 caractères.</small>
+            }
         </div>
         <div>
-            <label for="email" class="block font-bold mb-3">Email</label>
-            <input pInputText id="email" name="email" type="email" [(ngModel)]="form.email" required email class="w-full" />
+            <label for="user-email">Email</label><input pInputText id="user-email" type="email" formControlName="email" autocomplete="off" class="w-full" />
+            @if (form.controls.email.invalid && form.controls.email.touched) {
+                <small class="text-red-600">Saisissez une adresse email valide.</small>
+            }
         </div>
+        <div>
+            <label for="user-password">{{ editedUser() ? 'Nouveau mot de passe (facultatif)' : 'Mot de passe' }}</label>
+            <p-password inputId="user-password" formControlName="password" autocomplete="new-password" [feedback]="false" [toggleMask]="true" [fluid]="true" [invalid]="form.controls.password.invalid && form.controls.password.touched" />
+            <small class="block text-muted-color"
+                >10 à 128 caractères, avec majuscule, minuscule et chiffre.
+                @if (editedUser()) {
+                    Laissez vide pour conserver le mot de passe.
+                }
+            </small>
+            @if (form.controls.password.invalid && form.controls.password.touched) {
+                <small class="text-red-600">Le mot de passe ne respecte pas ces conditions.</small>
+            }
+        </div>
+        <div><label for="user-role">Profil</label><p-select inputId="user-role" formControlName="role" [options]="roles" optionLabel="label" optionValue="value" [fluid]="true" /></div>
+        @if (form.controls.role.value === 'agent') {
+            <div>
+                <label for="user-agent">Fiche agent</label
+                ><p-select inputId="user-agent" formControlName="agent_id" [options]="availableAgents()" optionLabel="name" optionValue="id" [showClear]="true" [loading]="agentsLoading()" placeholder="Aucune fiche liée" [fluid]="true" />
+                <small class="block text-muted-color">Associez la fiche pour permettre à l'agent de consulter ses interventions.</small>
+                @if (agentError()) {
+                    <small class="text-red-600" role="alert">{{ agentError() }}</small>
+                }
+            </div>
+        }
+        @if (editedUser()) {
+            <div class="flex items-center gap-2"><p-checkbox inputId="user-active" formControlName="is_active" [binary]="true" /><label for="user-active" class="!mb-0">Compte actif</label></div>
+            <small class="text-muted-color">Modifier l'email, le profil, l'état ou le mot de passe impose une nouvelle connexion. Le dernier administrateur actif doit être conservé.</small>
+        }
     </form>
-
     <ng-template #footer>
-        <!-- Boutons natifs : `form="userForm"` soumet le formulaire depuis le pied du dialog. -->
-        <button pButton type="button" label="Annuler" icon="pi pi-times" [text]="true" (click)="dialogVisible.set(false)"></button>
-        <button pButton type="submit" form="userForm" label="Enregistrer" icon="pi pi-check" [loading]="saving()" [disabled]="!userForm.valid || saving()"></button>
+        <div class="user-dialog-actions">
+            <button pButton type="button" label="Annuler" [text]="true" [disabled]="saving()" (click)="dialogVisible.set(false)"></button>
+            <button pButton type="submit" form="userForm" label="Enregistrer" icon="pi pi-check" [loading]="saving()" [disabled]="form.invalid || saving()"></button>
+        </div>
     </ng-template>
 </p-dialog>
-
-<!-- Delete confirmation -->
-<p-confirmdialog [style]="{ width: '28rem' }" />
+<p-confirmdialog [style]="{ width: '28rem', maxWidth: 'calc(100vw - 2rem)' }" />

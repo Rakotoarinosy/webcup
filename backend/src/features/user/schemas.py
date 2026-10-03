@@ -2,15 +2,15 @@
 
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict
 
 from src.domain.user import Role
-from src.shared.validation import Email, Password
+from src.shared.validation import Email, Name, Password
 
 
 class CreateUserIn(BaseModel):
     email: Email
-    name: str = Field(min_length=1, max_length=255)
+    name: Name
     password: Password
     role: Role = Role.CITIZEN
     agent_id: str | None = None
@@ -20,7 +20,7 @@ class UpdateUserIn(BaseModel):
     """Mise à jour partielle. `agent_id: null` explicite détache la fiche agent."""
 
     email: Email | None = None
-    name: str | None = Field(default=None, min_length=1, max_length=255)
+    name: Name | None = None
     role: Role | None = None
     is_active: bool | None = None
     agent_id: str | None = None

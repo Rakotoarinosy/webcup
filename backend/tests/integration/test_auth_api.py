@@ -196,3 +196,60 @@ async def test_last_admin_cannot_be_disabled(admin_client: httpx.AsyncClient) ->
     response = await admin_client.patch(f"/api/v1/users/{profile['id']}", json={"is_active": False})
     assert response.status_code == 400
     assert response.json()["error"] == "LastAdminError"
+
+
+@pytest.mark.parametrize("role", list(Role))
+async def test_admin_created_account_can_login_with_its_role(
+    admin_client: httpx.AsyncClient, role: Role
+) -> None:
+    payload = {
+        "name": "  New account  ",
+        "email": f"new-{role.value}@test.mg",
+        "password": PASSWORD,
+        "role": role.value,
+    }
+    created = await admin_client.post("/api/v1/users", json=payload)
+    assert created.status_code == 201
+    assert created.json()["name"] == "New account"
+    headers = await signin(admin_client, payload)
+    profile = (await admin_client.get(f"{AUTH}/me", headers=headers)).json()
+    assert profile["role"] == role.value
+    assert profile["id"] == created.json()["id"]
+
+
+async def test_admin_password_reset_role_change_and_reactivation(
+    admin_client: httpx.AsyncClient,
+) -> None:
+    admin_headers = dict(admin_client.headers)
+    payload = {"name": "Citizen", "email": "reset@test.mg", "password": PASSWORD}
+    created = (await admin_client.post("/api/v1/users", json=payload)).json()
+    url = f"/api/v1/users/{created['id']}"
+    citizen_headers = await signin(admin_client, payload)
+    refresh_cookie = admin_client.cookies.get("refresh_token")
+    new_password = "NouvelleCle123"
+    changed = await admin_client.patch(
+        url, headers=admin_headers, json={"password": new_password, "role": "manager"}
+    )
+    assert changed.status_code == 200
+    assert (await admin_client.get(f"{AUTH}/me", headers=citizen_headers)).json()[
+        "role"
+    ] == "manager"
+    assert (
+        await admin_client.post(
+            f"{AUTH}/refresh", headers={"Cookie": f"refresh_token={refresh_cookie}"}
+        )
+    ).status_code == 401
+    assert (await admin_client.post(f"{AUTH}/login", json=payload)).status_code == 401
+    manager_headers = await signin(admin_client, {**payload, "password": new_password})
+    assert (await admin_client.get("/api/v1/agents", headers=manager_headers)).status_code == 200
+    assert (
+        await admin_client.patch(url, headers=admin_headers, json={"is_active": False})
+    ).status_code == 200
+    assert (await admin_client.get(f"{AUTH}/me", headers=manager_headers)).status_code == 401
+    assert (
+        await admin_client.post(f"{AUTH}/login", json={**payload, "password": new_password})
+    ).status_code == 401
+    assert (
+        await admin_client.patch(url, headers=admin_headers, json={"is_active": True})
+    ).status_code == 200
+    await signin(admin_client, {**payload, "password": new_password})

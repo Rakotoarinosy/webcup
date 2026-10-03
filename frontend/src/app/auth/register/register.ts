@@ -8,6 +8,7 @@ import { MessageModule } from 'primeng/message';
 import { PasswordModule } from 'primeng/password';
 import { AppFloatingConfigurator } from '../../layout/component/floatingconfigurator/app.floatingconfigurator';
 
+import { NAME_VALIDATORS, PASSWORD_VALIDATORS } from '../auth.validators';
 import { AuthService } from '@/app/auth/auth.service';
 import { apiErrorMessage } from '@/app/users/user.service';
 
@@ -33,9 +34,9 @@ export class Register implements AfterViewInit {
 
     readonly registerForm = this.fb.nonNullable.group(
         {
-            name: ['', [Validators.required]],
+            name: ['', NAME_VALIDATORS],
             email: ['', [Validators.required, Validators.email]],
-            password: ['', [Validators.required, Validators.minLength(10), Validators.maxLength(128), Validators.pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/)]],
+            password: ['', [Validators.required, ...PASSWORD_VALIDATORS]],
             confirmPassword: ['', [Validators.required]]
         },
         { validators: passwordMatchValidator }

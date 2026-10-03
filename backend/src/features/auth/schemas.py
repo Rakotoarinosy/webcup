@@ -7,12 +7,12 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from src.shared.validation import Email, Password
+from src.shared.validation import Email, Name, Password
 
 
 class RegisterIn(BaseModel):
     email: Email
-    name: str = Field(min_length=1, max_length=255)
+    name: Name
     password: Password
 
 

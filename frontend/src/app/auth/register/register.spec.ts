@@ -28,6 +28,13 @@ describe('Registration flow', () => {
         component.submit();
         expect(auth.register).not.toHaveBeenCalled();
     });
+    it('rejects blank and oversized names', () => {
+        component.registerForm.setValue({ name: '   ', email: 'r@test.mg', password: 'Motdepasse123', confirmPassword: 'Motdepasse123' });
+        component.submit();
+        component.registerForm.controls.name.setValue('x'.repeat(256));
+        component.submit();
+        expect(auth.register).not.toHaveBeenCalled();
+    });
     it('clears the mismatch when the confirmation is corrected', () => {
         component.registerForm.patchValue({ password: 'Motdepasse123', confirmPassword: 'wrong' });
         expect(component.registerForm.hasError('passwordMismatch')).toBeTrue();
