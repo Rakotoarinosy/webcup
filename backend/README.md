@@ -20,9 +20,26 @@ Depuis `backend/` :
 
 ```bash
 make install    # dépendances + .env créé depuis .env.example
-make migrate    # crée ./app.db (SQLite) et la table users
+make migrate    # crée ./app.db (SQLite) et applique toutes les migrations
 make dev        # http://localhost:8000
 ```
+
+Après un `git pull` ou une fusion qui ajoute des migrations, relancer `make migrate`
+avant de démarrer l'API. La migration `a7d3e91b4c20` crée notamment
+`terra_requests`, `terra_sessions` et `terra_request_reads` ; sans elle, la
+synchronisation Terra Nova échoue avec `no such table: terra_sessions`.
+
+Sous PowerShell, sans `make`, exécuter depuis `backend/` :
+
+```powershell
+uv sync --extra dev
+uv run alembic upgrade head
+uv run alembic current  # doit afficher la révision courante (head)
+uv run uvicorn src.main:app --reload
+```
+
+Avec l'URL SQLite par défaut (`sqlite:///./app.db`), lancer Alembic et l'API depuis
+le même dossier `backend/` pour utiliser la même base.
 
 | URL | Contenu |
 |---|---|
