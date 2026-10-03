@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
 
-from src.domain.user.entities import VerificationCode
+from src.domain.user.entities import Channel, VerificationCode
 from src.domain.user.repository import VerificationCodeRepository
 from src.infrastructure.persistence.models import VerificationCodeModel
 
@@ -19,7 +19,7 @@ class SqlAlchemyVerificationCodeRepository(VerificationCodeRepository):
             self.db.execute(
                 delete(VerificationCodeModel).where(VerificationCodeModel.user_id == code.user_id)
             )
-            self.db.add(VerificationCodeModel(**vars(code)))
+            self.db.add(VerificationCodeModel(**{**vars(code), "channel": code.channel.value}))
             self.db.commit()
         except Exception:
             self.db.rollback()
@@ -86,6 +86,7 @@ class SqlAlchemyVerificationCodeRepository(VerificationCodeRepository):
             user_id=model.user_id,
             code_hash=model.code_hash,
             attempts=model.attempts,
+            channel=Channel(model.channel),
             expires_at=model.expires_at.replace(tzinfo=model.expires_at.tzinfo or UTC),
             created_at=model.created_at.replace(tzinfo=model.created_at.tzinfo or UTC),
         )

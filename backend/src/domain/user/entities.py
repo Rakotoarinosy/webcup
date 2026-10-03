@@ -7,6 +7,13 @@ from enum import StrEnum
 from src.domain.user.exceptions import ForbiddenError
 
 
+class Channel(StrEnum):
+    """Canal d'envoi du code de confirmation."""
+
+    EMAIL = "email"
+    SMS = "sms"
+
+
 class Role(StrEnum):
     ADMIN = "admin"
     MANAGER = "manager"
@@ -17,7 +24,7 @@ class Role(StrEnum):
 @dataclass
 class User:
     id: str
-    email: str
+    email: str | None  # None pour un compte créé avec un numéro de téléphone seul
     name: str
     created_at: datetime
     password_hash: str
@@ -33,6 +40,15 @@ class User:
     # Identifiant stable « sub » de Google (jamais l'email, qui peut changer).
     google_id: str | None = None
     avatar_url: str | None = None
+    # Numéro au format E.164 (+261341234567), unique. Au moins un de email / phone est renseigné.
+    phone: str | None = None
+    phone_verified: bool = False
+
+    @property
+    def has_verified_contact(self) -> bool:
+        return (self.email is not None and self.email_verified) or (
+            self.phone is not None and self.phone_verified
+        )
 
     def has_role(self, *roles: Role) -> bool:
         """Active administrators can access every role-protected operation."""
@@ -55,6 +71,8 @@ class User:
             locked_until=None,
             google_id=None,  # unique : l'archive coexiste avec le compte avant sa suppression
             avatar_url=None,
+            phone=None,  # unique : même raison que google_id
+            phone_verified=False,
         )
 
     def is_locked(self, now: datetime) -> bool:
@@ -76,7 +94,7 @@ class RefreshToken:
 
 @dataclass
 class VerificationCode:
-    """Code de confirmation par email (6 chiffres), stocké haché.
+    """Code de confirmation (6 chiffres, par email ou SMS), stocké haché.
 
     `id` est le « challenge_id » : un secret opaque renvoyé au client qui a déclenché l'envoi.
     Il faut le posséder pour valider ou renvoyer le code, donc connaître l'email ne suffit pas.
@@ -88,3 +106,4 @@ class VerificationCode:
     expires_at: datetime
     created_at: datetime
     attempts: int = 0
+    channel: Channel = Channel.EMAIL

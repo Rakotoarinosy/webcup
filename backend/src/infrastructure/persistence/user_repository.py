@@ -42,6 +42,11 @@ class SqlAlchemyUserRepository(UserRepository):
 
         return self._to_entity(model) if model else None
 
+    def get_by_phone(self, phone: str) -> User | None:
+        model = self.db.scalar(select(UserModel).where(UserModel.phone == phone))
+
+        return self._to_entity(model) if model else None
+
     def get_by_google_id(self, google_id: str) -> User | None:
         model = self.db.scalar(select(UserModel).where(UserModel.google_id == google_id))
         return self._to_entity(model) if model else None
@@ -132,7 +137,13 @@ class SqlAlchemyUserRepository(UserRepository):
         stmt = select(UserModel).where(UserModel.role == Role.CITIZEN.value)
         if search:
             pattern = f"%{search}%"
-            stmt = stmt.where(or_(UserModel.name.ilike(pattern), UserModel.email.ilike(pattern)))
+            stmt = stmt.where(
+                or_(
+                    UserModel.name.ilike(pattern),
+                    UserModel.email.ilike(pattern),
+                    UserModel.phone.ilike(pattern),
+                )
+            )
         models = self.db.scalars(stmt.order_by(UserModel.created_at))
         return [self._to_entity(model) for model in models]
 
@@ -159,6 +170,8 @@ class SqlAlchemyUserRepository(UserRepository):
             email_verified=model.email_verified,
             google_id=model.google_id,
             avatar_url=model.avatar_url,
+            phone=model.phone,
+            phone_verified=model.phone_verified,
         )
 
     def _to_model(self, user: User) -> UserModel:
@@ -175,4 +188,6 @@ class SqlAlchemyUserRepository(UserRepository):
             email_verified=user.email_verified,
             google_id=user.google_id,
             avatar_url=user.avatar_url,
+            phone=user.phone,
+            phone_verified=user.phone_verified,
         )

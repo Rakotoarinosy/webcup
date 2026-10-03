@@ -3,8 +3,9 @@
 Refresh tokens : opaques, stockés hachés (SHA-256), rotatifs (un usage), groupés en « familles ».
 La réutilisation d'un token déjà consommé révoque toute la famille (détection de vol).
 
-Confirmation par email : inscription et connexion Google envoient un code à 6 chiffres ; la session
-n'est délivrée qu'après `verify_code`. Voir verification.py.
+Confirmation par code : l'inscription (email ou téléphone), la connexion et la connexion Google
+envoient un code à 6 chiffres (email ou SMS) ; la session n'est délivrée qu'après `verify_code`.
+Voir verification.py.
 """
 
 import hashlib
@@ -30,13 +31,14 @@ from src.domain.user import (
     UserAlreadyExistsError,
     UserRepository,
 )
+from src.domain.user.entities import Channel
 from src.domain.user.exceptions import (
     GoogleEmailNotVerifiedError,
     InvalidVerificationCodeError,
     UserConflictError,
 )
 from src.domain.user.ports import GoogleIdentityVerifier, GoogleProfile
-from src.domain.user.rules import normalize_email
+from src.domain.user.rules import is_email_identifier, normalize_email
 from src.features.auth.schemas import (
     ChangePasswordIn,
     GoogleLoginIn,
@@ -92,40 +94,52 @@ def register(
     hasher: PasswordHasher,
     verifier: EmailVerifier | None = None,
 ) -> User | VerificationChallenge:
-    """Crée le compte (non confirmé) et envoie le code. La session vient après `verify_code`."""
-    existing = users.get_by_email(dto.email)
+    """Crée le compte (non confirmé) et envoie le code. La session vient après `verify_code`.
+
+    Le code part par email si un email est fourni, par SMS si c'est un numéro.
+    """
+    if dto.email is not None:
+        channel, identifier = Channel.EMAIL, dto.email
+        existing = users.get_by_email(identifier)
+    else:
+        assert dto.phone is not None  # garanti par RegisterIn
+        channel, identifier = Channel.SMS, dto.phone
+        existing = users.get_by_phone(identifier)
 
     if existing is None:
+        confirmed = verifier is None
         user = users.add(
             User(
                 id=str(uuid.uuid4()),
                 email=dto.email,
+                phone=dto.phone,
                 name=dto.name,
                 created_at=datetime.now(UTC),
                 password_hash=hasher.hash(dto.password),
                 role=Role.CITIZEN,  # toujours CITIZEN : seul un admin peut changer le rôle
-                email_verified=verifier is None,
+                email_verified=confirmed,
+                phone_verified=confirmed,
             )
         )
 
-        return verifier.start(user) if verifier else user
+        return verifier.start(user, channel) if verifier else user
 
     if verifier is None or not _is_pending_signup(existing):
-        raise UserAlreadyExistsError(dto.email)
+        raise UserAlreadyExistsError(identifier)
 
-    # Inscription jamais confirmée (faute de frappe, abandon, ou squat de l'email d'autrui) :
-    # on la reprend avec les nouvelles données plutôt que de bloquer l'adresse pour toujours.
-    # `strict=True` AVANT la mise à jour : pendant le délai anti-spam on ne touche à rien, donc
-    # personne ne peut écraser le mot de passe d'une inscription en cours de confirmation.
-    # Le nouveau code invalide l'ancien challenge : seul le dernier inscrit peut confirmer.
-    challenge = verifier.start(existing, strict=True)
+    # Inscription jamais confirmée (faute de frappe, abandon, ou squat de l'email / du numéro
+    # d'autrui) : on la reprend avec les nouvelles données plutôt que de bloquer l'identifiant
+    # pour toujours. `strict=True` AVANT la mise à jour : pendant le délai anti-spam on ne touche
+    # à rien, donc personne ne peut écraser le mot de passe d'une inscription en cours de
+    # confirmation. Le nouveau code invalide l'ancien challenge : seul le dernier inscrit confirme.
+    challenge = verifier.start(existing, channel, strict=True)
     users.update(replace(existing, name=dto.name, password_hash=hasher.hash(dto.password)))
 
     return challenge
 
 
 def _is_pending_signup(user: User) -> bool:
-    return not user.email_verified and user.google_id is None and user.is_active
+    return not user.has_verified_contact and user.google_id is None and user.is_active
 
 
 def login(
@@ -138,7 +152,11 @@ def login(
     verifier: EmailVerifier | None = None,
 ) -> AuthSession | VerificationChallenge:
     now = datetime.now(UTC)
-    user = users.get_by_email(dto.email)
+    by_email = is_email_identifier(dto.identifier)
+    channel = Channel.EMAIL if by_email else Channel.SMS
+    user = (
+        users.get_by_email(dto.identifier) if by_email else users.get_by_phone(dto.identifier)
+    )
 
     if user is None:
         hasher.hash(dto.password)  # égalise le temps de réponse (anti-énumération de comptes)
@@ -175,10 +193,10 @@ def login(
         )
 
     if verifier is not None:
-        # Chaque connexion exige un code, même si l'adresse est déjà confirmée.
-        return verifier.start(user)
+        # Chaque connexion exige un code, même si le contact est déjà confirmé.
+        return verifier.start(user, channel)
 
-    if not user.email_verified:
+    if not user.has_verified_contact:
         raise InvalidCredentialsError()
 
     refresh_repo.delete_expired(now)
@@ -213,7 +231,7 @@ def start_google_login(
     if not user.is_active:
         raise InvalidCredentialsError()  # même réponse qu'un mauvais mot de passe
 
-    return verifier.start(user)
+    return verifier.start(user, Channel.EMAIL)
 
 
 def _create_google_user(profile: GoogleProfile, users: UserRepository) -> User:
@@ -263,18 +281,21 @@ def verify_code(
     tokens: AccessTokenService,
     policy: AuthPolicy,
 ) -> AuthSession:
-    """Valide le code (inscription, connexion Google ou connexion email) et ouvre la session."""
-    user_id = verifier.check(dto.challenge_id, dto.code)
+    """Valide le code (inscription, connexion Google, email ou SMS) et ouvre la session."""
+    checked = verifier.check(dto.challenge_id, dto.code)
 
     now = datetime.now(UTC)
-    user = users.get_by_id(user_id)
+    user = users.get_by_id(checked.user_id)
     if user is None or not user.is_active:
         raise InvalidVerificationCodeError()
     if user.is_locked(now):
         raise AccountLockedError()
 
-    if not user.email_verified:
+    # Le code prouve la possession du contact par lequel il est arrivé.
+    if checked.channel is Channel.EMAIL and not user.email_verified:
         user = users.update(replace(user, email_verified=True))
+    elif checked.channel is Channel.SMS and not user.phone_verified:
+        user = users.update(replace(user, phone_verified=True))
 
     refresh_repo.delete_expired(now)
 
@@ -284,11 +305,12 @@ def verify_code(
 def resend_code(
     dto: ResendCodeIn, users: UserRepository, verifier: EmailVerifier
 ) -> VerificationChallenge:
-    user = users.get_by_id(verifier.owner_of(dto.challenge_id))
+    stored = verifier.get_challenge(dto.challenge_id)
+    user = users.get_by_id(stored.user_id)
     if user is None or not user.is_active:
         raise InvalidVerificationCodeError()
 
-    return verifier.start(user, strict=True)
+    return verifier.start(user, stored.channel, strict=True)
 
 
 def refresh(

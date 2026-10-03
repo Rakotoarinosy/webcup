@@ -60,6 +60,12 @@ class EmailSender(ABC):
         """Envoie le code. Lève EmailDeliveryUnavailableError en cas d'échec."""
 
 
+class SmsSender(ABC):
+    @abstractmethod
+    def send_verification_code(self, to: str, code: str, ttl_minutes: int) -> None:
+        """Envoie le code au numéro `to` (E.164). Lève SmsDeliveryUnavailableError en cas d'échec."""
+
+
 # ─── Google ─────────────────────────────────────────────────────────
 
 
