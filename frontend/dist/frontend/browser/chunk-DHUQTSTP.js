@@ -1,1 +1,0 @@
-import{d as t}from"./chunk-P42LRUQT.js";var e=a=>typeof a.value=="string"&&a.value.trim().length>0?null:{required:!0},o=[e,t.maxLength(255)],i=[t.minLength(10),t.maxLength(128),t.pattern(/^(?=[\s\S]*[a-z])(?=[\s\S]*[A-Z])(?=[\s\S]*\d)[\s\S]+$/)];export{o as a,i as b};
