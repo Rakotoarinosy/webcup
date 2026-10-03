@@ -18,7 +18,7 @@ from src.domain.citizen_request import (
     RequestStatus,
     SortOrder,
 )
-from src.domain.user import Role, UserRepository
+from src.domain.user import ForbiddenError, Role, User, UserRepository
 from src.features.citizen_request.schemas import (
     CitizenRequestOut,
     CitizenRequestPageOut,
@@ -45,7 +45,7 @@ from src.infrastructure.persistence.citizen_request_repository import (
 )
 from src.infrastructure.persistence.database import get_db
 from src.infrastructure.persistence.user_repository import SqlAlchemyUserRepository
-from src.infrastructure.security.deps import require_roles
+from src.infrastructure.security.deps import get_current_user, require_roles
 
 request_router = APIRouter(prefix="/requests", tags=["citizen requests"])
 dashboard_router = APIRouter(prefix="/dashboard", tags=["dashboard"])
@@ -83,10 +83,20 @@ def get_request_analyzer() -> RequestAnalyzer:
 )
 def create_request_endpoint(
     payload: CreateCitizenRequestIn,
+    user: User = Depends(require_roles(Role.CITIZEN, Role.MANAGER)),
     repo: CitizenRequestRepository = Depends(get_request_repo),
     users: UserRepository = Depends(get_users_repo),
     agents: AgentRepository = Depends(get_agents_repo),
 ) -> CitizenRequest:
+    if user.role is Role.CITIZEN:
+        payload = payload.model_copy(
+            update={
+                "citizen_id": user.id,
+                "status": RequestStatus.NEW,
+                "priority": RequestPriority.NORMAL,
+                "assigned_agent_id": None,
+            }
+        )
     return create_citizen_request(payload, repo, users, agents)
 
 
@@ -98,10 +108,15 @@ def list_requests_endpoint(
     category: RequestCategory | None = None,
     priority: RequestPriority | None = None,
     request_status: RequestStatus | None = Query(default=None, alias="status"),
+    mine: bool = False,
     sort_by: RequestSortBy = RequestSortBy.CREATED_AT,
     sort_order: SortOrder = SortOrder.DESC,
+    user: User = Depends(get_current_user),
     repo: CitizenRequestRepository = Depends(get_request_repo),
 ) -> CitizenRequestPageOut:
+    if user.role is Role.AGENT:
+        raise ForbiddenError("Use the agent demandes workspace")
+    citizen_id = user.id if mine or user.role is Role.CITIZEN else None
     items, total = list_citizen_requests(
         repo,
         page=page,
@@ -110,8 +125,9 @@ def list_requests_endpoint(
         category=category,
         priority=priority,
         status=request_status,
-        sort_by=sort_by,
-        sort_order=sort_order,
+        citizen_id=citizen_id,
+        sort_by=RequestSortBy.CREATED_AT if mine else sort_by,
+        sort_order=SortOrder.DESC if mine else sort_order,
     )
 
     return CitizenRequestPageOut(
@@ -126,9 +142,15 @@ def list_requests_endpoint(
 @request_router.get("/{request_id}", response_model=CitizenRequestOut)
 def get_request_endpoint(
     request_id: str,
+    user: User = Depends(get_current_user),
     repo: CitizenRequestRepository = Depends(get_request_repo),
 ) -> CitizenRequest:
-    return get_citizen_request(request_id, repo)
+    request = get_citizen_request(request_id, repo)
+    if user.role is Role.CITIZEN and request.citizen_id != user.id:
+        raise ForbiddenError()
+    if user.role is Role.AGENT and request.assigned_agent_id != user.agent_id:
+        raise ForbiddenError()
+    return request
 
 
 @request_router.post(
@@ -151,6 +173,7 @@ def analyze_request_endpoint(
 def update_request_endpoint(
     request_id: str,
     payload: UpdateCitizenRequestIn,
+    _: User = Depends(require_roles(Role.MANAGER)),
     repo: CitizenRequestRepository = Depends(get_request_repo),
     users: UserRepository = Depends(get_users_repo),
     agents: AgentRepository = Depends(get_agents_repo),
@@ -161,6 +184,7 @@ def update_request_endpoint(
 @request_router.delete("/{request_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_request_endpoint(
     request_id: str,
+    _: User = Depends(require_roles(Role.MANAGER)),
     repo: CitizenRequestRepository = Depends(get_request_repo),
 ) -> None:
     delete_citizen_request(request_id, repo)

@@ -19,6 +19,7 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    false,
     true,
 )
 from sqlalchemy.orm import Mapped, mapped_column
@@ -189,11 +190,18 @@ class MunicipalServiceModel(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
+    category: Mapped[str] = mapped_column(
+        String(80), nullable=False, default="Autres", server_default="Autres"
+    )
     description: Mapped[str] = mapped_column(Text, nullable=False)
     contact_details: Mapped[str] = mapped_column(String(500), nullable=False)
     opening_hours: Mapped[str] = mapped_column(String(255), nullable=False)
     icon: Mapped[str] = mapped_column(String(80), nullable=False, default="pi-building")
     display_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    is_featured: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=false()
+    )
+    usage_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     is_active: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=True, server_default=true()
     )

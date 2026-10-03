@@ -22,3 +22,9 @@ class DemandeRepository(ABC):
 
     @abstractmethod
     def delete(self, demande_id: str) -> None: ...
+
+    @abstractmethod
+    def pending_count(self) -> int: ...
+
+    @abstractmethod
+    def pending_count_for_agent(self, agent_id: str) -> int: ...

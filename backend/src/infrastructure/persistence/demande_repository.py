@@ -77,6 +77,21 @@ class SqlAlchemyDemandeRepository(DemandeRepository):
             self.db.delete(model)
         self.db.commit()
 
+    def pending_count(self) -> int:
+        return self._pending_count()
+
+    def pending_count_for_agent(self, agent_id: str) -> int:
+        return self._pending_count(agent_id=agent_id)
+
+    def _pending_count(self, *, agent_id: str | None = None) -> int:
+        conditions = [DemandeModel.status.in_((Status.NOUVEAU.value, Status.EN_ATTENTE.value))]
+        if agent_id is not None:
+            conditions.append(DemandeModel.agent_id == agent_id)
+
+        return (
+            self.db.scalar(select(func.count()).select_from(DemandeModel).where(*conditions)) or 0
+        )
+
     # ─── Filtres ────────────────────────────────────────────────────
 
     def _conditions(self, query: DemandeQuery) -> list[ColumnElement[bool]]:

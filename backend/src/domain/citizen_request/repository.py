@@ -28,6 +28,7 @@ class CitizenRequestRepository(ABC):
         category: RequestCategory | None,
         priority: RequestPriority | None,
         status: RequestStatus | None,
+        citizen_id: str | None,
         sort_by: RequestSortBy,
         sort_order: SortOrder,
     ) -> tuple[list[CitizenRequest], int]: ...

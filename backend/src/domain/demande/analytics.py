@@ -43,6 +43,7 @@ class DashboardStats:
     by_category: dict[str, int]
     by_priority: dict[str, int]
     daily: list[DailyCount]  # un élément par jour, du plus ancien à aujourd'hui
+    pending_count: int = 0
 
 
 class DemandeAnalytics(ABC):

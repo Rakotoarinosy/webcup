@@ -19,6 +19,18 @@
     </section>
 
     <section>
+        <div class="section-heading"><div><p class="eyebrow">Les plus demandés</p><h2>Services les plus utilisés</h2></div><a routerLink="/home/municipal/services">Tous les services</a></div>
+        @if (startError(); as message) { <p role="alert">{{ message }}</p> }
+        <div class="cards">
+            @for (service of featuredServices(); track service.id) {
+                <button type="button" class="cursor-pointer border-0 bg-transparent p-0 text-left text-color focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" (click)="startService(service)">
+                    <p-card><ng-template #title><i [class]="'pi ' + service.icon" aria-hidden="true"></i> {{ service.name }}</ng-template><p>{{ service.description }}</p><small>{{ service.opening_hours }}</small></p-card>
+                </button>
+            } @empty { <p>Les services les plus utilisés seront bientôt affichés.</p> }
+        </div>
+    </section>
+
+    <section>
         <div class="section-heading"><div><p class="eyebrow">Actualités</p><h2>Informations municipales</h2></div><a routerLink="/home/municipal/publications">Toutes les publications</a></div>
         <div class="cards publications">
             @for (publication of publications(); track publication.id) {

@@ -1,11 +1,56 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { CardModule } from 'primeng/card';
+import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
+import { AuthService } from '../auth/auth.service';
 import { MunicipalService } from './municipal-content.model';
 import { MunicipalContentService } from './municipal-content.service';
 
-@Component({ selector: 'app-municipal-services', imports: [CardModule], templateUrl: './municipal-services.html', styleUrl: './municipal-services.scss' })
+@Component({ selector: 'app-municipal-services', imports: [CardModule, FormsModule], templateUrl: './municipal-services.html', styleUrl: './municipal-services.scss' })
 export class MunicipalServices implements OnInit {
     private readonly content = inject(MunicipalContentService);
+    private readonly router = inject(Router);
+    protected readonly auth = inject(AuthService);
     readonly services = signal<MunicipalService[]>([]);
+    readonly search = signal('');
+    readonly saving = signal<string | null>(null);
+    readonly error = signal<string | null>(null);
+    readonly visibleServices = computed(() => {
+        const normalize = (text: string) => text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('fr');
+        const query = normalize(this.search().trim());
+        const items = [...this.services()];
+        items.sort((a, b) => Number(normalize(b.category).includes('sant')) - Number(normalize(a.category).includes('sant')) || a.display_order - b.display_order);
+        return query ? items.filter((service) => normalize(`${service.name} ${service.category ?? ''} ${service.description}`).includes(query)) : items;
+    });
+
     ngOnInit(): void { this.content.services().subscribe({ next: (items) => this.services.set(items) }); }
+
+    onFeaturedChange(service: MunicipalService, event: Event): void {
+        const input = event.target;
+        if (input instanceof HTMLInputElement) this.updateFeatured(service, input.checked);
+    }
+
+    updateFeatured(service: MunicipalService, isFeatured: boolean, displayOrder = service.display_order): void {
+        if (this.saving()) return;
+        this.saving.set(service.id);
+        this.error.set(null);
+        this.content.updateFeaturedService(service.id, isFeatured, displayOrder).subscribe({
+            next: (updated) => {
+                this.services.update((items) => items.map((item) => item.id === updated.id ? updated : item));
+                this.saving.set(null);
+            },
+            error: () => {
+                this.error.set('Impossible de modifier la mise en avant. Vérifiez vos droits puis réessayez.');
+                this.saving.set(null);
+            }
+        });
+    }
+
+    startService(service: MunicipalService): void {
+        this.error.set(null);
+        this.content.startService(service.id).subscribe({
+            next: () => void this.router.navigate(['/home/municipal/contact'], { queryParams: { service: service.id } }),
+            error: () => this.error.set('Impossible d’ouvrir cette démarche. Réessayez dans quelques instants.')
+        });
+    }
 }

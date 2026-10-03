@@ -72,6 +72,7 @@ def list_citizen_requests(
     category: RequestCategory | None,
     priority: RequestPriority | None,
     status: RequestStatus | None,
+    citizen_id: str | None,
     sort_by: RequestSortBy,
     sort_order: SortOrder,
 ) -> tuple[list[CitizenRequest], int]:
@@ -82,6 +83,7 @@ def list_citizen_requests(
         category=category,
         priority=priority,
         status=status,
+        citizen_id=citizen_id,
         sort_by=sort_by,
         sort_order=sort_order,
     )

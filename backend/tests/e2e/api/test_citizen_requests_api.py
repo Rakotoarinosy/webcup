@@ -126,7 +126,67 @@ async def test_request_creation_requires_existing_citizen(
     assert response.status_code == 404
 
 
-def _request(citizen_id: str, **overrides: object) -> dict:
+async def test_citizen_request_creation_confirms_response_and_history_is_owner_scoped(
+    admin_client: httpx.AsyncClient,
+) -> None:
+    own_user_payload = {
+        "email": "history-owner@example.com",
+        "name": "History Owner",
+        "password": "Motdepasse123",
+    }
+    other_user_payload = {
+        "email": "history-other@example.com",
+        "name": "History Other",
+        "password": "Motdepasse123",
+    }
+    own_user = (await admin_client.post("/api/v1/auth/register", json=own_user_payload)).json()
+    other_user = (await admin_client.post("/api/v1/auth/register", json=other_user_payload)).json()
+
+    other_request = await admin_client.post(
+        REQUESTS,
+        json=_request(other_user["id"], title="Demande d'une autre personne"),
+    )
+    assert other_request.status_code == 201
+
+    login = await admin_client.post("/api/v1/auth/login", json=own_user_payload)
+    assert login.status_code == 200
+    admin_client.headers["Authorization"] = f"Bearer {login.json()['access_token']}"
+
+    created = await admin_client.post(
+        REQUESTS,
+        json=_request(other_user["id"], title="Ma demande"),
+    )
+    assert created.status_code == 201, created.text
+    body = created.json()
+    assert body["id"]
+    assert body["citizen_id"] == own_user["id"]
+    assert body["status"] == RequestStatus.NEW.value
+    assert body["created_at"]
+
+    second_created = await admin_client.post(
+        REQUESTS,
+        json=_request(other_user["id"], title="Ma seconde demande"),
+    )
+    assert second_created.status_code == 201
+    second_body = second_created.json()
+
+    history = await admin_client.get(
+        REQUESTS,
+        params={"mine": "true", "page_size": 1, "sort_by": "title", "sort_order": "asc"},
+    )
+    assert history.status_code == 200
+    assert history.json()["total"] == 2
+    assert history.json()["items"][0]["id"] == second_body["id"]
+    next_page = await admin_client.get(REQUESTS, params={"mine": "true", "page": 2, "page_size": 1})
+    assert next_page.json()["items"][0]["id"] == body["id"]
+
+    own_detail = await admin_client.get(f"{REQUESTS}/{body['id']}")
+    other_detail = await admin_client.get(f"{REQUESTS}/{other_request.json()['id']}")
+    assert own_detail.status_code == 200
+    assert other_detail.status_code == 403
+
+
+def _request(citizen_id: str, **overrides: object) -> dict[str, object]:
     return {
         "title": "Signalement",
         "description": "Description",

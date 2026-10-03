@@ -1,4 +1,5 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { FormsModule, NgForm } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
@@ -12,13 +13,17 @@ import { MunicipalContentService } from './municipal-content.service';
 @Component({ selector: 'app-municipal-contact', imports: [FormsModule, ButtonModule, CardModule, InputTextModule, MessageModule, SelectModule, TextareaModule], templateUrl: './municipal-contact.html', styleUrl: './municipal-contact.scss' })
 export class MunicipalContact implements OnInit {
     private readonly content = inject(MunicipalContentService);
+    private readonly route = inject(ActivatedRoute);
     readonly services = signal<MunicipalService[]>([]);
     readonly receipt = signal<ContactReceipt | null>(null);
     readonly error = signal<string | null>(null);
     readonly sending = signal(false);
     form = { service_id: null as string | null, sender_name: '', sender_email: '', subject: '', message: '' };
 
-    ngOnInit(): void { this.content.services().subscribe({ next: (items) => this.services.set(items) }); }
+    ngOnInit(): void {
+        this.form.service_id = this.route.snapshot.queryParamMap.get('service');
+        this.content.services().subscribe({ next: (items) => this.services.set(items) });
+    }
     send(form: NgForm): void {
         if (form.invalid) { return; }
         this.sending.set(true); this.error.set(null);

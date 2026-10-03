@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard, publicSessionGuard } from './app/auth/auth.guard';
+import { authGuard, publicSessionGuard, roleGuard } from './app/auth/auth.guard';
 import { AppLayout } from './app/layout/component/layout/app.layout';
 import { Landing } from './app/pages/landing/landing';
 import { Notfound } from './app/pages/notfound/notfound';
@@ -9,20 +9,30 @@ export const appRoutes: Routes = [
     {
         path: 'home',
         component: AppLayout,
+        data: { breadcrumb: 'Espace personnel' },
         canActivateChild: [authGuard],
         children: [
-            { path: 'account', loadComponent: () => import('./app/auth/account/account').then((m) => m.Account) },
+            { path: 'account', data: { breadcrumb: 'Mon espace' }, loadComponent: () => import('./app/auth/account/account').then((m) => m.Account) },
             { path: '', redirectTo: 'account', pathMatch: 'full' },
-            { path: 'dashboard', data: { roles: ['manager', 'admin'] }, component: Dashboard },
-            { path: 'users', data: { roles: ['admin'] }, loadComponent: () => import('./app/users/users').then((m) => m.Users) },
-            { path: 'requests', data: { roles: ['admin'] }, loadComponent: () => import('./app/requests/requests').then((m) => m.Requests) },
-            { path: 'agent', data: { roles: ['agent'] }, loadComponent: () => import('./app/agent-workspace/agent-workspace').then((m) => m.AgentWorkspace) },
-            { path: 'agents', data: { roles: ['manager', 'admin'] }, loadComponent: () => import('./app/agents/agents').then((m) => m.Agents) },
-            { path: 'municipal', loadComponent: () => import('./app/municipal/municipal-home').then((m) => m.MunicipalHome) },
-            { path: 'municipal/services', loadComponent: () => import('./app/municipal/municipal-services').then((m) => m.MunicipalServices) },
-            { path: 'municipal/publications', loadComponent: () => import('./app/municipal/municipal-publications').then((m) => m.MunicipalPublications) },
-            { path: 'municipal/contact', loadComponent: () => import('./app/municipal/municipal-contact').then((m) => m.MunicipalContact) },
-            { path: 'terra-nova', data: { roles: ['agent', 'manager', 'admin'] }, loadChildren: () => import('./app/terra-nova/terra-nova.routes') }
+            {
+                path: 'my-requests',
+                canActivate: [roleGuard],
+                data: { breadcrumb: 'Mes demandes', roles: ['citizen'] },
+                children: [
+                    { path: '', loadComponent: () => import('./app/requests/my-requests').then((m) => m.MyRequests) },
+                    { path: ':id', data: { breadcrumb: 'Détail' }, loadComponent: () => import('./app/requests/my-requests').then((m) => m.MyRequests) }
+                ]
+            },
+            { path: 'dashboard', data: { breadcrumb: 'Tableau de bord', roles: ['manager', 'admin'] }, component: Dashboard },
+            { path: 'users', data: { breadcrumb: 'Utilisateurs', roles: ['admin'] }, loadComponent: () => import('./app/users/users').then((m) => m.Users) },
+            { path: 'requests', data: { breadcrumb: 'Demandes citoyennes', roles: ['admin'] }, loadComponent: () => import('./app/requests/requests').then((m) => m.Requests) },
+            { path: 'agent', data: { breadcrumb: 'Mes interventions', roles: ['agent'] }, loadComponent: () => import('./app/agent-workspace/agent-workspace').then((m) => m.AgentWorkspace) },
+            { path: 'agents', data: { breadcrumb: 'Agents', roles: ['manager', 'admin'] }, loadComponent: () => import('./app/agents/agents').then((m) => m.Agents) },
+            { path: 'municipal', data: { breadcrumb: 'Accueil municipal' }, loadComponent: () => import('./app/municipal/municipal-home').then((m) => m.MunicipalHome) },
+            { path: 'municipal/services', data: { breadcrumb: 'Services municipaux' }, loadComponent: () => import('./app/municipal/municipal-services').then((m) => m.MunicipalServices) },
+            { path: 'municipal/publications', data: { breadcrumb: 'Publications' }, loadComponent: () => import('./app/municipal/municipal-publications').then((m) => m.MunicipalPublications) },
+            { path: 'municipal/contact', data: { breadcrumb: 'Contacter la mairie' }, loadComponent: () => import('./app/municipal/municipal-contact').then((m) => m.MunicipalContact) },
+            { path: 'terra-nova', data: { breadcrumb: 'Terra Nova', roles: ['agent', 'manager', 'admin'] }, loadChildren: () => import('./app/terra-nova/terra-nova.routes') }
         ]
     },
     { path: '', component: Landing, canActivate: [publicSessionGuard] },

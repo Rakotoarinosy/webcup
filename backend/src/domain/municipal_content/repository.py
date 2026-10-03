@@ -12,7 +12,22 @@ class MunicipalContentRepository(ABC):
     def list_services(self) -> list[MunicipalService]: ...
 
     @abstractmethod
+    def list_featured_services(self) -> list[MunicipalService]: ...
+
+    @abstractmethod
     def get_service(self, service_id: str) -> MunicipalService | None: ...
+
+    @abstractmethod
+    def increment_service_usage(self, service_id: str) -> MunicipalService | None: ...
+
+    @abstractmethod
+    def update_service_catalog(
+        self,
+        service_id: str,
+        *,
+        is_featured: bool | None = None,
+        display_order: int | None = None,
+    ) -> MunicipalService | None: ...
 
     @abstractmethod
     def list_publications(self, category: str | None, limit: int) -> list[MunicipalPublication]: ...

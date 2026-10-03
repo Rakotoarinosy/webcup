@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from src.shared.validation import Email
 
@@ -10,11 +10,27 @@ class MunicipalServiceOut(BaseModel):
 
     id: str
     name: str
+    category: str
     description: str
     contact_details: str
     opening_hours: str
     icon: str
     display_order: int
+    is_featured: bool
+    usage_count: int
+
+
+class UpdateMunicipalServiceCatalogIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    is_featured: bool | None = None
+    display_order: int | None = Field(default=None, ge=0)
+
+    @model_validator(mode="after")
+    def require_catalog_field(self) -> "UpdateMunicipalServiceCatalogIn":
+        if not self.model_fields_set:
+            raise ValueError("At least one catalog field must be provided")
+        return self
 
 
 class MunicipalPublicationOut(BaseModel):
