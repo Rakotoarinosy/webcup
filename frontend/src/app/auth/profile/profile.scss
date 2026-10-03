@@ -88,17 +88,17 @@ button:disabled {
 .profile-notice {
     background: color-mix(in srgb, var(--p-primary-color) 12%, var(--surface-card));
 }
-.profile-export {
-    display: flex;
-    align-items: end;
-    gap: 1rem;
-    padding: 1rem;
-    border: 1px solid var(--surface-border);
-    border-radius: 0.85rem;
-    background: color-mix(in srgb, var(--p-primary-color) 4%, var(--surface-card));
+.profile-export-side {
+    margin-top: 1.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--surface-border);
 }
-.export-button {
-    flex: 0 0 auto;
+.profile-export-side select,
+.profile-export-side .export-button {
+    width: 100%;
+}
+.profile-export-help {
+    margin-top: 1rem;
 }
 .profile-dialog {
     margin: auto;
@@ -136,9 +136,5 @@ button:disabled {
 @media (max-width: 480px) {
     .profile-button {
         width: 100%;
-    }
-    .profile-export {
-        align-items: stretch;
-        flex-direction: column;
     }
 }

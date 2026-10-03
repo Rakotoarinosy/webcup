@@ -12,12 +12,5 @@
                 </li>
             }
         </ol>
-
-        @if (previous(); as parent) {
-            <a class="inline-flex shrink-0 items-center gap-2 rounded-lg border border-surface px-3 py-2 text-sm text-color hover:bg-emphasis focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" [routerLink]="parent.url">
-                <i class="pi pi-arrow-left" aria-hidden="true"></i>
-                Retour
-            </a>
-        }
     </nav>
 }

@@ -1,11 +1,5 @@
 <div class="mx-auto max-w-[78rem]">
-
-    @if (notice()) {
-        <p #feedback tabindex="-1" class="profile-notice mt-5 rounded-xl p-4" role="status">{{ notice() }}</p>
-    }
-    @if (error()) {
-        <p #feedback tabindex="-1" class="mt-5 rounded-xl border border-red-300 p-4 text-red-700 dark:text-red-300" role="alert">{{ error() }}</p>
-    }
+    <p-toast />
 
     <div class="mt-6 flex flex-wrap gap-6">
         <div class="grid min-w-0 flex-[3_1_30rem] gap-6">
@@ -99,31 +93,6 @@
                 </form>
             </section>
 
-            <section class="profile-panel card mb-0" aria-labelledby="export-heading">
-                <div class="mb-5 flex items-start gap-3">
-                    <i class="pi pi-download mt-1 text-xl text-primary" aria-hidden="true"></i>
-                    <div>
-                        <h2 id="export-heading" class="m-0 text-xl font-semibold">Exporter mes informations</h2>
-                        <p class="mb-0 mt-2 text-muted-color">Téléchargez une copie de vos informations de compte, préférences et demandes personnelles.</p>
-                    </div>
-                </div>
-                <div class="profile-export" aria-describedby="export-help">
-                    <div class="min-w-0 flex-1">
-                        <label for="export-format">Format du fichier</label>
-                        <select id="export-format" [value]="exportFormat()" [disabled]="!!busy()" (change)="exportFormat.set($any($event.target).value)">
-                            <option value="pdf">PDF — lecture et impression</option>
-                            <option value="csv">CSV — données tabulaires</option>
-                            <option value="excel">Excel — classeur .xlsx</option>
-                            <option value="word">Word — document .doc</option>
-                        </select>
-                        <small id="export-help">Les mots de passe, jetons de connexion et informations des autres utilisateurs ne sont jamais inclus.</small>
-                    </div>
-                    <button type="button" class="profile-button export-button" [disabled]="!!busy()" (click)="downloadPersonalData()">
-                        <i [class]="busy() === 'export' ? 'pi pi-spin pi-spinner' : 'pi pi-download'" aria-hidden="true"></i>{{ busy() === 'export' ? 'Préparation…' : 'Télécharger' }}
-                    </button>
-                </div>
-            </section>
-
             @if (auth.hasRole('citizen')) {
                 <section class="profile-panel card mb-0 border border-red-200 dark:border-red-900" aria-labelledby="delete-heading">
                     <h2 id="delete-heading" class="m-0 text-xl font-semibold">Supprimer mon compte</h2>
@@ -156,6 +125,24 @@
                 </div>
             </dl>
             <p class="mb-0 mt-6 border-t border-surface pt-5 text-sm text-muted-color"><i class="pi pi-lock mr-1" aria-hidden="true"></i> Votre rôle et vos autorisations sont gérés par la mairie.</p>
+            <section class="profile-export-side" aria-labelledby="export-heading">
+                <div class="flex items-center gap-2">
+                    <i class="pi pi-download text-primary" aria-hidden="true"></i>
+                    <h3 id="export-heading" class="m-0 text-base font-semibold">Exporter mes données</h3>
+                </div>
+                <p class="mb-3 mt-2 text-sm text-muted-color">Informations de compte, préférences et demandes personnelles.</p>
+                <label class="sr-only" for="export-format">Format du fichier</label>
+                <select id="export-format" [value]="exportFormat()" [disabled]="!!busy()" (change)="exportFormat.set($any($event.target).value)">
+                    <option value="pdf">PDF</option>
+                    <option value="csv">CSV</option>
+                    <option value="excel">Excel</option>
+                    <option value="word">Word</option>
+                </select>
+                <button type="button" class="profile-button export-button mt-3" [disabled]="!!busy()" (click)="downloadPersonalData()">
+                    <i [class]="busy() === 'export' ? 'pi pi-spin pi-spinner' : 'pi pi-download'" aria-hidden="true"></i>{{ busy() === 'export' ? 'Préparation…' : 'Exporter (' + exportFormat().toUpperCase() + ')' }}
+                </button>
+                <small id="export-help" class="profile-export-help">Vos mots de passe et jetons ne sont jamais inclus.</small>
+            </section>
         </aside>
     </div>
 

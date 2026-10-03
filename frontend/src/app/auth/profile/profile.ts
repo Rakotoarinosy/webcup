@@ -3,7 +3,9 @@ import { HttpErrorResponse, HttpResponse } from '@angular/common/http';
 import { Component, DestroyRef, ElementRef, Injector, afterNextRender, computed, inject, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
+import { MessageService } from 'primeng/api';
+import { ToastModule } from 'primeng/toast';
 import { finalize } from 'rxjs';
 
 import { AuthService } from '../auth.service';
@@ -13,9 +15,10 @@ import { ProfileExportService, UserExportFormat } from './profile-export.service
 
 @Component({
     selector: 'app-profile',
-    imports: [DatePipe, ReactiveFormsModule, RouterLink],
+    imports: [DatePipe, ReactiveFormsModule, ToastModule],
     templateUrl: './profile.html',
-    styleUrl: './profile.scss'
+    styleUrl: './profile.scss',
+    providers: [MessageService]
 })
 export class Profile {
     readonly auth = inject(AuthService);
@@ -24,12 +27,10 @@ export class Profile {
     private readonly destroyRef = inject(DestroyRef);
     private readonly injector = inject(Injector);
     private readonly profileExport = inject(ProfileExportService);
-    readonly feedback = viewChild<ElementRef<HTMLElement>>('feedback');
+    private readonly messages = inject(MessageService);
     readonly deleteFeedback = viewChild<ElementRef<HTMLElement>>('deleteFeedback');
     readonly deleteDialog = viewChild<ElementRef<HTMLDialogElement>>('deleteDialog');
     readonly busy = signal<'profile' | 'password' | 'delete' | 'export' | null>(null);
-    readonly notice = signal<string | null>(null);
-    readonly error = signal<string | null>(null);
     readonly deleteError = signal<string | null>(null);
     readonly exportFormat = signal<UserExportFormat>('pdf');
     readonly initials = computed(() =>
@@ -74,13 +75,11 @@ export class Profile {
             .subscribe({
                 next: (user) => {
                     this.profileForm.reset({ name: user.name, email: user.email, current_password: '' });
-                    this.notice.set('Vos informations ont été enregistrées. Utilisez cette adresse email lors de votre prochaine connexion.');
-                    this.focusFeedback();
+                    this.success('Informations enregistrées', 'Utilisez cette adresse email lors de votre prochaine connexion.');
                 },
                 error: (error: unknown) => {
                     this.profileForm.controls.current_password.reset();
-                    this.error.set(this.message(error));
-                    this.focusFeedback();
+                    this.failure('Enregistrement impossible', error);
                 }
             });
     }
@@ -91,9 +90,7 @@ export class Profile {
         if (this.passwordForm.invalid) return;
         const value = this.passwordForm.getRawValue();
         if (value.new_password !== value.confirmation) {
-            this.error.set('Les deux nouveaux mots de passe doivent être identiques.');
-            this.notice.set(null);
-            this.focusFeedback();
+            this.messages.add({ severity: 'warn', summary: 'Vérifiez le mot de passe', detail: 'Les deux nouveaux mots de passe doivent être identiques.', life: 5000 });
             return;
         }
         this.start('password');
@@ -106,13 +103,11 @@ export class Profile {
             .subscribe({
                 next: () => {
                     this.passwordForm.reset();
-                    this.notice.set('Votre mot de passe a été modifié. Les sessions des autres appareils ne pourront plus être renouvelées.');
-                    this.focusFeedback();
+                    this.success('Mot de passe modifié', 'Les sessions des autres appareils ne pourront plus être renouvelées.');
                 },
                 error: (error: unknown) => {
                     this.passwordForm.controls.current_password.reset();
-                    this.error.set(this.message(error));
-                    this.focusFeedback();
+                    this.failure('Modification impossible', error);
                 }
             });
     }
@@ -172,24 +167,24 @@ export class Profile {
             .subscribe({
                 next: (response) => {
                     this.saveFile(response, format);
-                    this.notice.set('Votre export est prêt. Le téléchargement a commencé.');
-                    this.focusFeedback();
+                    this.success('Export prêt', 'Le téléchargement de vos données a commencé.');
                 },
                 error: (error: unknown) => {
-                    this.error.set(this.message(error));
-                    this.focusFeedback();
+                    this.failure('Export impossible', error);
                 }
             });
     }
 
     private start(action: 'profile' | 'password' | 'delete' | 'export'): void {
         this.busy.set(action);
-        this.notice.set(null);
-        this.error.set(null);
     }
 
-    private focusFeedback(): void {
-        afterNextRender(() => this.feedback()?.nativeElement.focus(), { injector: this.injector });
+    private success(summary: string, detail: string): void {
+        this.messages.add({ severity: 'success', summary, detail, life: 4000 });
+    }
+
+    private failure(summary: string, error: unknown): void {
+        this.messages.add({ severity: 'error', summary, detail: this.message(error), life: 5000 });
     }
 
     private saveFile(response: HttpResponse<Blob>, format: UserExportFormat): void {
