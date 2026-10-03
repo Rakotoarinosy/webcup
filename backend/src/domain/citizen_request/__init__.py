@@ -34,8 +34,11 @@ from src.domain.citizen_request.entities import (
     ensure_transition,
 )
 from src.domain.citizen_request.events import (
+    ActivityQuery,
     CitizenRequestEvent,
     CitizenRequestEventRepository,
+    RequestActivity,
+    RequestActivityLog,
     RequestEventType,
 )
 from src.domain.citizen_request.exceptions import (
@@ -51,6 +54,7 @@ from src.domain.citizen_request.repository import CitizenRequestRepository
 
 __all__ = [
     "OPEN_STATUSES",
+    "ActivityQuery",
     "Actor",
     "AgentOutsideInstitutError",
     "AnalysisUnavailableError",
@@ -66,6 +70,8 @@ __all__ = [
     "InvalidStatusTransitionError",
     "MapPoint",
     "NotACitizenError",
+    "RequestActivity",
+    "RequestActivityLog",
     "RequestAnalysis",
     "RequestAnalyzer",
     "RequestCategory",

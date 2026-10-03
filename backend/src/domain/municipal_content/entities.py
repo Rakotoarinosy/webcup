@@ -17,6 +17,10 @@ class MunicipalService:
     is_featured: bool
     usage_count: int
     is_active: bool
+    # Accueil physique : None tant que la mairie ne l'a pas renseigné.
+    address: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
 
 
 @dataclass(frozen=True)

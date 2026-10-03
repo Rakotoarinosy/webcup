@@ -221,6 +221,10 @@ class MunicipalServiceModel(Base):
     is_active: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=True, server_default=true()
     )
+    # Accueil physique (F45) : adresse lisible et position pour la carte et l'itinéraire.
+    address: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    latitude: Mapped[float | None] = mapped_column(Float, nullable=True)
+    longitude: Mapped[float | None] = mapped_column(Float, nullable=True)
 
 
 class MunicipalPublicationModel(Base):
@@ -237,6 +241,47 @@ class MunicipalPublicationModel(Base):
     is_published: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=True, server_default=true()
     )
+
+
+class DataConcernModel(Base):
+    """Signalement d'un habitant sur l'usage de ses données, avec la trace de son traitement."""
+
+    __tablename__ = "data_concerns"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    reference: Mapped[str] = mapped_column(String(32), unique=True, index=True)
+    # Conservé à la suppression du compte : rattaché à l'identité archivée (voir UserRepository).
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), index=True)
+    topic: Mapped[str] = mapped_column(String(60))
+    message: Mapped[str] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(30), index=True)
+    response: Mapped[str | None] = mapped_column(Text, nullable=True)
+    answered_by: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    answered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class AuditEntryModel(Base):
+    """Journal d'audit des opérations d'administration : ajout uniquement."""
+
+    __tablename__ = "audit_entries"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    action: Mapped[str] = mapped_column(String(40), index=True)
+    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    target_type: Mapped[str] = mapped_column(String(30), index=True)
+    target_id: Mapped[str] = mapped_column(String(36), index=True)
+    target_label: Mapped[str] = mapped_column(String(255))
+    # Pas de clé étrangère : la trace survit à la suppression de l'auteur ou de l'objet.
+    actor_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+    actor_name: Mapped[str] = mapped_column(String(255))
+    actor_role: Mapped[str] = mapped_column(String(20))
+    institut_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+    details: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+
+    __table_args__ = (Index("ix_audit_entries_occurred_at", "occurred_at"),)
 
 
 class ContactMessageModel(Base):

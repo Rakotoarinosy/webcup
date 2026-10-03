@@ -25,6 +25,7 @@ h2 { margin-bottom: 0.35rem; font-size: 1.3rem; }
 .status[data-status='resolu'] { color: #14532d; border-color: #287443; background: #e9f7ed; }
 .resolve-button, .secondary-button { min-height: 2.75rem; padding: 0.55rem 0.85rem; border: 2px solid #124f70; border-radius: 0.4rem; color: #fff; background: #124f70; font: inherit; font-weight: 700; cursor: pointer; }
 .secondary-button { color: #124f70; background: transparent; }
+a.secondary-button { display: inline-flex; align-items: center; text-decoration: none; }
 button:disabled { cursor: not-allowed; opacity: 0.65; }
 button:focus-visible { outline: 3px solid #b45309; outline-offset: 3px; }
 .no-action { color: #465563; }
@@ -47,3 +48,8 @@ button:focus-visible { outline: 3px solid #b45309; outline-offset: 3px; }
 td button + button { margin-left: 0.5rem; }
 .link-button { display: block; margin-top: 0.5rem; padding: 0; border: 0; background: none; color: var(--primary-color); text-decoration: underline; cursor: pointer; }
 .timeline { margin: 0.5rem 0 0; padding-left: 1.25rem; font-size: 0.875rem; color: var(--text-color-secondary); }
+
+.activity-list { display: grid; gap: 0.5rem; margin: 0; padding: 0; list-style: none; }
+.activity-list li { display: flex; flex-wrap: wrap; gap: 0.35rem 0.75rem; padding: 0.6rem 0; border-bottom: 1px solid #d5dde3; }
+.activity-list time { min-width: 6.5rem; font-variant-numeric: tabular-nums; }
+.activity-author { color: #344451; }

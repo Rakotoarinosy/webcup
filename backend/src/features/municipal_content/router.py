@@ -15,6 +15,7 @@ from src.features.municipal_content.schemas import (
     MunicipalPublicationOut,
     MunicipalServiceOut,
     UpdateMunicipalServiceCatalogIn,
+    UpdateServiceLocationIn,
 )
 from src.features.municipal_content.use_cases import (
     get_municipal_publication,
@@ -25,6 +26,7 @@ from src.features.municipal_content.use_cases import (
     send_contact_message,
     start_municipal_service,
     update_municipal_service_catalog,
+    update_municipal_service_location,
 )
 from src.infrastructure.persistence.database import get_db
 from src.infrastructure.persistence.municipal_content_repository import (
@@ -77,6 +79,16 @@ def update_service_catalog_endpoint(
     _: User = Depends(require_roles(Role.MANAGER)),
 ) -> MunicipalService:
     return update_municipal_service_catalog(service_id, payload, repo)
+
+
+@router.patch("/services/{service_id}/location", response_model=MunicipalServiceOut)
+def update_service_location_endpoint(
+    service_id: str,
+    payload: UpdateServiceLocationIn,
+    repo: MunicipalContentRepository = Depends(get_municipal_content_repo),
+    _: User = Depends(require_roles(Role.MANAGER)),
+) -> MunicipalService:
+    return update_municipal_service_location(service_id, payload, repo)
 
 
 @router.get("/publications", response_model=list[MunicipalPublicationOut])

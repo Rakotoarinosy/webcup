@@ -38,27 +38,27 @@
         }
     </section>
 } @else {
-    <section class="card" aria-labelledby="my-requests-title">
-        <section aria-labelledby="history-title">
+    <section class="card" aria-labelledby="history-title">
+        <div>
             <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-                <div><h2 id="history-title" class="m-0 text-lg font-semibold">Toutes mes demandes</h2><p class="mb-0 mt-1 text-sm text-muted-color">Recherchez, filtrez et consultez vos signalements.</p></div>
+                <div><h1 id="history-title" class="m-0 text-lg font-semibold">Toutes mes demandes</h1><p class="mb-0 mt-1 text-sm text-muted-color">Recherchez, filtrez et consultez vos signalements.</p></div>
                 <p-button label="Ajouter une demande" icon="pi pi-plus" (onClick)="openCreateDialog()" />
             </div>
             <div class="mb-4 grid gap-3 md:grid-cols-3">
                 <label class="md:col-span-1">
                     <span class="mb-1 block font-medium">Rechercher</span>
-                    <input id="request-search" type="search" class="w-full rounded border border-surface bg-transparent p-2" placeholder="Mot-clé, description, lieu…" aria-label="Rechercher dans mes demandes" [ngModel]="searchTerm()" (ngModelChange)="searchChanged($event)" />
+                    <input id="request-search" type="search" class="w-full rounded border border-surface bg-transparent p-2" placeholder="Mot-clé, description, lieu…" [ngModel]="searchTerm()" (ngModelChange)="searchChanged($event)" />
                 </label>
                 <label>
                     <span class="mb-1 block font-medium">Type</span>
-                    <select class="w-full rounded border border-surface bg-transparent p-2" aria-label="Filtrer mes demandes par type" [ngModel]="categoryFilter()" (ngModelChange)="categoryChanged($event)">
+                    <select class="w-full rounded border border-surface bg-transparent p-2" [ngModel]="categoryFilter()" (ngModelChange)="categoryChanged($event)">
                         <option [ngValue]="null">Tous les types</option>
                         @for (category of categories; track category) { <option [ngValue]="category">{{ category }}</option> }
                     </select>
                 </label>
                 <label>
                     <span class="mb-1 block font-medium">Statut</span>
-                    <select class="w-full rounded border border-surface bg-transparent p-2" aria-label="Filtrer mes demandes par statut" [ngModel]="statusFilter()" (ngModelChange)="filterChanged($event)">
+                    <select class="w-full rounded border border-surface bg-transparent p-2" [ngModel]="statusFilter()" (ngModelChange)="filterChanged($event)">
                         <option [ngValue]="null">Tous les statuts</option>
                         @for (status of statuses; track status) { <option [ngValue]="status">{{ status }}</option> }
                     </select>
@@ -98,12 +98,13 @@
             } @else {
                 <p>Vous n'avez pas encore envoyé de demande.</p>
             }
-        </section>
+        </div>
     </section>
 
     <p-dialog [visible]="createDialogVisible()" (visibleChange)="createDialogVisible.set($event)" header="Nouvelle demande" [modal]="true" [draggable]="false" [style]="{ width: 'min(46rem, 96vw)' }" (onHide)="closeCreateDialog()">
         <p class="mt-0 text-muted-color">Décrivez votre besoin en trois étapes. Vous pourrez vérifier toutes les informations avant l’envoi.</p>
-        <p-stepper [value]="creationStep()">
+        <p class="sr-only" role="status">Étape {{ creationStep() }} sur 3</p>
+        <p-stepper [value]="creationStep()" [linear]="true" aria-label="Étapes de création de la demande">
             <p-step-list>
                 <p-step [value]="1">Type</p-step>
                 <p-step [value]="2">Description</p-step>
@@ -111,15 +112,15 @@
             </p-step-list>
         </p-stepper>
 
-        @if (createError(); as message) { <p class="mt-5 rounded-lg border border-red-300 bg-red-50 p-3 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-100" role="alert">{{ message }}</p> }
+        @if (createError(); as message) { <p id="create-error" class="mt-5 rounded-lg border border-red-300 bg-red-50 p-3 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-100" role="alert">{{ message }}</p> }
 
         @if (creationStep() === 1) {
             <section class="mt-5" aria-labelledby="choose-type-title">
-                <h3 id="choose-type-title" class="m-0 text-lg font-semibold">Quel est le problème ?</h3>
+                <h3 id="choose-type-title" class="m-0 text-lg font-semibold" tabindex="-1">Quel est le problème ?</h3>
                 <p class="mt-2 text-sm text-muted-color">Votre demande sera transmise automatiquement au service compétent.</p>
-                <div class="grid gap-3 sm:grid-cols-2" role="radiogroup" aria-labelledby="choose-type-title">
+                <div class="grid gap-3 sm:grid-cols-2" role="radiogroup" aria-labelledby="choose-type-title" aria-required="true" [attr.aria-invalid]="!!createError() && !form.category" [attr.aria-describedby]="createError() ? 'create-error' : null">
                     @for (category of categories; track category) {
-                        <label class="cursor-pointer rounded-xl border p-4 transition-colors" [class.border-primary]="form.category === category" [class.bg-highlight]="form.category === category">
+                        <label class="cursor-pointer rounded-xl border p-4 transition-colors has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-primary" [class.border-primary]="form.category === category" [class.bg-highlight]="form.category === category">
                             <input type="radio" name="request-type" class="sr-only" [value]="category" [ngModel]="form.category" (ngModelChange)="chooseCategory($event)" />
                             <span class="block font-semibold">{{ category }}</span>
                             <span class="mt-1 block text-sm text-muted-color">{{ categoryHints[category] }}</span>
@@ -129,16 +130,17 @@
             </section>
         } @else if (creationStep() === 2) {
             <section class="mt-5" aria-labelledby="description-step-title">
-                <h3 id="description-step-title" class="m-0 text-lg font-semibold">Décrivez votre demande</h3>
+                <h3 id="description-step-title" class="m-0 text-lg font-semibold" tabindex="-1">Décrivez votre demande</h3>
+                <p class="mb-0 mt-2 text-sm text-muted-color">Tous les champs sont obligatoires.</p>
                 <div class="mt-4 grid gap-4 md:grid-cols-2">
-                    <label class="md:col-span-2"><span class="mb-1 block font-medium">Titre</span><input name="request-title" class="w-full rounded border border-surface bg-transparent p-3" [(ngModel)]="form.title" required maxlength="255" /></label>
-                    <label class="md:col-span-2"><span class="mb-1 block font-medium">Description</span><textarea name="request-description" class="w-full rounded border border-surface bg-transparent p-3" [(ngModel)]="form.description" required maxlength="10000" rows="5"></textarea></label>
-                    <label class="md:col-span-2"><span class="mb-1 block font-medium">Lieu</span><input name="request-location" class="w-full rounded border border-surface bg-transparent p-3" [(ngModel)]="form.location" required maxlength="500" /></label>
+                    <label class="md:col-span-2"><span class="mb-1 block font-medium">Titre</span><input id="request-title" name="request-title" class="w-full rounded border border-surface bg-transparent p-3" [(ngModel)]="form.title" required maxlength="255" [attr.aria-invalid]="descriptionInvalid('title')" [attr.aria-describedby]="descriptionInvalid('title') ? 'create-error' : null" /></label>
+                    <label class="md:col-span-2"><span class="mb-1 block font-medium">Description</span><textarea id="request-description" name="request-description" class="w-full rounded border border-surface bg-transparent p-3" [(ngModel)]="form.description" required maxlength="10000" rows="5" [attr.aria-invalid]="descriptionInvalid('description')" [attr.aria-describedby]="descriptionInvalid('description') ? 'create-error' : null"></textarea></label>
+                    <label class="md:col-span-2"><span class="mb-1 block font-medium">Lieu</span><input id="request-location" name="request-location" class="w-full rounded border border-surface bg-transparent p-3" [(ngModel)]="form.location" required maxlength="500" autocomplete="street-address" [attr.aria-invalid]="descriptionInvalid('location')" [attr.aria-describedby]="descriptionInvalid('location') ? 'create-error' : null" /></label>
                 </div>
             </section>
         } @else {
             <section class="mt-5" aria-labelledby="review-step-title">
-                <h3 id="review-step-title" class="m-0 text-lg font-semibold">Vérifiez votre demande</h3>
+                <h3 id="review-step-title" class="m-0 text-lg font-semibold" tabindex="-1">Vérifiez votre demande</h3>
                 <dl class="mt-4 grid gap-x-6 gap-y-3 rounded-xl bg-emphasis p-4 sm:grid-cols-[9rem_1fr]">
                     <dt class="font-medium">Titre</dt><dd class="m-0">{{ form.title }}</dd>
                     <dt class="font-medium">Type</dt><dd class="m-0">{{ form.category }}</dd>

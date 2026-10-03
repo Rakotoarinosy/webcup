@@ -22,6 +22,9 @@ export class AppMenu {
     readonly model = computed<MenuItem[]>(() => {
         const items: MenuItem[] = [{ label: 'Mon espace', icon: 'pi pi-fw pi-user', routerLink: ['/home/account'] }];
 
+        // « Mon profil » est dans le menu du compte (barre du haut) ; « Mes données » reste visible ici (F51).
+        items.push({ label: 'Mes données', icon: 'pi pi-fw pi-lock', routerLink: ['/home/my-data'] });
+
         if (this.auth.hasRole('agent')) {
             items.push(
                 { label: 'Mes interventions', icon: 'pi pi-fw pi-inbox', routerLink: ['/home/agent'] },
@@ -51,10 +54,14 @@ export class AppMenu {
                         { label: 'Administrateurs', icon: 'pi pi-fw pi-shield', routerLink: ['/home/accounts/admins'] }
                     ]
                 },
-                { label: 'Instituts', icon: 'pi pi-fw pi-building', routerLink: ['/home/instituts'] }
+                { label: 'Instituts', icon: 'pi pi-fw pi-building', routerLink: ['/home/instituts'] },
+                { label: 'Signalements données', icon: 'pi pi-fw pi-shield', routerLink: ['/home/data-concerns'] }
             );
         } else if (this.auth.hasRole('manager')) {
             items.push({ label: 'Comptes citoyens', icon: 'pi pi-fw pi-users', routerLink: ['/home/users'] });
+        }
+        if (this.auth.hasRole('agent', 'manager', 'admin')) {
+            items.push({ label: 'Journal', icon: 'pi pi-fw pi-history', routerLink: ['/home/journal'] });
         }
         items.push({ label: 'Accueil', icon: 'pi pi-fw pi-globe', routerLink: ['/'] });
 

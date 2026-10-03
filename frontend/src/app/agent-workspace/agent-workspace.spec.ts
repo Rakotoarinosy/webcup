@@ -1,6 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 
+import { JournalService } from '@/app/journal/journal.service';
 import { CitizenRequestService } from '@/app/requests/request.service';
 import { AgentWorkspace } from './agent-workspace';
 
@@ -13,6 +15,26 @@ describe('AgentWorkspace pending counter', () => {
         await TestBed.configureTestingModule({
             imports: [AgentWorkspace],
             providers: [
+                provideRouter([]),
+                {
+                    provide: JournalService,
+                    useValue: {
+                        activity: () =>
+                            of({
+                                items: [
+                                    {
+                                        event: { id: 'e1', request_id: 'r1', type: 'assigned', actor_id: 'm1', actor_name: 'Hery', payload: { agent_name: 'Jean' }, created_at: '2026-10-03T08:00:00Z' },
+                                        request_title: 'Lampadaire cassé',
+                                        request_status: 'En cours'
+                                    }
+                                ],
+                                total: 1,
+                                page: 1,
+                                page_size: 5,
+                                total_pages: 1
+                            })
+                    }
+                },
                 {
                     provide: CitizenRequestService,
                     useValue: {
@@ -43,5 +65,16 @@ describe('AgentWorkspace pending counter', () => {
         fixture.detectChanges();
 
         expect(fixture.nativeElement.textContent).toContain('Aucune demande ne nécessite une prise en charge.');
+    });
+
+    it('shows the latest actions on the agent requests with author and date', () => {
+        fixture.detectChanges();
+        const entries = Array.from(fixture.nativeElement.querySelectorAll('.activity-list li')) as HTMLElement[];
+        expect(entries.length).toBe(1);
+        expect(entries[0].textContent).toContain('Prise en charge par Jean');
+        expect(entries[0].textContent).toContain('Lampadaire cassé');
+        expect(entries[0].textContent).toContain('par Hery');
+        expect(entries[0].querySelector('time')?.getAttribute('datetime')).toBe('2026-10-03T08:00:00Z');
+        expect(fixture.nativeElement.querySelector('a[href="/home/journal"]')).not.toBeNull();
     });
 });

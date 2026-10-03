@@ -9,7 +9,7 @@ import { ContactReceipt } from './municipal-content.model';
 import { MunicipalContentService } from './municipal-content.service';
 import { MunicipalContact } from './municipal-contact';
 
-const service = { id: 'roads', name: 'Voirie', category: 'Travaux', description: '', contact_details: '', opening_hours: '', icon: 'pi-building', display_order: 1, is_featured: false, usage_count: 0 };
+const service = { id: 'roads', name: 'Voirie', category: 'Travaux', description: '', contact_details: '', opening_hours: '', icon: 'pi-building', display_order: 1, is_featured: false, usage_count: 0, address: null, latitude: null, longitude: null };
 const receipt = { receipt_number: 'MC-20261003-ABC12345', created_at: '2026-10-03T10:00:00Z', message: 'Votre message a bien été envoyé aux services municipaux.' };
 describe('MunicipalContact', () => {
     let fixture: ComponentFixture<MunicipalContact>;

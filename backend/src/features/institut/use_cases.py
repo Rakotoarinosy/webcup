@@ -4,6 +4,7 @@ import uuid
 from dataclasses import replace
 from datetime import UTC, datetime
 
+from src.domain.audit import AuditAction, AuditTarget
 from src.domain.citizen_request import Actor, ensure_can_manage_institut
 from src.domain.institut import (
     CategoryConflictError,
@@ -16,6 +17,7 @@ from src.domain.institut import (
     overlapping_categories,
 )
 from src.domain.user import ForbiddenError, Role, UserRepository
+from src.features.audit.recording import AuditTrail, field_changes, record
 from src.features.institut.schemas import CreateInstitutIn, SetManagerIn, UpdateInstitutIn
 
 
@@ -25,6 +27,7 @@ def create_institut(
     repo: InstitutRepository,
     users: UserRepository,
     now: datetime | None = None,
+    audit: AuditTrail | None = None,
 ) -> Institut:
     _ensure_admin(actor)
     _ensure_name_free(dto.name, None, repo)
@@ -41,11 +44,25 @@ def create_institut(
         _ensure_manager_available(dto.manager_id, institut.id, users, repo)
         institut.manager_id = dto.manager_id
 
-    return repo.add(institut)
+    created = repo.add(institut)
+    record(
+        audit,
+        AuditAction.INSTITUT_CREATED,
+        AuditTarget.INSTITUT,
+        created.id,
+        created.name,
+        institut_id=created.id,
+        details={"categories": sorted(created.categories), "manager_id": created.manager_id},
+    )
+    return created
 
 
 def update_institut(
-    institut_id: str, dto: UpdateInstitutIn, actor: Actor, repo: InstitutRepository
+    institut_id: str,
+    dto: UpdateInstitutIn,
+    actor: Actor,
+    repo: InstitutRepository,
+    audit: AuditTrail | None = None,
 ) -> Institut:
     _ensure_admin(actor)
     institut = _load(institut_id, repo)
@@ -61,7 +78,19 @@ def update_institut(
     # Réactivation ou nouvelles catégories : une catégorie reste couverte par un seul institut actif.
     _ensure_categories_free(updated, repo)
 
-    return repo.update(updated)
+    saved = repo.update(updated)
+    diff = field_changes(institut, saved, ("name", "description", "categories", "is_active"))
+    if diff:
+        record(
+            audit,
+            AuditAction.INSTITUT_UPDATED,
+            AuditTarget.INSTITUT,
+            saved.id,
+            saved.name,
+            institut_id=saved.id,
+            details=diff,
+        )
+    return saved
 
 
 def set_manager(
@@ -70,13 +99,30 @@ def set_manager(
     actor: Actor,
     repo: InstitutRepository,
     users: UserRepository,
+    audit: AuditTrail | None = None,
 ) -> Institut:
     _ensure_admin(actor)
     institut = _load(institut_id, repo)
     if dto.manager_id is not None:
         _ensure_manager_available(dto.manager_id, institut.id, users, repo)
 
-    return repo.update(replace(institut, manager_id=dto.manager_id))
+    saved = repo.update(replace(institut, manager_id=dto.manager_id))
+    if institut.manager_id != saved.manager_id:
+        names = {
+            key: (user.name if (user := users.get_by_id(user_id)) else None)
+            for key, user_id in (("from", institut.manager_id), ("to", saved.manager_id))
+            if user_id
+        }
+        record(
+            audit,
+            AuditAction.INSTITUT_MANAGER_CHANGED,
+            AuditTarget.INSTITUT,
+            saved.id,
+            saved.name,
+            institut_id=saved.id,
+            details={"manager": {"from": names.get("from"), "to": names.get("to")}},
+        )
+    return saved
 
 
 def get_institut(institut_id: str, actor: Actor, repo: InstitutRepository) -> Institut:

@@ -1,4 +1,4 @@
-<main class="agent-workspace" aria-labelledby="agent-heading">
+<div class="agent-workspace">
     <header class="page-header">
         <div>
             <p class="eyebrow">Espace professionnel</p>
@@ -25,6 +25,29 @@
             <article><span>Résolues</span><strong>{{ count('Résolu') }}</strong></article>
         </section>
     }
+
+    <section class="recent-activity" aria-labelledby="activity-heading">
+        <div class="section-heading">
+            <div>
+                <h2 id="activity-heading">Activité récente</h2>
+                <p>Les dernières actions sur vos demandes, avec leur auteur et leur date.</p>
+            </div>
+            <a routerLink="/home/journal" class="secondary-button">Voir tout le journal</a>
+        </div>
+        @if (recentActivity().length) {
+            <ol class="activity-list">
+                @for (item of recentActivity(); track item.event.id) {
+                    <li>
+                        <time [attr.datetime]="item.event.created_at">{{ item.event.created_at | date: 'dd/MM HH:mm' }}</time>
+                        <span><strong>{{ eventLabel(item.event) }}</strong> — {{ item.request_title }}</span>
+                        <span class="activity-author">par {{ item.event.actor_name ?? 'Système' }}</span>
+                    </li>
+                }
+            </ol>
+        } @else if (!loading()) {
+            <p class="description">Aucune action récente sur vos demandes.</p>
+        }
+    </section>
 
     <section aria-labelledby="requests-heading">
         <div class="section-heading">
@@ -109,4 +132,4 @@
             </nav>
         }
     </section>
-</main>
+</div>

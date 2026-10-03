@@ -14,6 +14,7 @@ export const appRoutes: Routes = [
         children: [
             { path: 'account', data: { breadcrumb: 'Mon espace' }, loadComponent: () => import('./app/auth/account/account').then((m) => m.Account) },
             { path: 'profile', data: { breadcrumb: 'Mon profil' }, loadComponent: () => import('./app/auth/profile/profile').then((m) => m.Profile) },
+            { path: 'my-data', data: { breadcrumb: 'Mes données' }, loadComponent: () => import('./app/data-privacy/my-data').then((m) => m.MyData) },
             { path: '', redirectTo: 'account', pathMatch: 'full' },
             {
                 path: 'my-requests',
@@ -39,7 +40,9 @@ export const appRoutes: Routes = [
                     { path: 'admins', data: { breadcrumb: 'Administrateurs', role: 'admin' }, loadComponent: () => import('./app/users/accounts').then((m) => m.Accounts) }
                 ]
             },
+            { path: 'data-concerns', data: { breadcrumb: 'Signalements sur les données', roles: ['admin'] }, loadComponent: () => import('./app/data-privacy/data-concerns-admin').then((m) => m.DataConcernsAdmin) },
             { path: 'instituts', data: { breadcrumb: 'Instituts', roles: ['admin'] }, loadComponent: () => import('./app/instituts/instituts').then((m) => m.Instituts) },
+            { path: 'journal', data: { breadcrumb: 'Journal', roles: ['agent', 'manager', 'admin'] }, loadComponent: () => import('./app/journal/journal').then((m) => m.Journal) },
             { path: 'agent', data: { breadcrumb: 'Mes interventions', roles: ['agent'] }, loadComponent: () => import('./app/agent-workspace/agent-workspace').then((m) => m.AgentWorkspace) },
             { path: 'agents', data: { breadcrumb: 'Agents', roles: ['manager', 'admin'] }, loadComponent: () => import('./app/agents/agents').then((m) => m.Agents) },
             { path: 'municipal', data: { breadcrumb: 'Accueil municipal' }, loadComponent: () => import('./app/municipal/municipal-home').then((m) => m.MunicipalHome) },

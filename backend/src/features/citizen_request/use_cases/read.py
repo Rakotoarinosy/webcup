@@ -2,12 +2,15 @@
 
 from src.domain.agent import AgentRepository
 from src.domain.citizen_request import (
+    ActivityQuery,
     Actor,
     CitizenRequest,
     CitizenRequestEvent,
     CitizenRequestEventRepository,
     CitizenRequestNotFoundError,
     CitizenRequestRepository,
+    RequestActivity,
+    RequestActivityLog,
     RequestCategory,
     RequestEventType,
     RequestPriority,
@@ -72,6 +75,24 @@ def list_request_events(
     get_request(request_id, actor, repo)
     items = events.list_for_request(request_id)
 
+    _with_agent_names(items, agents)
+    return items
+
+
+def list_activity(
+    actor: Actor, log: RequestActivityLog, agents: AgentRepository, query: ActivityQuery
+) -> tuple[list[RequestActivity], int]:
+    """Journal de toutes les demandes du périmètre : un agent y suit ses interventions,
+    un manager son institut, l'admin toute la plateforme."""
+    scope = scope_for(actor)
+    if scope.is_empty:
+        return [], 0
+    items, total = log.list_activity(scope, query)
+    _with_agent_names([item.event for item in items], agents)
+    return items, total
+
+
+def _with_agent_names(items: list[CitizenRequestEvent], agents: AgentRepository) -> None:
     # Le nom de l'agent est résolu à la lecture (un seul appel par agent distinct).
     names: dict[str, str | None] = {}
     for event in items:
@@ -81,5 +102,3 @@ def list_request_events(
                 agent = agents.get_by_id(agent_id)
                 names[agent_id] = agent.name if agent else None
             event.payload = {**event.payload, "agent_name": names[agent_id]}
-
-    return items

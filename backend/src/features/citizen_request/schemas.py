@@ -112,6 +112,22 @@ class RequestEventOut(BaseModel):
     created_at: datetime
 
 
+class RequestActivityOut(BaseModel):
+    """Un événement du journal, avec la demande qu'il concerne."""
+
+    event: RequestEventOut
+    request_title: str
+    request_status: RequestStatus
+
+
+class RequestActivityPageOut(BaseModel):
+    items: list[RequestActivityOut]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+
+
 class PriorityItemOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

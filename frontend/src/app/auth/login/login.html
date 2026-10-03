@@ -14,15 +14,15 @@
         </div>
         <ul class="mt-auto grid list-none gap-5 pb-8 pt-16">
             <li class="flex items-center gap-4">
-                <i class="pi pi-users grid size-11 place-items-center rounded-full border border-emerald-200/40 text-emerald-100"></i
+                <i aria-hidden="true" class="pi pi-users grid size-11 place-items-center rounded-full border border-emerald-200/40 text-emerald-100"></i
                 ><span class="grid gap-0.5"><strong class="text-[.94rem]">Des citoyens mieux accompagnés</strong><small class="text-[.81rem] text-emerald-100/75">Un suivi clair, au bon moment.</small></span>
             </li>
             <li class="flex items-center gap-4">
-                <i class="pi pi-shield grid size-11 place-items-center rounded-full border border-emerald-200/40 text-emerald-100"></i
+                <i aria-hidden="true" class="pi pi-shield grid size-11 place-items-center rounded-full border border-emerald-200/40 text-emerald-100"></i
                 ><span class="grid gap-0.5"><strong class="text-[.94rem]">Des services plus efficaces</strong><small class="text-[.81rem] text-emerald-100/75">Des processus simples et fiables.</small></span>
             </li>
             <li class="flex items-center gap-4">
-                <i class="pi pi-chart-bar grid size-11 place-items-center rounded-full border border-emerald-200/40 text-emerald-100"></i
+                <i aria-hidden="true" class="pi pi-chart-bar grid size-11 place-items-center rounded-full border border-emerald-200/40 text-emerald-100"></i
                 ><span class="grid gap-0.5"><strong class="text-[.94rem]">Une action plus transparente</strong><small class="text-[.81rem] text-emerald-100/75">Une traçabilité qui inspire confiance.</small></span>
             </li>
         </ul>
@@ -44,7 +44,18 @@
             @if (errorMessage()) {
                 <p-message severity="error" [text]="errorMessage()!" icon="pi pi-exclamation-circle" styleClass="mb-5 block" role="alert" />
             }
-            <form [formGroup]="loginForm" (ngSubmit)="submit()" novalidate class="space-y-4">
+            @if (submitAttempted() && formErrors().length) {
+                <div #errorSummary id="login-error-summary" role="alert" tabindex="-1" class="mb-5 rounded-xl border border-red-300 bg-red-50 p-4 text-sm text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-100">
+                    <p class="m-0 font-semibold">{{ formErrors().length > 1 ? 'Le formulaire contient ' + formErrors().length + ' erreurs :' : 'Le formulaire contient une erreur :' }}</p>
+                    <ul class="mb-0 mt-2 list-disc pl-5">
+                        @for (error of formErrors(); track error.field) {
+                            <li><a class="underline" [href]="'#' + error.field" (click)="focusField($event, error.field)">{{ error.message }}</a></li>
+                        }
+                    </ul>
+                </div>
+            }
+            <form [formGroup]="loginForm" (ngSubmit)="submit()" novalidate class="space-y-4" aria-labelledby="login-title" [attr.aria-busy]="loading()">
+                <p id="login-required-hint" class="m-0 text-sm text-emerald-950/60 dark:text-emerald-50/65">Tous les champs sont obligatoires.</p>
                 <div>
                     <label for="email" class="mb-2 inline-block text-sm font-semibold">Adresse email</label
                     ><span class="relative block"
@@ -55,29 +66,45 @@
                             id="email"
                             type="email"
                             autocomplete="username"
+                            inputmode="email"
                             placeholder="vous@exemple.mg"
+                            required
+                            aria-describedby="email-error"
+                            [attr.aria-invalid]="loginForm.controls.email.invalid && loginForm.controls.email.touched"
                             class="w-full rounded-xl border-emerald-200 py-3 !pl-11 text-[.95rem] shadow-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/15 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-50"
                             formControlName="email"
                             [invalid]="loginForm.controls.email.invalid && loginForm.controls.email.touched" /></span
-                    ><small class="block min-h-4 pt-1 text-xs text-red-600">
+                    ><small id="email-error" class="field-error block min-h-4 pt-1 text-xs text-red-600 dark:text-red-300">
                         @if (loginForm.controls.email.invalid && loginForm.controls.email.touched) {
-                            {{ loginForm.controls.email.hasError('required') ? 'L’email est obligatoire.' : 'Saisissez une adresse email valide.' }}
+                            {{ emailError() }}
                         }
                     </small>
                 </div>
                 <div>
                     <label for="password" class="mb-2 inline-block text-sm font-semibold">Mot de passe</label
-                    ><p-password
-                        inputId="password"
-                        autocomplete="current-password"
-                        placeholder="Votre mot de passe"
-                        formControlName="password"
-                        [toggleMask]="true"
-                        [feedback]="false"
-                        [fluid]="true"
-                        inputStyleClass="rounded-xl border-emerald-200 py-3 !pr-11 text-[.95rem] shadow-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/15 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-50"
-                        [invalid]="loginForm.controls.password.invalid && loginForm.controls.password.touched"
-                    /><small class="block min-h-4 pt-1 text-xs text-red-600">
+                    ><span class="relative block"
+                        ><input
+                            pInputText
+                            id="password"
+                            [type]="showPassword() ? 'text' : 'password'"
+                            autocomplete="current-password"
+                            placeholder="Votre mot de passe"
+                            required
+                            aria-describedby="password-error"
+                            [attr.aria-invalid]="loginForm.controls.password.invalid && loginForm.controls.password.touched"
+                            class="w-full rounded-xl border-emerald-200 py-3 !pr-12 text-[.95rem] shadow-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/15 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-50"
+                            formControlName="password"
+                            [invalid]="loginForm.controls.password.invalid && loginForm.controls.password.touched" /><button
+                            type="button"
+                            class="absolute right-1.5 top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-lg text-emerald-950/60 hover:bg-emerald-50 dark:text-emerald-50/70 dark:hover:bg-emerald-900"
+                            aria-label="Afficher le mot de passe"
+                            aria-controls="password"
+                            [attr.aria-pressed]="showPassword()"
+                            (click)="showPassword.set(!showPassword())"
+                        >
+                            <i [class]="showPassword() ? 'pi pi-eye-slash' : 'pi pi-eye'" aria-hidden="true"></i></button
+                    ></span>
+                    <small id="password-error" class="field-error block min-h-4 pt-1 text-xs text-red-600 dark:text-red-300">
                         @if (loginForm.controls.password.invalid && loginForm.controls.password.touched) {
                             Le mot de passe est obligatoire.
                         }

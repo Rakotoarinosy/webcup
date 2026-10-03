@@ -29,6 +29,13 @@ export class AppTopbar {
     readonly configVisible = signal(false);
 
     readonly user = this.auth.user;
+
+    /** État ouvert/fermé du menu latéral, exposé via aria-expanded sur le bouton « Menu principal ». */
+    readonly menuExpanded = computed(() => {
+        const state = this.layoutService.layoutState();
+        if (this.layoutService.isOverlay()) return state.overlayMenuActive;
+        return this.layoutService.isDesktop() ? !state.staticMenuDesktopInactive : state.mobileMenuActive;
+    });
     readonly roleLabel = this.auth.roleLabel;
 
     toggleConfigurator(event: MouseEvent): void {

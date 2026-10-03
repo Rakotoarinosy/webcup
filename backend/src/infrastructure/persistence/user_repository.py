@@ -12,6 +12,7 @@ from src.domain.user.repository import UserRepository
 from src.infrastructure.persistence.models import (
     CitizenRequestEventModel,
     CitizenRequestModel,
+    DataConcernModel,
     NotificationReadModel,
     RefreshTokenModel,
     TerraRequestReadModel,
@@ -79,19 +80,22 @@ class SqlAlchemyUserRepository(UserRepository):
                 raise UserNotFoundError(user_id)
             if model.role != Role.CITIZEN.value or not model.is_active:
                 raise ForbiddenError("Only citizens can delete their own account")
-            has_records = self.db.scalar(
-                select(CitizenRequestModel.id)
-                .where(CitizenRequestModel.citizen_id == user_id)
-                .limit(1)
+            # Demandes et signalements sur les données restent au dossier de la mairie.
+            owned = (
+                (CitizenRequestModel, CitizenRequestModel.citizen_id),
+                (DataConcernModel, DataConcernModel.user_id),
+            )
+            has_records = any(
+                self.db.scalar(select(table.id).where(column == user_id).limit(1))
+                for table, column in owned
             )
             if has_records:
                 self.db.add(self._to_model(archive))
                 self.db.flush()
-                self.db.execute(
-                    update(CitizenRequestModel)
-                    .where(CitizenRequestModel.citizen_id == user_id)
-                    .values(citizen_id=archive.id)
-                )
+                for table, column in owned:
+                    self.db.execute(
+                        update(table).where(column == user_id).values({column: archive.id})
+                    )
             self.db.execute(
                 update(CitizenRequestEventModel)
                 .where(CitizenRequestEventModel.actor_id == user_id)

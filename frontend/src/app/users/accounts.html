@@ -19,13 +19,13 @@
 
     <div class="mb-5 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
         <p-iconfield>
-            <p-inputicon styleClass="pi pi-search" />
+            <p-inputicon styleClass="pi pi-search" aria-hidden="true" />
             <input pInputText type="search" class="w-full" aria-label="Rechercher un compte par nom ou email" placeholder="Nom ou email..." [ngModel]="searchText" (ngModelChange)="onSearchChange($event)" />
         </p-iconfield>
-        <span class="self-center text-sm text-muted-color" aria-live="polite">{{ accounts().length }} compte(s)</span>
+        <span class="self-center text-sm text-muted-color" role="status">{{ accounts().length }} compte(s)</span>
     </div>
 
-    <p-table [value]="accounts()" [loading]="loading()" [paginator]="true" [rows]="10" [rowsPerPageOptions]="[10, 20, 50]" [rowHover]="true" dataKey="id" [tableStyle]="{ 'min-width': '60rem' }" currentPageReportTemplate="Affichage {first} à {last} sur {totalRecords} comptes" [showCurrentPageReport]="true">
+    <p-table role="region" [attr.aria-label]="page().title" [value]="accounts()" [loading]="loading()" [paginator]="true" [rows]="10" [rowsPerPageOptions]="[10, 20, 50]" [rowHover]="true" dataKey="id" [tableStyle]="{ 'min-width': '60rem' }" currentPageReportTemplate="Affichage {first} à {last} sur {totalRecords} comptes" [showCurrentPageReport]="true">
         <ng-template #header>
             <tr>
                 <th pSortableColumn="name" style="min-width: 14rem">Compte <p-sortIcon field="name" /></th>
@@ -50,11 +50,11 @@
                 <td>{{ user.created_at | date: 'dd/MM/yyyy' }}</td>
                 <td>
                     <div class="flex gap-1">
-                        <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" ariaLabel="Modifier le compte" pTooltip="Modifier" tooltipPosition="top" (onClick)="openEdit(user)" />
+                        <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" [ariaLabel]="'Modifier le compte de ' + user.name" pTooltip="Modifier" tooltipPosition="top" (onClick)="openEdit(user)" />
                         @if (user.is_active) {
-                            <p-button icon="pi pi-ban" severity="danger" [rounded]="true" [text]="true" ariaLabel="Désactiver le compte" pTooltip="Désactiver" tooltipPosition="top" (onClick)="confirmActivation(user)" />
+                            <p-button icon="pi pi-ban" severity="danger" [rounded]="true" [text]="true" [ariaLabel]="'Désactiver le compte de ' + user.name" pTooltip="Désactiver" tooltipPosition="top" (onClick)="confirmActivation(user)" />
                         } @else {
-                            <p-button icon="pi pi-replay" severity="success" [rounded]="true" [text]="true" ariaLabel="Réactiver le compte" pTooltip="Réactiver" tooltipPosition="top" (onClick)="confirmActivation(user)" />
+                            <p-button icon="pi pi-replay" severity="success" [rounded]="true" [text]="true" [ariaLabel]="'Réactiver le compte de ' + user.name" pTooltip="Réactiver" tooltipPosition="top" (onClick)="confirmActivation(user)" />
                         }
                     </div>
                 </td>
@@ -69,28 +69,76 @@
 </div>
 
 <p-dialog [(visible)]="dialogVisible" [header]="edited ? 'Modifier le compte' : page().create" [modal]="true" [style]="{ width: 'min(34rem, 95vw)' }">
-    <form #accountForm="ngForm" id="accountForm" class="grid grid-cols-1 gap-4" (ngSubmit)="save(accountForm)">
+    <form #accountForm="ngForm" id="accountForm" class="grid grid-cols-1 gap-4" novalidate (ngSubmit)="save(accountForm)">
+        <p class="m-0 text-sm text-muted-color">Les champs marqués d’un astérisque (<span aria-hidden="true">*</span>) sont obligatoires.</p>
+        @if (accountForm.submitted && accountForm.invalid) {
+            <p role="alert" class="m-0 rounded-border border border-red-300 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-100">Le formulaire contient des erreurs : corrigez les champs signalés.</p>
+        }
         <div>
-            <label for="account-name" class="mb-2 block font-semibold">Nom</label>
-            <input pInputText id="account-name" name="name" [(ngModel)]="form.name" required maxlength="255" class="w-full" />
+            <label for="account-name" class="mb-2 block font-semibold">Nom <span class="text-red-600" aria-hidden="true">*</span></label>
+            <input
+                pInputText
+                #nameModel="ngModel"
+                id="account-name"
+                name="name"
+                [(ngModel)]="form.name"
+                required
+                maxlength="255"
+                autocomplete="off"
+                aria-describedby="account-name-error"
+                [attr.aria-invalid]="nameModel.invalid && nameModel.touched"
+                class="w-full"
+            />
+            <small id="account-name-error" class="field-error block text-sm text-red-600 dark:text-red-300">
+                @if (nameModel.invalid && nameModel.touched) {
+                    <span class="block pt-1">Le nom est obligatoire.</span>
+                }
+            </small>
         </div>
         <div>
-            <label for="account-email" class="mb-2 block font-semibold">Email</label>
-            <input pInputText id="account-email" name="email" type="email" [(ngModel)]="form.email" required email maxlength="320" class="w-full" />
+            <label for="account-email" class="mb-2 block font-semibold">Email <span class="text-red-600" aria-hidden="true">*</span></label>
+            <input
+                pInputText
+                #emailModel="ngModel"
+                id="account-email"
+                name="email"
+                type="email"
+                [(ngModel)]="form.email"
+                required
+                email
+                maxlength="320"
+                autocomplete="off"
+                aria-describedby="account-email-error"
+                [attr.aria-invalid]="emailModel.invalid && emailModel.touched"
+                class="w-full"
+            />
+            <small id="account-email-error" class="field-error block text-sm text-red-600 dark:text-red-300">
+                @if (emailModel.invalid && emailModel.touched) {
+                    <span class="block pt-1">{{ emailModel.hasError('required') ? 'L’email est obligatoire.' : 'Saisissez une adresse email valide.' }}</span>
+                }
+            </small>
         </div>
         <div>
-            <label for="account-role" class="mb-2 block font-semibold">Rôle</label>
-            <p-select inputId="account-role" name="role" [(ngModel)]="form.role" (ngModelChange)="form.institut_id = null" [options]="roleOptions" optionLabel="label" optionValue="value" required class="w-full" appendTo="body" />
-            @if (edited && edited.role !== form.role && (edited.role === 'manager' || edited.role === 'agent')) {
-                <small class="mt-1 block text-orange-600">
-                    {{ edited.role === 'manager' ? 'Son institut se retrouvera sans responsable.' : 'Son profil agent sera désactivé.' }}
-                </small>
-            }
+            <label for="account-role" id="account-role-label" class="mb-2 block font-semibold">Rôle <span class="text-red-600" aria-hidden="true">*</span></label>
+            <p-select inputId="account-role" name="role" [(ngModel)]="form.role" (ngModelChange)="form.institut_id = null" [options]="roleOptions" optionLabel="label" optionValue="value" required ariaLabelledBy="account-role-label account-role-warning" class="w-full" appendTo="body" />
+            <small id="account-role-warning" class="block text-orange-600" role="status">
+                @if (edited && edited.role !== form.role && (edited.role === 'manager' || edited.role === 'agent')) {
+                    <span class="block pt-1">{{ edited.role === 'manager' ? 'Son institut se retrouvera sans responsable.' : 'Son profil agent sera désactivé.' }}</span>
+                }
+            </small>
         </div>
         @if (needsInstitut()) {
             <div>
-                <label for="account-institut" class="mb-2 block font-semibold">{{ form.role === 'manager' ? 'Institut dirigé' : 'Institut de rattachement' }}</label>
+                <label for="account-institut" id="account-institut-label" class="mb-2 block font-semibold"
+                    >{{ form.role === 'manager' ? 'Institut dirigé' : 'Institut de rattachement' }}
+                    @if (form.role === 'agent') {
+                        <span class="text-red-600" aria-hidden="true">*</span>
+                    } @else {
+                        <span class="font-normal text-muted-color">(facultatif)</span>
+                    }</label
+                >
                 <p-select
+                    #institutModel="ngModel"
                     inputId="account-institut"
                     name="institut_id"
                     [(ngModel)]="form.institut_id"
@@ -101,25 +149,54 @@
                     [required]="form.role === 'agent'"
                     [placeholder]="form.role === 'manager' ? 'Aucun institut' : 'Choisir un institut'"
                     [emptyMessage]="form.role === 'manager' ? 'Tous les instituts actifs ont déjà un responsable' : 'Aucun institut actif'"
+                    ariaLabelledBy="account-institut-label account-institut-error"
+                    [invalid]="!!institutModel.invalid && !!institutModel.touched"
                     class="w-full"
                     appendTo="body"
                 />
-                <small class="mt-1 block text-muted-color">
+                <small id="account-institut-help" class="mt-1 block text-muted-color">
                     {{ form.role === 'manager' ? 'Un responsable ne dirige qu’un seul institut.' : 'L’agent ne recevra que les demandes de cet institut.' }}
+                </small>
+                <small id="account-institut-error" class="field-error block text-sm text-red-600 dark:text-red-300">
+                    @if (institutModel.invalid && institutModel.touched) {
+                        <span class="block pt-1">Choisissez l’institut de rattachement de l’agent.</span>
+                    }
                 </small>
             </div>
         }
         <div>
             <label for="account-password" class="mb-2 block font-semibold">
                 {{ edited ? 'Nouveau mot de passe' : 'Mot de passe initial' }}
-                @if (edited) { <span class="font-normal text-muted-color">(laisser vide pour ne pas changer)</span> }
+                @if (edited) {
+                    <span class="font-normal text-muted-color">(laisser vide pour ne pas changer)</span>
+                } @else {
+                    <span class="text-red-600" aria-hidden="true">*</span>
+                }
             </label>
-            <input pInputText id="account-password" name="password" type="password" autocomplete="new-password" [(ngModel)]="form.password" [required]="!edited" minlength="10" class="w-full" />
-            <small class="mt-1 block text-muted-color">10 caractères minimum, avec une minuscule, une majuscule et un chiffre. Toute modification sensible déconnecte le compte.</small>
+            <input
+                pInputText
+                #passwordModel="ngModel"
+                id="account-password"
+                name="password"
+                type="password"
+                autocomplete="new-password"
+                [(ngModel)]="form.password"
+                [required]="!edited"
+                minlength="10"
+                aria-describedby="account-password-help account-password-error"
+                [attr.aria-invalid]="passwordModel.invalid && passwordModel.touched"
+                class="w-full"
+            />
+            <small id="account-password-help" class="mt-1 block text-muted-color">10 caractères minimum, avec une minuscule, une majuscule et un chiffre. Toute modification sensible déconnecte le compte.</small>
+            <small id="account-password-error" class="field-error block text-sm text-red-600 dark:text-red-300">
+                @if (passwordModel.invalid && passwordModel.touched) {
+                    <span class="block pt-1">{{ passwordModel.hasError('required') ? 'Le mot de passe initial est obligatoire.' : 'Le mot de passe doit contenir au moins 10 caractères.' }}</span>
+                }
+            </small>
         </div>
     </form>
     <ng-template #footer>
         <button pButton type="button" label="Annuler" icon="pi pi-times" [text]="true" (click)="dialogVisible = false"></button>
-        <button pButton type="submit" form="accountForm" label="Enregistrer" icon="pi pi-check" [loading]="saving()" [disabled]="!accountForm.valid || saving()"></button>
+        <button pButton type="submit" form="accountForm" label="Enregistrer" icon="pi pi-check" [loading]="saving()" [disabled]="saving()"></button>
     </ng-template>
 </p-dialog>
