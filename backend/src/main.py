@@ -19,6 +19,7 @@ from src.features.preferences.router import router as preferences_router
 from src.features.search.router import router as search_router
 from src.features.terra_request.router import router as terra_request_router
 from src.features.user.router import router as user_router
+from src.features.user_export.router import router as user_export_router
 from src.infrastructure.config import configure_logging, get_settings
 from src.shared.errors import register_exception_handlers
 
@@ -34,6 +35,7 @@ FEATURE_ROUTERS: list[APIRouter] = [
     notification_router,
     search_router,
     preferences_router,
+    user_export_router,
     municipal_content_router,
     terra_request_router,
 ]

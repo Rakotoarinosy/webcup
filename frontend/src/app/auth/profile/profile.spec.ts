@@ -6,18 +6,21 @@ import { of, Subject, throwError } from 'rxjs';
 import { AuthService } from '../auth.service';
 import { AuthUser } from '../auth.model';
 import { Profile } from './profile';
+import { ProfileExportService } from './profile-export.service';
 
 const USER: AuthUser = { id: 'me', name: 'Ada Lovelace', email: 'ada@test.mg', role: 'citizen', agent_id: null, institut_id: null, created_at: '2026-10-03T10:00:00Z' };
 
 describe('Profile', () => {
     let fixture: ComponentFixture<Profile>;
     let auth: jasmine.SpyObj<AuthService>;
+    let profileExport: jasmine.SpyObj<ProfileExportService>;
     const user = signal<AuthUser | null>(USER);
     beforeEach(async () => {
         user.set(USER);
         auth = jasmine.createSpyObj('AuthService', ['hasRole', 'updateProfile', 'changePassword', 'deleteAccount'], { user, roleLabel: () => 'Citoyen' });
+        profileExport = jasmine.createSpyObj('ProfileExportService', ['exportPersonalData']);
         auth.hasRole.and.callFake((...roles) => roles.includes(user()!.role));
-        await TestBed.configureTestingModule({ imports: [Profile], providers: [provideRouter([]), { provide: AuthService, useValue: auth }] }).compileComponents();
+        await TestBed.configureTestingModule({ imports: [Profile], providers: [provideRouter([]), { provide: AuthService, useValue: auth }, { provide: ProfileExportService, useValue: profileExport }] }).compileComponents();
         fixture = TestBed.createComponent(Profile);
         fixture.detectChanges();
     });
@@ -116,5 +119,10 @@ describe('Profile', () => {
         fixture.componentInstance.deleteForm.setValue({ current_password: 'Motdepasse123', confirmed: true });
         fixture.componentInstance.deleteAccount();
         expect(auth.deleteAccount).not.toHaveBeenCalled();
+    });
+    it('offers all supported personal-data export formats', () => {
+        const select: HTMLSelectElement = fixture.nativeElement.querySelector('#export-format');
+        expect(Array.from(select.options).map((option) => option.value)).toEqual(['pdf', 'csv', 'excel', 'word']);
+        expect(fixture.nativeElement.textContent).toContain('mots de passe, jetons de connexion');
     });
 });

@@ -1,15 +1,4 @@
 <div class="mx-auto max-w-[78rem]">
-    <header class="profile-hero rounded-2xl p-6 sm:p-8">
-        <a routerLink="/home/account" class="inline-flex items-center gap-2 font-semibold"><i class="pi pi-arrow-left" aria-hidden="true"></i> Mon espace</a>
-        <div class="mt-6 flex flex-wrap items-center gap-5">
-            <span class="grid h-18 w-18 shrink-0 place-items-center rounded-2xl bg-primary text-2xl font-bold text-primary-contrast" aria-hidden="true">{{ initials() }}</span>
-            <div class="min-w-0 flex-1">
-                <p class="mb-1 font-semibold text-primary">Votre compte Kotrana</p>
-                <h1 class="m-0 text-3xl font-bold">Mon profil</h1>
-                <p class="mb-0 mt-2">Vos informations, votre sécurité et vos choix au même endroit.</p>
-            </div>
-        </div>
-    </header>
 
     @if (notice()) {
         <p #feedback tabindex="-1" class="profile-notice mt-5 rounded-xl p-4" role="status">{{ notice() }}</p>
@@ -108,6 +97,31 @@
                         </button>
                     </fieldset>
                 </form>
+            </section>
+
+            <section class="profile-panel card mb-0" aria-labelledby="export-heading">
+                <div class="mb-5 flex items-start gap-3">
+                    <i class="pi pi-download mt-1 text-xl text-primary" aria-hidden="true"></i>
+                    <div>
+                        <h2 id="export-heading" class="m-0 text-xl font-semibold">Exporter mes informations</h2>
+                        <p class="mb-0 mt-2 text-muted-color">Téléchargez une copie de vos informations de compte, préférences et demandes personnelles.</p>
+                    </div>
+                </div>
+                <div class="profile-export" aria-describedby="export-help">
+                    <div class="min-w-0 flex-1">
+                        <label for="export-format">Format du fichier</label>
+                        <select id="export-format" [value]="exportFormat()" [disabled]="!!busy()" (change)="exportFormat.set($any($event.target).value)">
+                            <option value="pdf">PDF — lecture et impression</option>
+                            <option value="csv">CSV — données tabulaires</option>
+                            <option value="excel">Excel — classeur .xlsx</option>
+                            <option value="word">Word — document .doc</option>
+                        </select>
+                        <small id="export-help">Les mots de passe, jetons de connexion et informations des autres utilisateurs ne sont jamais inclus.</small>
+                    </div>
+                    <button type="button" class="profile-button export-button" [disabled]="!!busy()" (click)="downloadPersonalData()">
+                        <i [class]="busy() === 'export' ? 'pi pi-spin pi-spinner' : 'pi pi-download'" aria-hidden="true"></i>{{ busy() === 'export' ? 'Préparation…' : 'Télécharger' }}
+                    </button>
+                </div>
             </section>
 
             @if (auth.hasRole('citizen')) {

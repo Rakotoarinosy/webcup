@@ -31,7 +31,19 @@ input:not([type='checkbox']) {
     color: var(--text-color);
     font: inherit;
 }
+select {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    border: 1px solid var(--surface-border);
+    border-radius: 0.65rem;
+    padding: 0.85rem;
+    background: var(--surface-card);
+    color: var(--text-color);
+    font: inherit;
+}
 input:focus-visible,
+select:focus-visible,
 button:focus-visible,
 a:focus-visible {
     outline: 3px solid var(--p-primary-color);
@@ -76,6 +88,18 @@ button:disabled {
 .profile-notice {
     background: color-mix(in srgb, var(--p-primary-color) 12%, var(--surface-card));
 }
+.profile-export {
+    display: flex;
+    align-items: end;
+    gap: 1rem;
+    padding: 1rem;
+    border: 1px solid var(--surface-border);
+    border-radius: 0.85rem;
+    background: color-mix(in srgb, var(--p-primary-color) 4%, var(--surface-card));
+}
+.export-button {
+    flex: 0 0 auto;
+}
 .profile-dialog {
     margin: auto;
     width: min(36rem, calc(100vw - 2rem));
@@ -112,5 +136,9 @@ button:disabled {
 @media (max-width: 480px) {
     .profile-button {
         width: 100%;
+    }
+    .profile-export {
+        align-items: stretch;
+        flex-direction: column;
     }
 }

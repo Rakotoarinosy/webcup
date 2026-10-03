@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { HttpErrorResponse } from '@angular/common/http';
+import { HttpErrorResponse, HttpResponse } from '@angular/common/http';
 import { Component, DestroyRef, ElementRef, Injector, afterNextRender, computed, inject, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -9,6 +9,7 @@ import { finalize } from 'rxjs';
 import { AuthService } from '../auth.service';
 import { NAME_VALIDATORS, PASSWORD_VALIDATORS } from '../auth.validators';
 import { apiErrorMessage } from '@/app/users/user.service';
+import { ProfileExportService, UserExportFormat } from './profile-export.service';
 
 @Component({
     selector: 'app-profile',
@@ -22,13 +23,15 @@ export class Profile {
     private readonly router = inject(Router);
     private readonly destroyRef = inject(DestroyRef);
     private readonly injector = inject(Injector);
+    private readonly profileExport = inject(ProfileExportService);
     readonly feedback = viewChild<ElementRef<HTMLElement>>('feedback');
     readonly deleteFeedback = viewChild<ElementRef<HTMLElement>>('deleteFeedback');
     readonly deleteDialog = viewChild<ElementRef<HTMLDialogElement>>('deleteDialog');
-    readonly busy = signal<'profile' | 'password' | 'delete' | null>(null);
+    readonly busy = signal<'profile' | 'password' | 'delete' | 'export' | null>(null);
     readonly notice = signal<string | null>(null);
     readonly error = signal<string | null>(null);
     readonly deleteError = signal<string | null>(null);
+    readonly exportFormat = signal<UserExportFormat>('pdf');
     readonly initials = computed(() =>
         (
             this.auth
@@ -156,7 +159,30 @@ export class Profile {
             });
     }
 
-    private start(action: 'profile' | 'password' | 'delete'): void {
+    downloadPersonalData(): void {
+        if (this.busy()) return;
+        const format = this.exportFormat();
+        this.start('export');
+        this.profileExport
+            .exportPersonalData(format)
+            .pipe(
+                takeUntilDestroyed(this.destroyRef),
+                finalize(() => this.busy.set(null))
+            )
+            .subscribe({
+                next: (response) => {
+                    this.saveFile(response, format);
+                    this.notice.set('Votre export est prêt. Le téléchargement a commencé.');
+                    this.focusFeedback();
+                },
+                error: (error: unknown) => {
+                    this.error.set(this.message(error));
+                    this.focusFeedback();
+                }
+            });
+    }
+
+    private start(action: 'profile' | 'password' | 'delete' | 'export'): void {
         this.busy.set(action);
         this.notice.set(null);
         this.error.set(null);
@@ -164,6 +190,16 @@ export class Profile {
 
     private focusFeedback(): void {
         afterNextRender(() => this.feedback()?.nativeElement.focus(), { injector: this.injector });
+    }
+
+    private saveFile(response: HttpResponse<Blob>, format: UserExportFormat): void {
+        const filename = response.headers.get('content-disposition')?.match(/filename="?([^";]+)"?/i)?.[1] ?? `mes-donnees.${format === 'excel' ? 'xlsx' : format === 'word' ? 'doc' : format}`;
+        const url = URL.createObjectURL(response.body ?? new Blob());
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        link.click();
+        URL.revokeObjectURL(url);
     }
 
     private message(error: unknown): string {
