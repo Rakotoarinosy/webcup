@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, input } from '@angular/core';
+import { RouterLink } from '@angular/router';
 
 interface Stat {
     openRequests: number;
@@ -11,10 +12,11 @@ interface Stat {
 @Component({
     selector: 'app-stats',
     standalone: true,
-    imports: [CommonModule],
+    imports: [CommonModule, RouterLink],
     templateUrl: './stats.html',
     styleUrl: './stats.scss'
 })
 export class Stats {
     stats = input<Stat>({ openRequests: 0, inProgressRequests: 0, resolvedRequests: 0, todayInterventions: 0 });
+    links = input<string[]>([]);
 }

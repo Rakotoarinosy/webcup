@@ -8,6 +8,7 @@
     <a [attr.href]="item().url" (click)="itemClick($event)" [ngClass]="item().class" [attr.target]="item().target" tabindex="0" pRipple>
         <i [ngClass]="item().icon" class="layout-menuitem-icon"></i>
         <span class="layout-menuitem-text">{{ item().label }}</span>
+        @if (item().badge > 0) { <span class="ml-auto rounded-full bg-primary px-2 py-0.5 text-xs font-semibold text-primary-contrast" [attr.aria-label]="item().badge + ' éléments non lus'">{{ item().badge > 99 ? '99+' : item().badge }}</span> }
         @if (hasChildren()) {
             <i class="pi pi-fw pi-angle-down layout-submenu-toggler"></i>
         }
@@ -35,6 +36,7 @@
     >
         <i [ngClass]="item().icon" class="layout-menuitem-icon"></i>
         <span class="layout-menuitem-text">{{ item().label }}</span>
+        @if (item().badge > 0) { <span class="ml-auto rounded-full bg-primary px-2 py-0.5 text-xs font-semibold text-primary-contrast" [attr.aria-label]="item().badge + ' éléments non lus'">{{ item().badge > 99 ? '99+' : item().badge }}</span> }
         @if (hasChildren()) {
             <i class="pi pi-fw pi-angle-down layout-submenu-toggler"></i>
         }

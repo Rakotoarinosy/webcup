@@ -20,11 +20,11 @@
         }
         <!-- Theme settings -->
         <div class="layout-config-menu">
-            <div class="relative">
-                <button type="button" aria-label="Affichage et taille du texte" class="layout-topbar-action layout-topbar-action-highlight" pStyleClass="@next" enterFromClass="hidden" enterActiveClass="animate-scalein" leaveToClass="hidden" leaveActiveClass="animate-fadeout" [hideOnOutsideClick]="true">
+            <div #configMenu class="relative">
+                <button type="button" aria-label="Affichage et taille du texte" class="layout-topbar-action layout-topbar-action-highlight" [attr.aria-expanded]="configVisible()" (click)="toggleConfigurator($event)">
                     <i class="pi pi-palette"></i>
                 </button>
-                <app-configurator />
+                <app-configurator [visible]="configVisible()" />
             </div>
         </div>
 
@@ -38,11 +38,11 @@
             <div class="layout-topbar-menu-content">
                 <app-notifications />
 
-                <button type="button" class="layout-topbar-action" [attr.aria-label]="'Compte : ' + (user()?.name ?? '')" (click)="menu.toggle($event)">
+                <button type="button" class="layout-topbar-action" [attr.aria-label]="'Compte : ' + (user()?.name ?? '')" (click)="toggleAccount($event)">
                     <i class="pi pi-user"></i>
                     <span>{{ user()?.name ?? 'Compte' }}</span>
                 </button>
-                <p-menu #menu [model]="items()" [popup]="true" appendTo="body" />
+                <p-menu #menu [model]="items()" [popup]="true" appendTo="body" (onHide)="overlays.close('account')" />
             </div>
         </div>
     </div>
