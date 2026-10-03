@@ -8,7 +8,8 @@ REQUESTS = "/api/v1/requests"
 
 async def test_citizen_request_crud_filters_and_dashboard(client: httpx.AsyncClient) -> None:
     citizen_response = await client.post(
-        "/api/v1/users", json={"email": "citizen@example.com", "name": "Citoyen"}
+        "/api/v1/users",
+        json={"email": "citizen@example.com", "name": "Citoyen", "password": "Motdepasse123"},
     )
     agent_response = await client.post(
         "/api/v1/agents",
@@ -138,7 +139,10 @@ async def test_request_assignment_requires_existing_active_agent(
     client: httpx.AsyncClient,
 ) -> None:
     citizen = (
-        await client.post("/api/v1/users", json={"email": "c@example.com", "name": "Citoyen"})
+        await client.post(
+            "/api/v1/users",
+            json={"email": "c@example.com", "name": "Citoyen", "password": "Motdepasse123"},
+        )
     ).json()
     agent = (
         await client.post(
@@ -151,12 +155,16 @@ async def test_request_assignment_requires_existing_active_agent(
     assert unknown.status_code == 404
     assert unknown.json()["error"] == "AgentNotFoundError"
 
-    created = await client.post(REQUESTS, json=_request(citizen["id"], assigned_agent_id=agent["id"]))
+    created = await client.post(
+        REQUESTS, json=_request(citizen["id"], assigned_agent_id=agent["id"])
+    )
     assert created.status_code == 201
 
     await client.post(f"/api/v1/agents/{agent['id']}/deactivate")
 
-    refused = await client.post(REQUESTS, json=_request(citizen["id"], assigned_agent_id=agent["id"]))
+    refused = await client.post(
+        REQUESTS, json=_request(citizen["id"], assigned_agent_id=agent["id"])
+    )
     assert refused.status_code == 400
     assert refused.json()["error"] == "AgentInactiveError"
 
@@ -168,7 +176,10 @@ async def test_request_assignment_requires_existing_active_agent(
 
 async def test_request_coordinates_are_optional_and_validated(client: httpx.AsyncClient) -> None:
     citizen = (
-        await client.post("/api/v1/users", json={"email": "g@example.com", "name": "Citoyen"})
+        await client.post(
+            "/api/v1/users",
+            json={"email": "g@example.com", "name": "Citoyen", "password": "Motdepasse123"},
+        )
     ).json()
 
     without = await client.post(REQUESTS, json=_request(citizen["id"]))

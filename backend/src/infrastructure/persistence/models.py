@@ -179,3 +179,57 @@ class NotificationReadModel(Base):
     )
     key: Mapped[str] = mapped_column(String(80), primary_key=True)
     read_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+# ─── contenu municipal ──────────────────────────────────────────────
+
+
+class MunicipalServiceModel(Base):
+    __tablename__ = "municipal_services"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[str] = mapped_column(Text, nullable=False)
+    contact_details: Mapped[str] = mapped_column(String(500), nullable=False)
+    opening_hours: Mapped[str] = mapped_column(String(255), nullable=False)
+    icon: Mapped[str] = mapped_column(String(80), nullable=False, default="pi-building")
+    display_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    is_active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default=true()
+    )
+
+
+class MunicipalPublicationModel(Base):
+    __tablename__ = "municipal_publications"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    summary: Mapped[str] = mapped_column(String(500), nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    category: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    published_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
+    is_published: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default=true()
+    )
+
+
+class ContactMessageModel(Base):
+    __tablename__ = "contact_messages"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    receipt_number: Mapped[str] = mapped_column(String(32), nullable=False, unique=True, index=True)
+    service_id: Mapped[str | None] = mapped_column(
+        String(36),
+        ForeignKey("municipal_services.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    sender_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    sender_email: Mapped[str] = mapped_column(String(320), nullable=False)
+    subject: Mapped[str] = mapped_column(String(255), nullable=False)
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utc_now
+    )

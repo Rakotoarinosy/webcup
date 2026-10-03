@@ -15,11 +15,13 @@ async def test_health(client: httpx.AsyncClient) -> None:
 
 async def test_user_crud_flow(client: httpx.AsyncClient) -> None:
     # POST
-    response = await client.post(USERS, json={"email": "ada@example.com", "name": "Ada"})
+    response = await client.post(
+        USERS, json={"email": "ada@example.com", "name": "Ada", "password": "Motdepasse123"}
+    )
     assert response.status_code == 201
     user = response.json()
     assert user["email"] == "ada@example.com"
-    assert set(user) == {"id", "email", "name", "created_at"}
+    assert set(user) == {"id", "email", "name", "role", "is_active", "agent_id", "created_at"}
 
     # GET (détail + liste)
     response = await client.get(f"{USERS}/{user['id']}")
@@ -29,8 +31,8 @@ async def test_user_crud_flow(client: httpx.AsyncClient) -> None:
     response = await client.get(USERS)
     assert response.json() == [user]
 
-    # PUT
-    response = await client.put(f"{USERS}/{user['id']}", json={"name": "Ada Lovelace"})
+    # PATCH
+    response = await client.patch(f"{USERS}/{user['id']}", json={"name": "Ada Lovelace"})
     assert response.status_code == 200
     assert response.json() == {**user, "name": "Ada Lovelace"}
 
@@ -43,7 +45,7 @@ async def test_user_crud_flow(client: httpx.AsyncClient) -> None:
 
 
 async def test_duplicate_email_returns_409(client: httpx.AsyncClient) -> None:
-    payload = {"email": "ada@example.com", "name": "Ada"}
+    payload = {"email": "ada@example.com", "name": "Ada", "password": "Motdepasse123"}
     await client.post(USERS, json=payload)
 
     response = await client.post(USERS, json=payload)
@@ -60,6 +62,8 @@ async def test_unknown_user_returns_404(client: httpx.AsyncClient) -> None:
 
 
 async def test_invalid_email_returns_422(client: httpx.AsyncClient) -> None:
-    response = await client.post(USERS, json={"email": "not-an-email", "name": "Ada"})
+    response = await client.post(
+        USERS, json={"email": "not-an-email", "name": "Ada", "password": "Motdepasse123"}
+    )
 
     assert response.status_code == 422

@@ -11,6 +11,10 @@ const MENU_MODEL: MenuItem[] = [
         items: [
             { label: 'Dashboard', icon: 'pi pi-fw pi-home', routerLink: ['/home/dashboard'] },
             { label: 'Demandes citoyennes', icon: 'pi pi-fw pi-inbox', routerLink: ['/home/requests'] },
+            { label: 'Accueil municipal', icon: 'pi pi-fw pi-building', routerLink: ['/home/municipal'] },
+            { label: 'Services municipaux', icon: 'pi pi-fw pi-map-marker', routerLink: ['/home/municipal/services'] },
+            { label: 'Publications', icon: 'pi pi-fw pi-megaphone', routerLink: ['/home/municipal/publications'] },
+            { label: 'Contacter la mairie', icon: 'pi pi-fw pi-envelope', routerLink: ['/home/municipal/contact'] },
             { label: 'Agents', icon: 'pi pi-fw pi-id-card', routerLink: ['/home/agents'] },
             { label: 'Transaction', icon: 'pi pi-fw pi-objects-column', routerLink: ['/home/transaction'] }
         ]

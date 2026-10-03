@@ -18,6 +18,10 @@ export const appRoutes: Routes = [
             { path: 'users', loadComponent: () => import('./app/users/users').then((m) => m.Users) },
             { path: 'requests', loadComponent: () => import('./app/requests/requests').then((m) => m.Requests) },
             { path: 'agents', loadComponent: () => import('./app/agents/agents').then((m) => m.Agents) },
+            { path: 'municipal', loadComponent: () => import('./app/municipal/municipal-home').then((m) => m.MunicipalHome) },
+            { path: 'municipal/services', loadComponent: () => import('./app/municipal/municipal-services').then((m) => m.MunicipalServices) },
+            { path: 'municipal/publications', loadComponent: () => import('./app/municipal/municipal-publications').then((m) => m.MunicipalPublications) },
+            { path: 'municipal/contact', loadComponent: () => import('./app/municipal/municipal-contact').then((m) => m.MunicipalContact) },
             // Démos du template (composants PrimeNG, pages CRUD / vide / documentation).
             { path: 'uikit', loadChildren: () => import('./app/pages/uikit/uikit.routes') },
             { path: 'pages', loadChildren: () => import('./app/pages/pages.routes') }

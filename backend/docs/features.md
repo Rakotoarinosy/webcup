@@ -9,6 +9,7 @@ Statuts : 🟢 terminé · 🟡 en cours · ⚪ à faire · ⛔ abandonné
 | `health` | 🟢 | `GET /health` | — | Défini dans `main.py`, pas un domaine |
 | `user` | 🟢 | `POST /users` · `GET /users` · `GET /users/{id}` · `PUT /users/{id}` · `DELETE /users/{id}` | — | Domaine modèle à copier |
 | `agent` | 🟢 | `POST /agents` · `GET /agents` · `GET /agents/{id}` · `PATCH /agents/{id}` · `POST /agents/{id}/deactivate` · `POST /agents/{id}/activate` · `GET /agents/{id}/interventions` | — | Jamais supprimé, seulement désactivé. Interventions = demandes citoyennes attribuées (`citizen_requests.assigned_agent_id` → `agents.id`) ; un agent désactivé ne peut plus être attribué (`AgentInactiveError`, 400). `use_cases/` en package : un fichier par action |
+| `municipal_content` | 🟢 | `GET /municipal/services` · `GET /municipal/publications` · `GET /municipal/publications/{id}` · `POST /municipal/contact` | — | Informations publiques ; les messages de contact sont persistés avec une référence d'accusé de réception. |
 | | | | | |
 
 ## Modèle vierge

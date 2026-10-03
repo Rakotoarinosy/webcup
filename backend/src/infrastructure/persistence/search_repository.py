@@ -51,7 +51,9 @@ def _patterns(query: str) -> list[str]:
 
 
 def _matches(columns: list, patterns: list[str]):
-    return or_(*(column.ilike(pattern, escape=_ESCAPE) for column in columns for pattern in patterns))
+    return or_(
+        *(column.ilike(pattern, escape=_ESCAPE) for column in columns for pattern in patterns)
+    )
 
 
 def _ref(demande_id: str) -> str:
@@ -79,7 +81,9 @@ class SqlAlchemySearchRepository:
         self, query: str, patterns: list[str], scope: SearchScope, limit: int
     ) -> list[SearchHit]:
         model = CitizenRequestModel
-        condition = _matches([model.title, model.description, model.location, model.category], patterns)
+        condition = _matches(
+            [model.title, model.description, model.location, model.category], patterns
+        )
         ref = query.strip().lstrip("#")
         if len(ref) >= _MIN_REF_LENGTH:  # « #ab12cd34 » : recherche par début d'identifiant
             condition = or_(condition, model.id.ilike(f"{_escape(ref)}%", escape=_ESCAPE))
@@ -154,7 +158,11 @@ class SqlAlchemySearchRepository:
                 ),
             )
         )
-        stmt = self._scope_demandes(stmt, scope).order_by(DemandeModel.scheduled_at.desc()).limit(limit)
+        stmt = (
+            self._scope_demandes(stmt, scope)
+            .order_by(DemandeModel.scheduled_at.desc())
+            .limit(limit)
+        )
 
         return [
             SearchHit(

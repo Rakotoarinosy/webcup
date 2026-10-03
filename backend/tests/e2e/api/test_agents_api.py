@@ -21,7 +21,14 @@ async def test_agent_crud_flow(client: httpx.AsyncClient) -> None:
     assert agent["is_active"] is True
     assert agent["interventions"] == 0
     assert set(agent) == {
-        "id", "name", "email", "department", "status", "is_active", "interventions", "created_at",
+        "id",
+        "name",
+        "email",
+        "department",
+        "status",
+        "is_active",
+        "interventions",
+        "created_at",
     }
 
     # GET (détail + liste)
@@ -48,8 +55,14 @@ async def test_agent_crud_flow(client: httpx.AsyncClient) -> None:
 
 async def test_list_filters(client: httpx.AsyncClient) -> None:
     await client.post(AGENTS, json=_agent())
-    sarah = (await client.post(AGENTS, json=_agent(name="Sarah Andry", email="s@mairie.mg", department="Eau"))).json()
-    await client.post(AGENTS, json=_agent(name="Marc Rabe", email="m@mairie.mg", department="Éclairage"))
+    sarah = (
+        await client.post(
+            AGENTS, json=_agent(name="Sarah Andry", email="s@mairie.mg", department="Eau")
+        )
+    ).json()
+    await client.post(
+        AGENTS, json=_agent(name="Marc Rabe", email="m@mairie.mg", department="Éclairage")
+    )
     await client.post(f"{AGENTS}/{sarah['id']}/deactivate")
 
     by_department = await client.get(AGENTS, params={"department": "eau"})
@@ -87,8 +100,17 @@ async def test_invalid_email_returns_422(client: httpx.AsyncClient) -> None:
 async def test_interventions_follow_assigned_citizen_requests(client: httpx.AsyncClient) -> None:
     agent = (await client.post(AGENTS, json=_agent())).json()
     other = (await client.post(AGENTS, json=_agent(name="Sarah Andry", email="s@mairie.mg"))).json()
-    citizen = (await client.post(USERS, json={"email": "rina@example.com", "name": "Rina"})).json()
-    for title, agent_id in (("Nid de poule", agent["id"]), ("Lampadaire", agent["id"]), ("Fuite", other["id"])):
+    citizen = (
+        await client.post(
+            USERS,
+            json={"email": "rina@example.com", "name": "Rina", "password": "Motdepasse123"},
+        )
+    ).json()
+    for title, agent_id in (
+        ("Nid de poule", agent["id"]),
+        ("Lampadaire", agent["id"]),
+        ("Fuite", other["id"]),
+    ):
         response = await client.post(
             REQUESTS,
             json={

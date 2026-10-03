@@ -9,7 +9,10 @@ AGENTS = "/api/v1/agents"
 
 
 async def _create_citizen(client: httpx.AsyncClient) -> str:
-    response = await client.post(USERS, json={"email": "rina@example.com", "name": "Rina"})
+    response = await client.post(
+        USERS,
+        json={"email": "rina@example.com", "name": "Rina", "password": "Motdepasse123"},
+    )
 
     return response.json()["id"]
 
@@ -74,9 +77,9 @@ async def test_demande_crud_flow(client: httpx.AsyncClient) -> None:
 async def test_list_search_filter_sort_and_paginate(client: httpx.AsyncClient) -> None:
     citizen_id = await _create_citizen(client)
     for title, category, priority in [
-        ("Nid de poule", "voirie", "urgente"),
+        ("Nid de poule", "voirie", "critique"),
         ("Fuite d'eau", "eau", "haute"),
-        ("Déchets non collectés", "dechets", "basse"),
+        ("Déchets non collectés", "dechets", "faible"),
     ]:
         await client.post(
             DEMANDES, json=_payload(citizen_id, title=title, category=category, priority=priority)
@@ -89,7 +92,7 @@ async def test_list_search_filter_sort_and_paginate(client: httpx.AsyncClient) -
     assert by_search.json()["total"] == 1
 
     by_priority = await client.get(DEMANDES, params={"sort_by": "priority", "order": "desc"})
-    assert [d["priority"] for d in by_priority.json()["items"]] == ["urgente", "haute", "basse"]
+    assert [d["priority"] for d in by_priority.json()["items"]] == ["critique", "haute", "faible"]
 
     second_page = await client.get(DEMANDES, params={"page": 2, "page_size": 2})
     assert len(second_page.json()["items"]) == 1
