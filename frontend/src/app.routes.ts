@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard } from './app/auth/auth.guard';
+import { authGuard, roleGuard } from './app/auth/auth.guard';
 import { AppLayout } from './app/layout/component/layout/app.layout';
 import { Landing } from './app/pages/landing/landing';
 import { Notfound } from './app/pages/notfound/notfound';
@@ -13,15 +13,15 @@ export const appRoutes: Routes = [
         canActivate: [authGuard],
         children: [
             { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
-            { path: 'dashboard', component: Dashboard },
+            { path: 'dashboard', component: Dashboard, canActivate: [roleGuard], data: { roles: ['admin', 'manager'] } },
             { path: 'transaction', component: Transaction },
-            { path: 'users', loadComponent: () => import('./app/users/users').then((m) => m.Users) },
-            { path: 'requests', loadComponent: () => import('./app/requests/requests').then((m) => m.Requests) },
-            { path: 'agents', loadComponent: () => import('./app/agents/agents').then((m) => m.Agents) },
-            { path: 'municipal', loadComponent: () => import('./app/municipal/municipal-home').then((m) => m.MunicipalHome) },
-            { path: 'municipal/services', loadComponent: () => import('./app/municipal/municipal-services').then((m) => m.MunicipalServices) },
-            { path: 'municipal/publications', loadComponent: () => import('./app/municipal/municipal-publications').then((m) => m.MunicipalPublications) },
-            { path: 'municipal/contact', loadComponent: () => import('./app/municipal/municipal-contact').then((m) => m.MunicipalContact) },
+            { path: 'users', loadComponent: () => import('./app/users/users').then((m) => m.Users), canActivate: [roleGuard], data: { roles: ['admin'] } },
+            { path: 'requests', loadComponent: () => import('./app/requests/requests').then((m) => m.Requests), canActivate: [roleGuard], data: { roles: ['admin', 'manager', 'agent', 'citizen'] } },
+            { path: 'agents', loadComponent: () => import('./app/agents/agents').then((m) => m.Agents), canActivate: [roleGuard], data: { roles: ['admin', 'manager'] } },
+            { path: 'municipal', loadComponent: () => import('./app/municipal/municipal-home').then((m) => m.MunicipalHome), canActivate: [roleGuard], data: { roles: ['admin', 'manager', 'agent', 'citizen'] } },
+            { path: 'municipal/services', loadComponent: () => import('./app/municipal/municipal-services').then((m) => m.MunicipalServices), canActivate: [roleGuard], data: { roles: ['admin', 'manager', 'agent', 'citizen'] } },
+            { path: 'municipal/publications', loadComponent: () => import('./app/municipal/municipal-publications').then((m) => m.MunicipalPublications), canActivate: [roleGuard], data: { roles: ['admin', 'manager', 'agent', 'citizen'] } },
+            { path: 'municipal/contact', loadComponent: () => import('./app/municipal/municipal-contact').then((m) => m.MunicipalContact), canActivate: [roleGuard], data: { roles: ['admin', 'manager', 'agent', 'citizen'] } },
             // Démos du template (composants PrimeNG, pages CRUD / vide / documentation).
             { path: 'uikit', loadChildren: () => import('./app/pages/uikit/uikit.routes') },
             { path: 'pages', loadChildren: () => import('./app/pages/pages.routes') }
