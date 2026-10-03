@@ -9,7 +9,11 @@ from sqlalchemy.orm import Session
 from src.domain.user.ports import EmailSender, GoogleProfile
 from src.infrastructure.config.settings import get_settings
 from src.infrastructure.persistence.models import UserModel, VerificationCodeModel
-from src.infrastructure.security.email_verification import get_email_sender, get_google_verifier
+from src.infrastructure.security.email_verification import (
+    get_email_sender,
+    get_email_verifier,
+    get_google_verifier,
+)
 from src.main import app
 
 pytestmark = pytest.mark.anyio
@@ -33,6 +37,7 @@ class CapturingSender(EmailSender):
 @pytest.fixture
 async def verification(client: httpx.AsyncClient) -> CapturingSender:
     sender = CapturingSender()
+    app.dependency_overrides.pop(get_email_verifier, None)  # vrai vérificateur (voir conftest)
     settings = get_settings().model_copy(update={"email_verification_required": True})
     app.dependency_overrides[get_settings] = lambda: settings
     app.dependency_overrides[get_email_sender] = lambda: sender
