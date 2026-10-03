@@ -1,8 +1,19 @@
 <section class="municipal-page">
-    <p class="eyebrow">Vie municipale</p>
-    <h1>Publications</h1>
-    <p class="intro">Annonces, changements de service et informations pratiques de votre ville.</p>
-    <p-select [options]="categories()" optionLabel="label" optionValue="value" [showClear]="true" placeholder="Toutes les catégories" ariaLabel="Filtrer les publications par catégorie" (onChange)="selectCategory($event.value)"></p-select>
+    <p-toast />
+    <p-confirmDialog />
+    <header class="publication-header">
+        <div>
+            <h1>Publications</h1>
+            <p class="intro">Annonces, changements de service et informations pratiques de votre ville.</p>
+        </div>
+        @if (canManage()) {
+            <button pButton type="button" icon="pi pi-plus" label="Nouvelle publication" (click)="openCreate()"></button>
+        }
+    </header>
+    @if (canManage()) {
+        <p class="management-note"><i class="pi pi-shield" aria-hidden="true"></i> Vous gérez les publications de la mairie, y compris les brouillons.</p>
+    }
+    <p-select class="publication-filter" [options]="categories()" optionLabel="label" optionValue="value" [showClear]="true" placeholder="Toutes les catégories" ariaLabel="Filtrer les publications par catégorie" (onChange)="selectCategory($event.value)"></p-select>
     @if (loading()) {
         <p role="status">Actualisation des publications…</p>
     }
@@ -11,21 +22,102 @@
     }
     <div class="publication-list">
         @for (publication of visiblePublications(); track publication.id) {
-            <article class="publication-card">
-                <button type="button" class="publication-summary" [attr.aria-expanded]="expandedPublication() === publication.id" [attr.aria-controls]="'publication-' + publication.id" (click)="togglePublication(publication.id)">
-                    <span class="publication-title">{{ publication.title }}</span>
-                    <span class="publication-meta">{{ publication.category }} · {{ publication.published_at | date: 'longDate' }}</span>
-                    <span>{{ publication.summary }}</span>
-                    <span class="publication-cta"
-                        >{{ expandedPublication() === publication.id ? 'Fermer la publication' : 'Lire la publication' }} <i [class]="expandedPublication() === publication.id ? 'pi pi-chevron-up' : 'pi pi-chevron-down'" aria-hidden="true"></i
-                    ></span>
+            <article class="publication-card" [class.publication-draft]="canManage() && !publication.is_published">
+                <button type="button" class="publication-summary" (click)="openPublication(publication)" [attr.aria-label]="'Voir la publication ' + publication.title">
+                    @if (publication.image_url) {
+                        <img class="publication-image" [src]="publication.image_url" [alt]="''" />
+                    } @else {
+                        <span class="publication-image publication-image-placeholder"><i class="pi pi-megaphone" aria-hidden="true"></i></span>
+                    }
+                    <span class="publication-details">
+                        <span class="publication-title-row">
+                            <span class="publication-title">{{ publication.title }}</span>
+                            @if (canManage() && !publication.is_published) { <span class="publication-status">Brouillon</span> }
+                        </span>
+                        <span class="publication-meta">Publication municipale · {{ publication.published_at | date: 'd MMM y, HH:mm' }}</span>
+                        <span class="publication-stats"><span><i class="pi pi-eye" aria-hidden="true"></i> {{ publication.view_count ?? 0 }} vue{{ (publication.view_count ?? 0) > 1 ? 's' : '' }}</span><span><i class="pi pi-heart" aria-hidden="true"></i> {{ publication.like_count ?? 0 }}</span></span>
+                        <span class="publication-excerpt">{{ publication.summary }}</span>
+                    </span>
+                    <span class="publication-view"><i class="pi pi-eye" aria-hidden="true"></i> Voir</span>
                 </button>
-                <div [id]="'publication-' + publication.id" [hidden]="expandedPublication() !== publication.id" class="publication-content">
-                    <p>{{ publication.content }}</p>
-                </div>
+                <footer class="publication-footer">
+                    @if (isCitizen()) {
+                        <button type="button" class="publication-like" [class.publication-liked]="likedPublicationIds().has(publication.id)" (click)="likePublication(publication, $event)" [attr.aria-pressed]="likedPublicationIds().has(publication.id)" [attr.aria-label]="'Aimer la publication ' + publication.title"><i class="pi" [class.pi-heart]="!likedPublicationIds().has(publication.id)" [class.pi-heart-fill]="likedPublicationIds().has(publication.id)" aria-hidden="true"></i> J’aime</button>
+                    }
+                    @if (canManage()) {
+                    <div class="publication-actions" aria-label="Actions de gestion">
+                        <button pButton type="button" severity="secondary" [text]="true" size="small" icon="pi pi-pencil" label="Modifier" (click)="openEdit(publication, $event)"></button>
+                        <button pButton type="button" severity="danger" [text]="true" size="small" icon="pi pi-trash" label="Supprimer" (click)="confirmDelete(publication, $event)"></button>
+                    </div>
+                    }
+                </footer>
             </article>
         } @empty {
             <p>Aucune publication dans cette catégorie.</p>
         }
     </div>
 </section>
+
+<p-dialog [visible]="selectedPublication() !== null" (visibleChange)="!$event && closePublication()" [modal]="true" [draggable]="false" [resizable]="false" [style]="{ width: 'min(94vw, 50rem)' }" [showHeader]="false" [dismissableMask]="true">
+    @if (selectedPublication(); as publication) {
+        <article class="overflow-hidden -m-4 bg-surface-0 dark:bg-surface-900">
+            @if (publication.image_url) { <img class="block h-56 w-full object-cover sm:h-72" [src]="publication.image_url" [alt]="''" /> }
+            @else { <div class="flex h-40 items-center justify-center bg-primary-50 text-4xl text-primary dark:bg-primary-950"><i class="pi pi-megaphone" aria-hidden="true"></i></div> }
+            <div class="p-5 sm:p-7">
+                <p class="m-0 text-sm font-semibold text-primary">{{ publication.category }}</p>
+                <h2 class="mb-2 mt-2 text-2xl font-bold text-surface-900 dark:text-surface-0">{{ publication.title }}</h2>
+                <p class="mb-5 text-sm text-surface-500">Publication municipale · {{ publication.published_at | date: 'd MMM y, HH:mm' }} · {{ publication.view_count ?? 0 }} vue{{ (publication.view_count ?? 0) > 1 ? 's' : '' }} · {{ publication.like_count ?? 0 }} j’aime</p>
+                <p class="m-0 whitespace-pre-line leading-relaxed text-surface-700 dark:text-surface-200">{{ publication.content }}</p>
+                @if (isCitizen()) {
+                    <div class="mt-6 border-t border-surface-200 pt-4 dark:border-surface-700"><button type="button" class="publication-like" [class.publication-liked]="likedPublicationIds().has(publication.id)" (click)="likePublication(publication, $event)" [attr.aria-pressed]="likedPublicationIds().has(publication.id)"><i class="pi" [class.pi-heart]="!likedPublicationIds().has(publication.id)" [class.pi-heart-fill]="likedPublicationIds().has(publication.id)" aria-hidden="true"></i> J’aime ({{ publication.like_count ?? 0 }})</button></div>
+                    <section class="mt-5 border-t border-surface-200 pt-5 dark:border-surface-700" aria-labelledby="comments-heading">
+                        <h3 id="comments-heading" class="m-0 text-lg font-semibold">Commentaires</h3>
+                        <form class="mt-3 flex flex-col gap-2" (ngSubmit)="addComment(comment.value); comment.value = ''">
+                            <label class="sr-only" for="publication-comment">Ajouter un commentaire</label><textarea #comment id="publication-comment" pTextarea rows="3" maxlength="1000" placeholder="Ajouter un commentaire" class="w-full" [disabled]="submittingComment()"></textarea>
+                            <div><button pButton type="submit" label="Publier le commentaire" [loading]="submittingComment()"></button></div>
+                        </form>
+                        @if (commentsLoading()) { <p class="text-sm text-surface-500" role="status">Chargement des commentaires…</p> }
+                        <div class="mt-4 grid gap-3">@for (comment of comments(); track comment.id) { <article class="rounded-lg border border-surface-200 p-3 dark:border-surface-700"><div class="flex flex-wrap items-baseline justify-between gap-2"><strong>{{ comment.author_name }}</strong><time class="text-xs text-surface-500">{{ comment.created_at | date: 'd MMM y, HH:mm' }}</time></div><p class="mb-0 mt-2 whitespace-pre-line text-sm">{{ comment.content }}</p></article> } @empty { @if (!commentsLoading()) { <p class="text-sm text-surface-500">Soyez le premier à commenter cette publication.</p> } }</div>
+                    </section>
+                }
+            </div>
+        </article>
+    }
+</p-dialog>
+
+<p-dialog [visible]="editorVisible()" (visibleChange)="editorVisible.set($event)" [modal]="true" [draggable]="false" [resizable]="false" [style]="{ width: 'min(94vw, 44rem)' }" [header]="editingId() ? 'Modifier la publication' : 'Nouvelle publication'">
+    <form class="publication-form" (ngSubmit)="save()">
+        <label>
+            Titre
+            <input pInputText name="title" [(ngModel)]="editor.title" required minlength="3" maxlength="255" />
+        </label>
+        <label>
+            Catégorie
+            <input pInputText name="category" [(ngModel)]="editor.category" required maxlength="80" placeholder="Ex. Vie municipale" />
+        </label>
+        <label class="form-wide">
+            Résumé
+            <textarea pTextarea name="summary" [(ngModel)]="editor.summary" required rows="3" maxlength="500"></textarea>
+        </label>
+        <label class="form-wide">
+            Contenu
+            <textarea pTextarea name="content" [(ngModel)]="editor.content" required rows="7" maxlength="10000"></textarea>
+        </label>
+        <label class="form-wide">
+            Image de couverture (URL facultative)
+            <input pInputText type="url" name="imageUrl" [(ngModel)]="editor.image_url" maxlength="2048" placeholder="https://…/image.jpg" />
+        </label>
+        <label>
+            Date de publication
+            <input pInputText type="datetime-local" name="publishedAt" [(ngModel)]="editor.published_at" required />
+        </label>
+        <label class="published-field">
+            <input type="checkbox" name="isPublished" [(ngModel)]="editor.is_published" />
+            Publier immédiatement
+        </label>
+        <div class="form-actions form-wide">
+            <button pButton type="button" severity="secondary" label="Annuler" [disabled]="saving()" (click)="editorVisible.set(false)"></button>
+            <button pButton type="submit" [label]="editingId() ? 'Enregistrer' : 'Créer la publication'" [loading]="saving()"></button>
+        </div>
+    </form>
+</p-dialog>

@@ -3,14 +3,13 @@ import { Component, computed, effect, inject } from '@angular/core';
 import { RouterModule } from '@angular/router';
 
 import { LayoutService } from '@/app/layout/service/layout.service';
-import { AppFooter } from '../footer/app.footer';
 import { AppSidebar } from '../sidebar/app.sidebar';
 import { AppTopbar } from '../topbar/app.topbar';
 import { BreadcrumbComponent } from '../breadcrumb/breadcrumb';
 
 @Component({
     selector: 'app-layout',
-    imports: [CommonModule, AppTopbar, AppSidebar, RouterModule, AppFooter, BreadcrumbComponent],
+    imports: [CommonModule, AppTopbar, AppSidebar, RouterModule, BreadcrumbComponent],
     templateUrl: './app.layout.html',
     styleUrl: './app.layout.scss'
 })

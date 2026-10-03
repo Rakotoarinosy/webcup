@@ -3,7 +3,7 @@ import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { environment } from '@/environments/environment';
-import { ContactMessageIn, ContactReceipt, MunicipalPublication, MunicipalService, ServiceLocationIn } from './municipal-content.model';
+import { ContactMessageIn, ContactReceipt, MunicipalPublication, MunicipalPublicationComment, MunicipalPublicationIn, MunicipalService, PublicationLikeResult, ServiceLocationIn } from './municipal-content.model';
 
 @Injectable({ providedIn: 'root' })
 export class MunicipalContentService {
@@ -41,6 +41,38 @@ export class MunicipalContentService {
     publications(category?: string): Observable<MunicipalPublication[]> {
         const params = category ? new HttpParams().set('category', category) : undefined;
         return this.http.get<MunicipalPublication[]>(`${this.baseUrl}/publications`, { params });
+    }
+
+    managedPublications(): Observable<MunicipalPublication[]> {
+        return this.http.get<MunicipalPublication[]>(`${this.baseUrl}/publications/manage`);
+    }
+
+    createPublication(payload: MunicipalPublicationIn): Observable<MunicipalPublication> {
+        return this.http.post<MunicipalPublication>(`${this.baseUrl}/publications`, payload);
+    }
+
+    updatePublication(id: string, payload: Partial<MunicipalPublicationIn>): Observable<MunicipalPublication> {
+        return this.http.patch<MunicipalPublication>(`${this.baseUrl}/publications/${encodeURIComponent(id)}`, payload);
+    }
+
+    deletePublication(id: string): Observable<void> {
+        return this.http.delete<void>(`${this.baseUrl}/publications/${encodeURIComponent(id)}`);
+    }
+
+    viewPublication(id: string): Observable<MunicipalPublication> {
+        return this.http.post<MunicipalPublication>(`${this.baseUrl}/publications/${encodeURIComponent(id)}/view`, {});
+    }
+
+    likePublication(id: string): Observable<PublicationLikeResult> {
+        return this.http.post<PublicationLikeResult>(`${this.baseUrl}/publications/${encodeURIComponent(id)}/like`, {});
+    }
+
+    publicationComments(id: string): Observable<MunicipalPublicationComment[]> {
+        return this.http.get<MunicipalPublicationComment[]>(`${this.baseUrl}/publications/${encodeURIComponent(id)}/comments`);
+    }
+
+    addPublicationComment(id: string, content: string): Observable<MunicipalPublicationComment> {
+        return this.http.post<MunicipalPublicationComment>(`${this.baseUrl}/publications/${encodeURIComponent(id)}/comments`, { content });
     }
 
     sendContact(payload: ContactMessageIn): Observable<ContactReceipt> {

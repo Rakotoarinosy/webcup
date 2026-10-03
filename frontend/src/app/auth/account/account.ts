@@ -12,13 +12,10 @@ import { catchError, forkJoin, of } from 'rxjs';
 
 import { Agent, AGENT_STATUS_LABELS, AGENT_STATUSES, AgentStatus } from '@/app/agents/agent.model';
 import { AgentService } from '@/app/agents/agent.service';
-import { toCategories, toStatCards, toTrend } from '@/app/dashboard/dashboard.model';
-import { CategoryChart } from '@/app/dashboard/widget/category-chart/category-chart';
-import { Stats } from '@/app/dashboard/widget/stats/stats';
-import { TrendChart } from '@/app/dashboard/widget/trend-chart/trend-chart';
+import { AccountMap, AccountStats, toAccountMapRequests, toAccountStatCards } from './account-widgets';
 import { Institut } from '@/app/instituts/institut.model';
 import { InstitutService } from '@/app/instituts/institut.service';
-import { CitizenRequest, DashboardStats, requestPrioritySeverity, requestStatusSeverity } from '@/app/requests/request.model';
+import { CitizenRequest, DashboardStats, MapPoint, requestPrioritySeverity, requestStatusSeverity } from '@/app/requests/request.model';
 import { CitizenRequestService } from '@/app/requests/request.service';
 import { LiveDataService } from '@/app/shared/live-data.service';
 import { apiErrorMessage } from '@/app/users/user.service';
@@ -39,7 +36,7 @@ const RECENT_COUNT = 5;
  */
 @Component({
     selector: 'app-account',
-    imports: [DatePipe, FormsModule, RouterLink, ButtonModule, SelectModule, TagModule, ToastModule, TooltipModule, Stats, TrendChart, CategoryChart],
+    imports: [DatePipe, FormsModule, RouterLink, ButtonModule, SelectModule, TagModule, ToastModule, TooltipModule, AccountStats, AccountMap],
     templateUrl: './account.html',
     providers: [MessageService]
 })
@@ -53,6 +50,7 @@ export class Account implements OnInit {
     private readonly destroyRef = inject(DestroyRef);
 
     readonly stats = signal<DashboardStats | null>(null);
+    readonly points = signal<MapPoint[]>([]);
     readonly recent = signal<CitizenRequest[]>([]);
     readonly agent = signal<Agent | null>(null);
     readonly institut = signal<Institut | null>(null);
@@ -60,9 +58,8 @@ export class Account implements OnInit {
     readonly error = signal<string | null>(null);
     readonly savingStatus = signal(false);
 
-    readonly cards = computed(() => toStatCards(this.stats()));
-    readonly trend = computed(() => toTrend(this.stats()));
-    readonly categories = computed(() => toCategories(this.stats()));
+    readonly cards = computed(() => toAccountStatCards(this.stats()));
+    readonly mapRequests = computed(() => toAccountMapRequests(this.points()));
     readonly statusOptions = AGENT_STATUSES.map((status) => ({ label: AGENT_STATUS_LABELS[status], value: status }));
     readonly statusSeverity = requestStatusSeverity;
     readonly prioritySeverity = requestPrioritySeverity;
@@ -106,14 +103,12 @@ export class Account implements OnInit {
             case 'manager':
                 return [
                     { label: 'Demandes de l\'institut', icon: 'pi pi-inbox', link: '/home/requests' },
-                    { label: 'Mes agents', icon: 'pi pi-id-card', link: '/home/agents' },
-                    { label: 'Tableau de bord', icon: 'pi pi-chart-bar', link: '/home/dashboard' }
+                    { label: 'Mes agents', icon: 'pi pi-id-card', link: '/home/agents' }
                 ];
             case 'admin':
                 return [
                     { label: 'Instituts', icon: 'pi pi-building', link: '/home/instituts' },
-                    { label: 'Demandes', icon: 'pi pi-inbox', link: '/home/requests' },
-                    { label: 'Tableau de bord', icon: 'pi pi-chart-bar', link: '/home/dashboard' }
+                    { label: 'Demandes', icon: 'pi pi-inbox', link: '/home/requests' }
                 ];
             default:
                 return [];
@@ -133,12 +128,14 @@ export class Account implements OnInit {
         this.error.set(null);
         forkJoin({
             stats: this.requests.dashboard(),
+            points: this.requests.map({ status: 'En cours' }),
             recent: this.requests.list({ page: 1, page_size: RECENT_COUNT, sort_by: 'created_at', sort_order: 'desc' }),
             agent: user?.agent_id ? this.agents.me().pipe(catchError(() => of(null))) : of(null),
             institut: user?.role === 'manager' && user.institut_id ? this.instituts.get(user.institut_id).pipe(catchError(() => of(null))) : of(null)
         }).subscribe({
-            next: ({ stats, recent, agent, institut }) => {
+            next: ({ stats, points, recent, agent, institut }) => {
                 this.stats.set(stats);
+                this.points.set(points);
                 this.recent.set(recent.items);
                 this.agent.set(agent);
                 this.institut.set(institut);

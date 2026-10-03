@@ -45,6 +45,61 @@ class MunicipalPublicationOut(BaseModel):
     content: str
     category: str
     published_at: datetime
+    is_published: bool
+    image_url: str | None
+    view_count: int
+    like_count: int
+
+
+class CreateMunicipalPublicationIn(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    title: str = Field(min_length=3, max_length=255)
+    summary: str = Field(min_length=3, max_length=500)
+    content: str = Field(min_length=3, max_length=10_000)
+    category: str = Field(min_length=2, max_length=80)
+    published_at: datetime
+    is_published: bool = True
+    image_url: str | None = Field(default=None, max_length=2048)
+
+
+class UpdateMunicipalPublicationIn(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    title: str | None = Field(default=None, min_length=3, max_length=255)
+    summary: str | None = Field(default=None, min_length=3, max_length=500)
+    content: str | None = Field(default=None, min_length=3, max_length=10_000)
+    category: str | None = Field(default=None, min_length=2, max_length=80)
+    published_at: datetime | None = None
+    is_published: bool | None = None
+    image_url: str | None = Field(default=None, max_length=2048)
+
+    @model_validator(mode="after")
+    def require_publication_field(self) -> "UpdateMunicipalPublicationIn":
+        if not self.model_fields_set:
+            raise ValueError("At least one publication field must be provided")
+        return self
+
+
+class CreatePublicationCommentIn(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    content: str = Field(min_length=1, max_length=1000)
+
+
+class MunicipalPublicationCommentOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    publication_id: str
+    author_name: str
+    content: str
+    created_at: datetime
+
+
+class PublicationLikeOut(BaseModel):
+    like_count: int
+    liked: bool
 
 
 class UpdateServiceLocationIn(BaseModel):

@@ -6,25 +6,39 @@ from sqlalchemy.orm import Session
 from src.domain.municipal_content import (
     MunicipalContentRepository,
     MunicipalPublication,
+    MunicipalPublicationComment,
     MunicipalService,
 )
 from src.domain.user import Role, User
 from src.features.municipal_content.schemas import (
     ContactReceiptOut,
     CreateContactMessageIn,
+    CreateMunicipalPublicationIn,
+    CreatePublicationCommentIn,
+    MunicipalPublicationCommentOut,
     MunicipalPublicationOut,
     MunicipalServiceOut,
+    PublicationLikeOut,
+    UpdateMunicipalPublicationIn,
     UpdateMunicipalServiceCatalogIn,
     UpdateServiceLocationIn,
 )
 from src.features.municipal_content.use_cases import (
+    create_municipal_publication,
+    create_publication_comment,
+    delete_municipal_publication,
     get_municipal_publication,
     list_featured_municipal_services,
     list_municipal_publications,
     list_municipal_services,
     list_popular_municipal_services,
+    list_publication_comments,
+    list_publications_for_management,
+    register_publication_view,
     send_contact_message,
     start_municipal_service,
+    toggle_publication_like,
+    update_municipal_publication,
     update_municipal_service_catalog,
     update_municipal_service_location,
 )
@@ -100,12 +114,92 @@ def list_publications_endpoint(
     return list_municipal_publications(category, limit, repo)
 
 
+@router.get(
+    "/publications/manage",
+    response_model=list[MunicipalPublicationOut],
+)
+def list_publications_for_management_endpoint(
+    repo: MunicipalContentRepository = Depends(get_municipal_content_repo),
+    _: User = Depends(require_roles(Role.ADMIN, Role.AGENT, Role.MANAGER)),
+) -> list[MunicipalPublication]:
+    """Liste de modération : inclut brouillons et publications planifiées."""
+    return list_publications_for_management(repo)
+
+
 @router.get("/publications/{publication_id}", response_model=MunicipalPublicationOut)
 def get_publication_endpoint(
     publication_id: str,
     repo: MunicipalContentRepository = Depends(get_municipal_content_repo),
 ) -> MunicipalPublication:
     return get_municipal_publication(publication_id, repo)
+
+
+@router.post("/publications/{publication_id}/view", response_model=MunicipalPublicationOut)
+def register_publication_view_endpoint(
+    publication_id: str,
+    repo: MunicipalContentRepository = Depends(get_municipal_content_repo),
+) -> MunicipalPublication:
+    return register_publication_view(publication_id, repo)
+
+
+@router.post("/publications/{publication_id}/like", response_model=PublicationLikeOut)
+def toggle_publication_like_endpoint(
+    publication_id: str,
+    repo: MunicipalContentRepository = Depends(get_municipal_content_repo),
+    user: User = Depends(require_roles(Role.CITIZEN)),
+) -> PublicationLikeOut:
+    publication, liked = toggle_publication_like(publication_id, user.id, repo)
+    return PublicationLikeOut(like_count=publication.like_count, liked=liked)
+
+
+@router.get("/publications/{publication_id}/comments", response_model=list[MunicipalPublicationCommentOut])
+def list_publication_comments_endpoint(
+    publication_id: str,
+    repo: MunicipalContentRepository = Depends(get_municipal_content_repo),
+) -> list[MunicipalPublicationComment]:
+    return list_publication_comments(publication_id, repo)
+
+
+@router.post("/publications/{publication_id}/comments", response_model=MunicipalPublicationCommentOut, status_code=status.HTTP_201_CREATED)
+def create_publication_comment_endpoint(
+    publication_id: str,
+    payload: CreatePublicationCommentIn,
+    repo: MunicipalContentRepository = Depends(get_municipal_content_repo),
+    user: User = Depends(require_roles(Role.CITIZEN)),
+) -> MunicipalPublicationComment:
+    return create_publication_comment(publication_id, user.id, user.name, payload.content, repo)
+
+
+@router.post(
+    "/publications",
+    response_model=MunicipalPublicationOut,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_publication_endpoint(
+    payload: CreateMunicipalPublicationIn,
+    repo: MunicipalContentRepository = Depends(get_municipal_content_repo),
+    _: User = Depends(require_roles(Role.ADMIN, Role.AGENT, Role.MANAGER)),
+) -> MunicipalPublication:
+    return create_municipal_publication(payload, repo)
+
+
+@router.patch("/publications/{publication_id}", response_model=MunicipalPublicationOut)
+def update_publication_endpoint(
+    publication_id: str,
+    payload: UpdateMunicipalPublicationIn,
+    repo: MunicipalContentRepository = Depends(get_municipal_content_repo),
+    _: User = Depends(require_roles(Role.ADMIN, Role.AGENT, Role.MANAGER)),
+) -> MunicipalPublication:
+    return update_municipal_publication(publication_id, payload, repo)
+
+
+@router.delete("/publications/{publication_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_publication_endpoint(
+    publication_id: str,
+    repo: MunicipalContentRepository = Depends(get_municipal_content_repo),
+    _: User = Depends(require_roles(Role.ADMIN, Role.AGENT, Role.MANAGER)),
+) -> None:
+    delete_municipal_publication(publication_id, repo)
 
 
 @router.post("/contact", response_model=ContactReceiptOut, status_code=status.HTTP_201_CREATED)

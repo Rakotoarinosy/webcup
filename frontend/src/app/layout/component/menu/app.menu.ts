@@ -32,10 +32,7 @@ export class AppMenu {
             items.push({ label: 'Mes demandes', icon: 'pi pi-fw pi-list', routerLink: ['/home/my-requests'], badge: this.notificationBadge() });
         }
         if (this.auth.hasRole('manager', 'admin')) {
-            items.push(
-                { label: 'Tableau de bord', icon: 'pi pi-fw pi-home', routerLink: ['/home/dashboard'] },
-                { label: 'Demandes citoyennes', icon: 'pi pi-fw pi-inbox', routerLink: ['/home/requests'], badge: this.notificationBadge() }
-            );
+            items.push({ label: 'Demandes citoyennes', icon: 'pi pi-fw pi-inbox', routerLink: ['/home/requests'], badge: this.notificationBadge() });
         }
         if (this.auth.hasRole('admin')) {
             // L'admin gère tous les comptes depuis « Utilisateurs » (citoyens compris).

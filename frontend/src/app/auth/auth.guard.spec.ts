@@ -27,7 +27,6 @@ describe('Route access by role', () => {
         for (const [name, roles] of [
             ['users', ['admin']],
             ['agents', ['manager', 'admin']],
-            ['dashboard', ['manager', 'admin']],
             ['requests', ['admin']]
         ] as [string, Role[]][]) {
             it(`checks ${name} access for ${role}`, async () => {

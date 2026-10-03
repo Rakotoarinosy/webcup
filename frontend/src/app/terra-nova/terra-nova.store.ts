@@ -2,24 +2,23 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { computed, DestroyRef, inject, Injectable, signal } from '@angular/core';
 import { MessageService } from 'primeng/api';
 import { finalize, forkJoin } from 'rxjs';
+import { RealtimeService } from '../shared/realtime.service';
 import { apiErrorMessage } from '../users/user.service';
 import { DIFFICULTY_OPTIONS, PipelineStatus, statusMeta, TerraNotification, TerraOverview, TerraRequest } from './terra-nova.model';
 import { TerraNovaService } from './terra-nova.service';
 
-const REFRESH_MS = 10_000;
 const MAX_TOASTS = 5;
 
 /**
  * État partagé des pages Terra Nova (fourni par le composant TerraNova, détruit en quittant la section).
  *
- * Deux mécanismes indépendants, aucun ne dépend du compte à rebours de la prochaine vague :
- *  - le backend interroge l'API Terra Nova toutes les 30 s ;
- *  - ce store relit le backend toutes les 10 s pour rafraîchir l'écran.
+ * Le backend notifie les changements par WebSocket ; l'horloge locale ne sert qu'à l'affichage.
  */
 @Injectable()
 export class TerraNovaStore {
     private readonly api = inject(TerraNovaService);
     private readonly messages = inject(MessageService);
+    private readonly realtime = inject(RealtimeService);
 
     readonly requests = signal<TerraRequest[]>([]);
     readonly overview = signal<TerraOverview | null>(null);
@@ -101,10 +100,10 @@ export class TerraNovaStore {
 
     constructor() {
         const clock = setInterval(() => this.now.set(Date.now()), 1000);
-        const poll = setInterval(() => this.refresh(), REFRESH_MS);
+        const realtimeSubscription = this.realtime.changes$.subscribe(() => this.refresh());
         inject(DestroyRef).onDestroy(() => {
             clearInterval(clock);
-            clearInterval(poll);
+            realtimeSubscription.unsubscribe();
         });
         this.refresh();
     }

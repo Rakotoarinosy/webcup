@@ -66,17 +66,18 @@ def sync_terra_requests(feed: TerraFeed, repo: TerraRequestRepository, now: date
 
 def refresh_terra_if_stale(
     feed: TerraFeed, repo: TerraRequestRepository, now: datetime, max_age: timedelta
-) -> None:
+) -> SyncReport | None:
     """Synchronise si la dernière tentative date de plus de `max_age`. N'échoue jamais."""
     if not _sync_lock.acquire(blocking=False):
-        return  # une synchro est déjà en cours dans ce processus
+        return None  # une synchro est déjà en cours dans ce processus
     try:
         if repo.get_session().is_stale(now, max_age):
-            sync_terra_requests(feed, repo, now)
+            return sync_terra_requests(feed, repo, now)
     except TerraFeedUnavailableError:
         pass  # l'erreur est enregistrée dans la session et affichée par le front
     finally:
         _sync_lock.release()
+    return None
 
 
 def trigger_terra_sync(feed: TerraFeed, repo: TerraRequestRepository, now: datetime) -> SyncReport:

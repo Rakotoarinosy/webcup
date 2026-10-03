@@ -18,6 +18,9 @@ from src.features.institut.router import router as institut_router
 from src.features.municipal_content.router import router as municipal_content_router
 from src.features.notification.router import router as notification_router
 from src.features.preferences.router import router as preferences_router
+from src.features.realtime.router import get_realtime_broker
+from src.features.realtime.router import router as realtime_router
+from src.features.realtime.use_cases import publish_data_changed
 from src.features.search.router import router as search_router
 from src.features.terra_request.router import router as terra_request_router
 from src.features.user.router import router as user_router
@@ -42,6 +45,7 @@ FEATURE_ROUTERS: list[APIRouter] = [
     data_concern_router,
     audit_router,
     terra_request_router,
+    realtime_router,
 ]
 
 
@@ -77,6 +81,20 @@ def create_app() -> FastAPI:
         allow_headers=["Authorization", "Content-Type"],
     )
     register_exception_handlers(app)
+
+    @app.middleware("http")
+    async def broadcast_successful_mutations(request, call_next):  # type: ignore[no-untyped-def]
+        response = await call_next(request)
+        is_api_mutation = request.method in {
+            "POST",
+            "PUT",
+            "PATCH",
+            "DELETE",
+        } and request.url.path.startswith(API_PREFIX)
+        is_auth_route = request.url.path.startswith(f"{API_PREFIX}/auth/")
+        if is_api_mutation and not is_auth_route and 200 <= response.status_code < 300:
+            await publish_data_changed(get_realtime_broker())
+        return response
 
     api = APIRouter(prefix=API_PREFIX)
 

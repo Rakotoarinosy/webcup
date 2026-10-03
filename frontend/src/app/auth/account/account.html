@@ -27,13 +27,10 @@
         </div>
 
         <!-- Même rangée de cartes que le tableau de bord, sur le périmètre de l'utilisateur -->
-        <app-stats class="contents" [stats]="cards()" [links]="statLinks()" />
+        <app-account-stats class="contents" [stats]="cards()" [links]="statLinks()" />
 
-        <div class="col-span-12 xl:col-span-8">
-            <app-trend-chart [trendData]="trend()" />
-        </div>
-        <div class="col-span-12 xl:col-span-4">
-            <app-category-chart [categoryData]="categories()" />
+        <div class="col-span-12">
+            <app-account-map [requests]="mapRequests()" />
         </div>
 
         <section class="card col-span-12 mb-0" aria-labelledby="recent-title">
