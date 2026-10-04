@@ -1,0 +1,126 @@
+<div class="mx-auto grid max-w-[64rem] gap-6">
+    <header class="card mb-0">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+            <div>
+                <p class="mb-1 font-semibold text-primary">Participation</p>
+                <h1 class="m-0 text-3xl font-bold">Ma participation</h1>
+            </div>
+            <p-button icon="pi pi-refresh" severity="secondary" [text]="true" [loading]="loading()" ariaLabel="Actualiser ma participation" (onClick)="load()" />
+        </div>
+        <p class="mb-0 mt-3">Tout ce que vous avez proposé ou donné comme avis, avec sa référence, sa date et ce que la mairie en a fait.</p>
+        <nav aria-label="Participer" class="mt-3 flex flex-wrap gap-3">
+            <a routerLink="/home/municipal/idees" class="font-semibold text-primary underline">Proposer une idée</a>
+            <a routerLink="/home/municipal/consultations" class="font-semibold text-primary underline">Répondre à une consultation</a>
+            <a routerLink="/home/municipal/projets" class="font-semibold text-primary underline">Projets de la ville</a>
+            <a routerLink="/home/municipal/services" class="font-semibold text-primary underline">Donner un avis sur un service</a>
+        </nav>
+    </header>
+
+    @if (error(); as message) {
+        <p role="alert" class="text-red-700 dark:text-red-300">{{ message }}</p>
+    }
+
+    @if (data(); as d) {
+        <section class="card mb-0" aria-labelledby="my-ideas-heading">
+            <h2 id="my-ideas-heading" class="mt-0 text-xl font-semibold">Mes idées ({{ d.ideas.length }})</h2>
+            @for (idea of d.ideas; track idea.id) {
+                <article class="mt-4 rounded-lg border border-surface p-4" [attr.aria-labelledby]="'my-idea-' + idea.id">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <h3 [id]="'my-idea-' + idea.id" class="m-0 text-lg font-semibold">{{ idea.title }} · <span class="font-normal">{{ idea.reference }}</span></h3>
+                        <p-tag [value]="idea.status" [severity]="ideaSeverity(idea.status)" />
+                    </div>
+                    <p class="mb-0 mt-1 text-sm text-muted-color">
+                        {{ idea.theme }} · Publication : {{ idea.visibility }} · {{ idea.support_count }} soutien(s)
+                        @if (idea.moderation_note) {
+                            <br />Note de modération : {{ idea.moderation_note }}
+                        }
+                    </p>
+                    <ol class="mb-0 mt-3 grid list-none gap-2 p-0" [attr.aria-label]="'Suivi de l’idée ' + idea.reference">
+                        @for (step of idea.history; track $index) {
+                            <li class="flex items-start gap-2">
+                                <i class="pi pi-check-circle mt-1 text-green-600" aria-hidden="true"></i>
+                                <span>
+                                    {{ stepLabel(step) }} — <time [attr.datetime]="step.at">{{ step.at | date: 'd MMMM y à HH:mm' }}</time>
+                                    @if (step.by) {
+                                        ({{ step.by }})
+                                    }
+                                </span>
+                            </li>
+                        }
+                    </ol>
+                    @if (idea.response) {
+                        <div class="mt-4 rounded-lg bg-emphasis p-4">
+                            <p class="m-0 font-semibold">Réponse de la mairie<span class="font-normal"> ({{ idea.answered_by }})</span></p>
+                            <p class="mb-0 mt-2 whitespace-pre-line">{{ idea.response }}</p>
+                        </div>
+                    }
+                </article>
+            } @empty {
+                <p class="mb-0 text-muted-color">Vous n’avez encore proposé aucune idée.</p>
+            }
+        </section>
+
+        <section class="card mb-0" aria-labelledby="my-answers-heading">
+            <h2 id="my-answers-heading" class="mt-0 text-xl font-semibold">Mes réponses aux consultations ({{ d.consultation_responses.length }})</h2>
+            @for (answer of d.consultation_responses; track answer.id) {
+                <article class="mt-4 rounded-lg border border-surface p-4" [attr.aria-labelledby]="'my-answer-' + answer.id">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <h3 [id]="'my-answer-' + answer.id" class="m-0 text-lg font-semibold">
+                            <a [routerLink]="'/home/municipal/consultations/' + answer.consultation_id" class="text-color hover:underline">{{ answer.consultation_title }}</a>
+                        </h3>
+                        <p-tag [value]="answer.phase" [severity]="phaseSeverity(answer.phase)" />
+                    </div>
+                    <p class="mb-0 mt-1 text-sm text-muted-color">
+                        Référence {{ answer.reference }} · enregistrée le <time [attr.datetime]="answer.updated_at">{{ answer.updated_at | date: 'd MMMM y à HH:mm' }}</time>
+                    </p>
+                    @if (answer.choice) {
+                        <p class="mb-0 mt-2">Votre choix : <strong>{{ answer.choice }}</strong></p>
+                    }
+                    @if (answer.comment) {
+                        <p class="mb-0 mt-2 whitespace-pre-line">Votre avis : {{ answer.comment }}</p>
+                    }
+                    @if (answer.decision) {
+                        <div class="mt-4 rounded-lg bg-emphasis p-4">
+                            <p class="m-0 font-semibold">Décision de la mairie (<time [attr.datetime]="answer.decided_at">{{ answer.decided_at | date: 'd MMMM y' }}</time>)</p>
+                            <p class="mb-0 mt-2 whitespace-pre-line">{{ answer.decision }}</p>
+                        </div>
+                    } @else if (answer.phase === 'Ouverte') {
+                        <p class="mb-0 mt-2 text-sm">Modifiable jusqu’au {{ answer.closes_at | date: 'd MMMM y à HH:mm' }}.</p>
+                    } @else {
+                        <p class="mb-0 mt-2 text-sm">Consultation close : la décision de la mairie sera publiée ici.</p>
+                    }
+                </article>
+            } @empty {
+                <p class="mb-0 text-muted-color">Vous n’avez encore répondu à aucune consultation.</p>
+            }
+        </section>
+
+        <section class="card mb-0" aria-labelledby="my-reviews-heading">
+            <h2 id="my-reviews-heading" class="mt-0 text-xl font-semibold">Mes avis sur les services ({{ d.reviews.length }})</h2>
+            @for (review of d.reviews; track review.id) {
+                <article class="mt-4 rounded-lg border border-surface p-4" [attr.aria-labelledby]="'my-review-' + review.id">
+                    <h3 [id]="'my-review-' + review.id" class="m-0 text-lg font-semibold">
+                        <a [routerLink]="'/home/municipal/services/' + review.service_id + '/avis'" class="text-color hover:underline">{{ review.service_name }}</a>
+                    </h3>
+                    <p class="mb-0 mt-1 text-sm text-muted-color">
+                        Référence {{ review.reference }} · <time [attr.datetime]="review.updated_at">{{ review.updated_at | date: 'd MMMM y à HH:mm' }}</time>
+                        · {{ review.response ? 'Réponse reçue' : 'En attente de réponse' }}
+                        @if (review.is_hidden) {
+                            · Masqué par la modération
+                        }
+                    </p>
+                    <p class="mb-0 mt-2"><strong>{{ review.rating }} sur 5</strong> — {{ labels[review.rating] }}</p>
+                    <p class="mb-0 mt-1 whitespace-pre-line">{{ review.comment }}</p>
+                    @if (review.response) {
+                        <div class="mt-4 rounded-lg bg-emphasis p-4">
+                            <p class="m-0 font-semibold">Réponse de la mairie<span class="font-normal"> ({{ review.answered_by }})</span></p>
+                            <p class="mb-0 mt-2 whitespace-pre-line">{{ review.response }}</p>
+                        </div>
+                    }
+                </article>
+            } @empty {
+                <p class="mb-0 text-muted-color">Vous n’avez encore donné aucun avis sur un service.</p>
+            }
+        </section>
+    }
+</div>

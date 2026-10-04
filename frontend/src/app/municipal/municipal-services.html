@@ -54,6 +54,14 @@
                         <dd>{{ service.opening_hours }}</dd>
                         <dt>Contact</dt>
                         <dd>{{ service.contact_details }}</dd>
+                        <dt>Avis des habitants</dt>
+                        <dd>
+                            @if (ratings().get(service.id); as rating) {
+                                Note moyenne {{ ratingText(rating.average) }} ({{ rating.count }} avis)
+                            } @else {
+                                Pas encore d’avis
+                            }
+                        </dd>
                     </dl>
                     <div class="card-actions">
                         @if (isLocated(service)) {
@@ -67,6 +75,9 @@
                         <button type="button" class="card-action" [disabled]="openingService() !== null" (click)="startService(service)">
                             Contacter ce service<span class="sr-only"> : {{ service.name }}</span> <i class="pi pi-arrow-right" aria-hidden="true"></i>
                         </button>
+                        <a class="card-action" [routerLink]="navigation.path('services/' + service.id + '/avis')">
+                            <i class="pi pi-star" aria-hidden="true"></i> Avis et note<span class="sr-only"> : {{ service.name }}</span>
+                        </a>
                     </div>
 
                     @if (auth.hasRole('manager', 'admin')) {

@@ -17,6 +17,7 @@ from src.features.data_concern.router import router as data_concern_router
 from src.features.institut.router import router as institut_router
 from src.features.municipal_content.router import router as municipal_content_router
 from src.features.notification.router import router as notification_router
+from src.features.participation.router import router as participation_router
 from src.features.preferences.router import router as preferences_router
 from src.features.realtime.router import get_realtime_broker
 from src.features.realtime.router import router as realtime_router
@@ -43,6 +44,7 @@ FEATURE_ROUTERS: list[APIRouter] = [
     user_export_router,
     municipal_content_router,
     data_concern_router,
+    participation_router,
     audit_router,
     terra_request_router,
     realtime_router,

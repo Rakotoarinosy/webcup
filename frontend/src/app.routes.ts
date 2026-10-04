@@ -47,6 +47,24 @@ export const appRoutes: Routes = [
             { path: 'municipal/services', data: { breadcrumb: 'Services municipaux' }, loadComponent: () => import('./app/municipal/municipal-services').then((m) => m.MunicipalServices) },
             { path: 'municipal/publications', data: { breadcrumb: 'Publications' }, loadComponent: () => import('./app/municipal/municipal-publications').then((m) => m.MunicipalPublications) },
             { path: 'municipal/contact', data: { breadcrumb: 'Contacter la mairie' }, loadComponent: () => import('./app/municipal/municipal-contact').then((m) => m.MunicipalContact) },
+            { path: 'municipal/projets', data: { breadcrumb: 'Projets de la ville' }, loadComponent: () => import('./app/participation/projects').then((m) => m.Projects) },
+            { path: 'municipal/projets/:id', data: { breadcrumb: 'Projet' }, loadComponent: () => import('./app/participation/project-detail').then((m) => m.ProjectDetail) },
+            { path: 'municipal/consultations', data: { breadcrumb: 'Donner mon avis' }, loadComponent: () => import('./app/participation/consultations').then((m) => m.Consultations) },
+            { path: 'municipal/consultations/:id', data: { breadcrumb: 'Consultation' }, loadComponent: () => import('./app/participation/consultation-detail').then((m) => m.ConsultationDetail) },
+            { path: 'municipal/idees', data: { breadcrumb: 'Boîte à idées' }, loadComponent: () => import('./app/participation/ideas').then((m) => m.Ideas) },
+            { path: 'municipal/services/:id/avis', data: { breadcrumb: 'Avis sur le service' }, loadComponent: () => import('./app/participation/service-reviews').then((m) => m.ServiceReviews) },
+            { path: 'participation', canActivate: [roleGuard], data: { breadcrumb: 'Ma participation', roles: ['citizen'] }, loadComponent: () => import('./app/participation/my-participation').then((m) => m.MyParticipation) },
+            {
+                path: 'participation-admin',
+                data: { breadcrumb: 'Participation', roles: ['manager', 'admin'] },
+                children: [
+                    { path: '', redirectTo: 'projets', pathMatch: 'full' },
+                    { path: 'projets', data: { breadcrumb: 'Projets' }, loadComponent: () => import('./app/participation/admin/projects-admin').then((m) => m.ProjectsAdmin) },
+                    { path: 'consultations', data: { breadcrumb: 'Consultations' }, loadComponent: () => import('./app/participation/admin/consultations-admin').then((m) => m.ConsultationsAdmin) },
+                    { path: 'idees', data: { breadcrumb: 'Idées' }, loadComponent: () => import('./app/participation/admin/ideas-admin').then((m) => m.IdeasAdmin) },
+                    { path: 'avis', data: { breadcrumb: 'Avis sur les services' }, loadComponent: () => import('./app/participation/admin/reviews-admin').then((m) => m.ReviewsAdmin) }
+                ]
+            },
             { path: 'terra-nova', data: { breadcrumb: 'API Terra Nova', roles: ['agent', 'manager', 'admin'] }, loadChildren: () => import('./app/terra-nova/terra-nova.routes') }
         ]
     },
@@ -58,7 +76,13 @@ export const appRoutes: Routes = [
             { path: '', loadComponent: () => import('./app/municipal/municipal-home').then((m) => m.MunicipalHome) },
             { path: 'services', loadComponent: () => import('./app/municipal/municipal-services').then((m) => m.MunicipalServices) },
             { path: 'publications', loadComponent: () => import('./app/municipal/municipal-publications').then((m) => m.MunicipalPublications) },
-            { path: 'contact', loadComponent: () => import('./app/municipal/municipal-contact').then((m) => m.MunicipalContact) }
+            { path: 'contact', loadComponent: () => import('./app/municipal/municipal-contact').then((m) => m.MunicipalContact) },
+            { path: 'projets', loadComponent: () => import('./app/participation/projects').then((m) => m.Projects) },
+            { path: 'projets/:id', loadComponent: () => import('./app/participation/project-detail').then((m) => m.ProjectDetail) },
+            { path: 'consultations', loadComponent: () => import('./app/participation/consultations').then((m) => m.Consultations) },
+            { path: 'consultations/:id', loadComponent: () => import('./app/participation/consultation-detail').then((m) => m.ConsultationDetail) },
+            { path: 'idees', loadComponent: () => import('./app/participation/ideas').then((m) => m.Ideas) },
+            { path: 'services/:id/avis', loadComponent: () => import('./app/participation/service-reviews').then((m) => m.ServiceReviews) }
         ]
     },
     { path: '', component: Landing, canActivate: [publicSessionGuard] },

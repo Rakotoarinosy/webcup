@@ -27,6 +27,14 @@ from src.domain.citizen_request import (  # noqa: E402
 )
 from src.domain.data_concern import ConcernStatus, ConcernTopic  # noqa: E402
 from src.domain.notification import NotificationKind  # noqa: E402
+from src.domain.participation import (  # noqa: E402
+    ConsultationKind,
+    ConsultationPhase,
+    IdeaStatus,
+    IdeaTheme,
+    IdeaVisibility,
+    ProjectStatus,
+)
 from src.domain.preferences import FontFamily, FontSize, Theme  # noqa: E402
 from src.domain.search.entities import SearchKind  # noqa: E402
 from src.domain.terra_request import PipelineStatus, TerraNotificationKind  # noqa: E402
@@ -48,6 +56,12 @@ ENUMS: tuple[type[StrEnum], ...] = (
     NotificationKind,
     ConcernTopic,
     ConcernStatus,
+    ProjectStatus,
+    ConsultationKind,
+    ConsultationPhase,
+    IdeaTheme,
+    IdeaStatus,
+    IdeaVisibility,
     AuditAction,
     AuditTarget,
     Theme,

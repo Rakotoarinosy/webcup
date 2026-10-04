@@ -8,6 +8,7 @@ import { AuthService } from '../auth/auth.service';
 import { MunicipalContentService } from './municipal-content.service';
 import { MunicipalServices } from './municipal-services';
 import { ServicesMap } from './services-map';
+import { ParticipationService } from '../participation/participation.service';
 
 // La vraie carte (Leaflet, tuiles OpenStreetMap) n'a pas sa place dans un test unitaire.
 @Component({ selector: 'app-services-map', template: '' })
@@ -38,13 +39,22 @@ describe('MunicipalServices', () => {
                         updateFeaturedService: jasmine.createSpy('updateFeaturedService')
                     }
                 },
-                { provide: AuthService, useValue: { hasRole: () => false } }
+                { provide: AuthService, useValue: { hasRole: () => false } },
+                { provide: ParticipationService, useValue: { ratings: () => of([{ service_id: 'health', average: 4.5, count: 2 }]) } }
             ]
         })
             .overrideComponent(MunicipalServices, { remove: { imports: [ServicesMap] }, add: { imports: [ServicesMapStub] } })
             .compileComponents();
         fixture = TestBed.createComponent(MunicipalServices);
         fixture.detectChanges();
+    });
+
+    it('shows the residents rating in words and links to the reviews page', () => {
+        const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+        expect(text).toContain('Note moyenne 4,5 sur 5 (2 avis)');
+        expect(text).toContain('Pas encore d’avis');
+        const links = Array.from(fixture.nativeElement.querySelectorAll('a.card-action')) as HTMLAnchorElement[];
+        expect(links.some((link) => link.getAttribute('href')?.endsWith('/services/health/avis'))).toBeTrue();
     });
 
     it('prioritizes Santé and filters by service name/category text', () => {

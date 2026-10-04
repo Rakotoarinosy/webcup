@@ -1,0 +1,77 @@
+<section class="mx-auto grid max-w-[900px] gap-6 px-4">
+    <a [routerLink]="navigation.path('projets')" class="font-semibold text-primary"><i class="pi pi-arrow-left" aria-hidden="true"></i> Tous les projets</a>
+
+    @if (loading()) {
+        <p role="status">Chargement du projet…</p>
+    }
+    @if (error(); as message) {
+        <p role="alert" class="text-red-700 dark:text-red-300">{{ message }}</p>
+    }
+
+    @if (project(); as p) {
+        <article class="card mb-0 grid gap-4" aria-labelledby="project-title">
+            <div class="flex flex-wrap items-center gap-3">
+                <p-tag [value]="p.status" [severity]="severity(p.status)" />
+                <span class="text-muted-color"><i class="pi pi-map-marker" aria-hidden="true"></i> {{ p.district }}@if (p.location) { · {{ p.location }} }</span>
+            </div>
+            <h1 id="project-title" class="m-0 text-3xl font-bold">{{ p.title }}</h1>
+            <p class="m-0 text-lg">{{ p.summary }}</p>
+
+            <div>
+                <div class="flex justify-between"><span class="font-semibold">Avancement</span><span>{{ p.progress }} %</span></div>
+                <progress class="w-full" max="100" [value]="p.progress" [attr.aria-label]="'Avancement : ' + p.progress + ' %'"></progress>
+            </div>
+
+            <dl class="m-0 grid gap-3 sm:grid-cols-3">
+                <div>
+                    <dt class="font-semibold">Début prévu</dt>
+                    <dd class="m-0">{{ p.planned_start ? (p.planned_start | date: 'd MMMM y') : 'À définir' }}</dd>
+                </div>
+                <div>
+                    <dt class="font-semibold">Fin prévue</dt>
+                    <dd class="m-0">{{ p.planned_end ? (p.planned_end | date: 'd MMMM y') : 'À définir' }}</dd>
+                </div>
+                <div>
+                    <dt class="font-semibold">Budget prévu</dt>
+                    <dd class="m-0">{{ p.budget ?? 'Non communiqué' }}</dd>
+                </div>
+            </dl>
+
+            <div>
+                <h2 class="mb-2 text-xl font-semibold">Le projet</h2>
+                <p class="m-0 whitespace-pre-line">{{ p.description }}</p>
+            </div>
+        </article>
+
+        @if (consultations().length) {
+            <section class="card mb-0" aria-labelledby="project-consultations">
+                <h2 id="project-consultations" class="mt-0 text-xl font-semibold">Donnez votre avis sur ce projet</h2>
+                <ul class="m-0 grid list-none gap-3 p-0">
+                    @for (consultation of consultations(); track consultation.id) {
+                        <li class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-surface p-3">
+                            <a [routerLink]="navigation.path('consultations/' + consultation.id)" class="font-semibold text-primary">{{ consultation.title }}</a>
+                            <p-tag [value]="consultation.phase" [severity]="phaseSeverity(consultation.phase)" />
+                        </li>
+                    }
+                </ul>
+            </section>
+        }
+
+        <section class="card mb-0" aria-labelledby="project-updates">
+            <h2 id="project-updates" class="mt-0 text-xl font-semibold">Étapes et actualités</h2>
+            <ol class="m-0 grid list-none gap-4 p-0">
+                @for (update of p.updates; track update.id) {
+                    <li class="border-l-4 border-primary pl-4">
+                        <p class="m-0 text-sm text-muted-color">
+                            <time [attr.datetime]="update.published_at">{{ update.published_at | date: 'd MMMM y' }}</time> · {{ update.author_name }}
+                        </p>
+                        <h3 class="my-1 text-lg font-semibold">{{ update.title }}</h3>
+                        <p class="m-0 whitespace-pre-line">{{ update.content }}</p>
+                    </li>
+                } @empty {
+                    <li class="text-muted-color">Pas encore d’actualité pour ce projet.</li>
+                }
+            </ol>
+        </section>
+    }
+</section>

@@ -1,0 +1,155 @@
+<p-toast />
+
+<div class="card">
+    <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+            <h1 class="m-0 text-2xl font-semibold">Consultations des habitants</h1>
+            <p class="mb-0 mt-2 text-muted-color">Votes à choix et avis libres. Les résultats deviennent publics à la clôture ; publiez ensuite la suite donnée.</p>
+        </div>
+        <div class="flex gap-2">
+            <p-button icon="pi pi-refresh" severity="secondary" [text]="true" [loading]="loading()" ariaLabel="Actualiser les consultations" (onClick)="load()" />
+            <p-button label="Nouvelle consultation" icon="pi pi-plus" (onClick)="openCreate()" />
+        </div>
+    </div>
+
+    @for (consultation of consultations(); track consultation.id) {
+        <article class="mt-4 rounded-lg border border-surface p-4" [attr.aria-labelledby]="'admin-consultation-' + consultation.id">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <h2 [id]="'admin-consultation-' + consultation.id" class="m-0 text-lg font-semibold">{{ consultation.title }}</h2>
+                <div class="flex items-center gap-2">
+                    @if (!consultation.is_published) {
+                        <p-tag value="Brouillon (non publié)" severity="secondary" />
+                    }
+                    <p-tag [value]="consultation.phase" [severity]="severity(consultation.phase)" />
+                </div>
+            </div>
+            <p class="mb-0 mt-1 text-sm text-muted-color">
+                {{ consultation.kind }} · du {{ consultation.opens_at | date: 'dd/MM/y HH:mm' }} au {{ consultation.closes_at | date: 'dd/MM/y HH:mm' }}
+                @if (consultation.project_title) {
+                    · projet : {{ consultation.project_title }}
+                }
+            </p>
+            <p class="mb-0 mt-2">{{ consultation.question }}</p>
+            @if (consultation.results; as results) {
+                <p class="mb-0 mt-2 font-semibold">{{ results.total }} réponse(s)</p>
+                @if (consultation.kind === 'Vote à choix') {
+                    <ul class="m-0 pl-5">
+                        @for (option of results.options; track option.option) {
+                            <li>{{ option.option }} : {{ option.count }} ({{ share(option.count, results.total) }} %)</li>
+                        }
+                    </ul>
+                }
+            }
+            @if (consultation.decision) {
+                <div class="mt-3 rounded-lg bg-emphasis p-3">
+                    <p class="m-0 font-semibold">Décision publiée par {{ consultation.decided_by }}</p>
+                    <p class="mb-0 mt-1 whitespace-pre-line">{{ consultation.decision }}</p>
+                </div>
+            }
+            <div class="mt-3 flex flex-wrap gap-2">
+                <p-button label="Lire les réponses" icon="pi pi-comments" severity="secondary" [outlined]="true" [ariaLabel]="'Lire les réponses à ' + consultation.title" (onClick)="openContributions(consultation)" />
+                @if (!consultation.decision) {
+                    <p-button label="Modifier" icon="pi pi-pencil" severity="secondary" [outlined]="true" [ariaLabel]="'Modifier ' + consultation.title" (onClick)="openEdit(consultation)" />
+                }
+                @if (consultation.phase === 'Ouverte') {
+                    <p-button label="Clôturer maintenant" icon="pi pi-lock" severity="warn" [outlined]="true" [loading]="busy()" [ariaLabel]="'Clôturer ' + consultation.title" (onClick)="close(consultation)" />
+                }
+                @if (consultation.phase === 'Clôturée') {
+                    <p-button label="Publier la décision" icon="pi pi-flag" [ariaLabel]="'Publier la décision sur ' + consultation.title" (onClick)="openDecision(consultation)" />
+                }
+            </div>
+        </article>
+    } @empty {
+        @if (!loading()) {
+            <p class="mb-0 mt-4 text-muted-color">Aucune consultation pour le moment.</p>
+        }
+    }
+</div>
+
+<p-dialog [(visible)]="formVisible" [modal]="true" [style]="{ width: '48rem' }" [header]="editing ? 'Modifier la consultation' : 'Nouvelle consultation'">
+    <form #consultationForm="ngForm" (ngSubmit)="save(consultationForm)" novalidate class="grid gap-3">
+        <label for="consultation-title" class="font-semibold">Titre *</label>
+        <input id="consultation-title" name="title" [(ngModel)]="form.title" required minlength="5" maxlength="200" class="p-inputtext w-full" aria-describedby="consultation-required" />
+        <label for="consultation-question" class="font-semibold">Question posée *</label>
+        <input id="consultation-question" name="question" [(ngModel)]="form.question" required minlength="5" maxlength="500" class="p-inputtext w-full" aria-describedby="consultation-required" />
+        <label for="consultation-description" class="font-semibold">Contexte</label>
+        <textarea id="consultation-description" name="description" [(ngModel)]="form.description" maxlength="5000" rows="3" class="p-inputtext w-full"></textarea>
+        <div class="grid gap-3 sm:grid-cols-2">
+            <div class="grid gap-1">
+                <label for="consultation-kind" class="font-semibold">Type *</label>
+                <select id="consultation-kind" name="kind" [(ngModel)]="form.kind" required class="p-inputtext w-full" aria-describedby="consultation-kind-help">
+                    @for (kind of kinds; track kind) {
+                        <option [value]="kind">{{ kind }}</option>
+                    }
+                </select>
+                <small id="consultation-kind-help" class="text-muted-color">Le type et les choix sont figés dès la première réponse.</small>
+            </div>
+            <div class="grid gap-1">
+                <label for="consultation-project" class="font-semibold">Projet lié</label>
+                <select id="consultation-project" name="project_id" [(ngModel)]="form.project_id" class="p-inputtext w-full">
+                    <option value="">Aucun</option>
+                    @for (project of projects(); track project.id) {
+                        <option [value]="project.id">{{ project.title }}</option>
+                    }
+                </select>
+            </div>
+        </div>
+        @if (form.kind === 'Vote à choix') {
+            <label for="consultation-options" class="font-semibold">Propositions (une par ligne, de 2 à 10) *</label>
+            <textarea id="consultation-options" name="options" [(ngModel)]="form.options" required rows="4" class="p-inputtext w-full" aria-describedby="consultation-required"></textarea>
+        }
+        <div class="grid gap-3 sm:grid-cols-2">
+            <div class="grid gap-1">
+                <label for="consultation-opens" class="font-semibold">Ouverture *</label>
+                <input id="consultation-opens" name="opens_at" type="datetime-local" [(ngModel)]="form.opens_at" required class="p-inputtext w-full" />
+            </div>
+            <div class="grid gap-1">
+                <label for="consultation-closes" class="font-semibold">Clôture *</label>
+                <input id="consultation-closes" name="closes_at" type="datetime-local" [(ngModel)]="form.closes_at" required class="p-inputtext w-full" />
+            </div>
+        </div>
+        <label for="consultation-rules" class="font-semibold">Règles affichées</label>
+        <textarea id="consultation-rules" name="rules" [(ngModel)]="form.rules" maxlength="2000" rows="3" class="p-inputtext w-full" aria-describedby="consultation-rules-help"></textarea>
+        <small id="consultation-rules-help" class="text-muted-color">Laissez vide pour les règles standard : une réponse par habitant, modifiable jusqu’à la clôture, résultats anonymes publiés à la clôture.</small>
+        <label class="flex items-center gap-2" for="consultation-published">
+            <input id="consultation-published" name="is_published" type="checkbox" [(ngModel)]="form.is_published" />
+            Visible par les habitants
+        </label>
+        <small id="consultation-required" class="text-muted-color">Les champs marqués d’un astérisque (*) sont obligatoires.</small>
+        <div class="flex justify-end gap-2">
+            <p-button label="Annuler" severity="secondary" [text]="true" (onClick)="formVisible = false" />
+            <p-button type="submit" label="Enregistrer" icon="pi pi-check" [loading]="busy()" />
+        </div>
+    </form>
+</p-dialog>
+
+<p-dialog [(visible)]="decisionVisible" [modal]="true" [style]="{ width: '40rem' }" [header]="'Décision : ' + (deciding?.title ?? '')">
+    <form #decisionForm="ngForm" (ngSubmit)="publishDecision(decisionForm)" novalidate class="grid gap-3">
+        <label for="consultation-decision" class="font-semibold">Décision prise et suite donnée *</label>
+        <textarea id="consultation-decision" name="decision" [(ngModel)]="decision" required minlength="10" maxlength="5000" rows="6" class="p-inputtext w-full" aria-describedby="consultation-decision-help"></textarea>
+        <small id="consultation-decision-help" class="text-muted-color">Publiée une fois, telle quelle, sous les résultats et dans « Ma participation » de chaque participant. 10 caractères minimum.</small>
+        <div class="flex justify-end gap-2">
+            <p-button label="Annuler" severity="secondary" [text]="true" (onClick)="decisionVisible = false" />
+            <p-button type="submit" label="Publier" icon="pi pi-send" [loading]="busy()" />
+        </div>
+    </form>
+</p-dialog>
+
+<p-dialog [(visible)]="contributionsVisible" [modal]="true" [style]="{ width: '44rem' }" [header]="'Réponses : ' + (reading?.title ?? '')">
+    <p class="mt-0 text-muted-color">Réponses anonymes, de la plus récente à la plus ancienne.</p>
+    <ul class="m-0 grid list-none gap-3 p-0">
+        @for (item of contributions(); track $index) {
+            <li class="rounded-lg border border-surface p-3">
+                @if (item.choice) {
+                    <p class="m-0 font-semibold">{{ item.choice }}</p>
+                }
+                @if (item.comment) {
+                    <p class="m-0 whitespace-pre-line">{{ item.comment }}</p>
+                }
+                <p class="mb-0 mt-1 text-sm text-muted-color">{{ item.submitted_at | date: 'dd/MM/y HH:mm' }}</p>
+            </li>
+        } @empty {
+            <li class="text-muted-color">Aucune réponse pour le moment.</li>
+        }
+    </ul>
+</p-dialog>

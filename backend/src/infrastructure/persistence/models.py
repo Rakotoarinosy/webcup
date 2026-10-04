@@ -6,13 +6,14 @@ Après tout ajout ou modification : `make revision m="..."` puis `make migrate`.
 """
 
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from typing import Any
 
 from sqlalchemy import (
     JSON,
     Boolean,
     CheckConstraint,
+    Date,
     DateTime,
     Float,
     ForeignKey,
@@ -20,6 +21,7 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    UniqueConstraint,
     false,
     true,
 )
@@ -433,3 +435,152 @@ class TerraRequestReadModel(Base):
     )
     key: Mapped[str] = mapped_column(String(80), primary_key=True)
     read_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+# ─── participation des habitants (F65, F66, F67, F68, F76) ──────────
+
+
+class CityProjectModel(Base):
+    """Projet de la ville présenté aux habitants (F67)."""
+
+    __tablename__ = "city_projects"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    title: Mapped[str] = mapped_column(String(200))
+    summary: Mapped[str] = mapped_column(String(500))
+    description: Mapped[str] = mapped_column(Text)
+    district: Mapped[str] = mapped_column(String(120), index=True)
+    location: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    budget: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    status: Mapped[str] = mapped_column(String(30), index=True)
+    progress: Mapped[int] = mapped_column(Integer, default=0)
+    planned_start: Mapped[date | None] = mapped_column(Date, nullable=True)
+    planned_end: Mapped[date | None] = mapped_column(Date, nullable=True)
+    is_published: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true())
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class CityProjectUpdateModel(Base):
+    """Étape datée ou actualité d'un projet."""
+
+    __tablename__ = "city_project_updates"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    project_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("city_projects.id", ondelete="CASCADE"), index=True
+    )
+    title: Mapped[str] = mapped_column(String(200))
+    content: Mapped[str] = mapped_column(Text)
+    author_name: Mapped[str] = mapped_column(String(255))
+    published_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class ConsultationModel(Base):
+    """Décision soumise à l'avis des habitants (F65) ou avis libre sur un projet (F66)."""
+
+    __tablename__ = "consultations"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    project_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("city_projects.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    title: Mapped[str] = mapped_column(String(200))
+    question: Mapped[str] = mapped_column(String(500))
+    description: Mapped[str] = mapped_column(Text, default="")
+    kind: Mapped[str] = mapped_column(String(30))
+    options: Mapped[list[str]] = mapped_column(JSON, default=list)
+    rules: Mapped[str] = mapped_column(Text)
+    opens_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    closes_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    is_published: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true())
+    decision: Mapped[str | None] = mapped_column(Text, nullable=True)
+    decided_by: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class ConsultationResponseModel(Base):
+    """Réponse d'un habitant à une consultation : une seule par habitant."""
+
+    __tablename__ = "consultation_responses"
+    __table_args__ = (
+        UniqueConstraint("consultation_id", "user_id", name="uq_consultation_responses_user"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    reference: Mapped[str] = mapped_column(String(32), unique=True, index=True)
+    consultation_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("consultations.id", ondelete="CASCADE"), index=True
+    )
+    # Conservée à la suppression du compte : rattachée à l'identité archivée (voir UserRepository).
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), index=True)
+    choice: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    comment: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class IdeaModel(Base):
+    """Idée proposée par un habitant (F68), avec le suivi de son étude."""
+
+    __tablename__ = "ideas"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    reference: Mapped[str] = mapped_column(String(32), unique=True, index=True)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), index=True)
+    title: Mapped[str] = mapped_column(String(150))
+    description: Mapped[str] = mapped_column(Text)
+    theme: Mapped[str] = mapped_column(String(60))
+    district: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    status: Mapped[str] = mapped_column(String(30), index=True)
+    visibility: Mapped[str] = mapped_column(String(40), index=True)
+    moderation_note: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    support_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    response: Mapped[str | None] = mapped_column(Text, nullable=True)
+    answered_by: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    answered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Étapes datées : [{"status", "at", "note", "by"}].
+    history: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class IdeaSupportModel(Base):
+    """Soutien d'un habitant à une idée : un seul par personne."""
+
+    __tablename__ = "idea_supports"
+    __table_args__ = (UniqueConstraint("idea_id", "user_id", name="uq_idea_supports_user"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    idea_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("ideas.id", ondelete="CASCADE"), index=True
+    )
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class ServiceReviewModel(Base):
+    """Avis d'un habitant sur un service municipal (F76) : un seul par service."""
+
+    __tablename__ = "service_reviews"
+    __table_args__ = (
+        UniqueConstraint("service_id", "user_id", name="uq_service_reviews_user"),
+        CheckConstraint("rating BETWEEN 1 AND 5", name="ck_service_reviews_rating"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    reference: Mapped[str] = mapped_column(String(32), unique=True, index=True)
+    service_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("municipal_services.id", ondelete="CASCADE"), index=True
+    )
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), index=True)
+    rating: Mapped[int] = mapped_column(Integer)
+    comment: Mapped[str] = mapped_column(Text)
+    response: Mapped[str | None] = mapped_column(Text, nullable=True)
+    answered_by: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    answered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    is_hidden: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)

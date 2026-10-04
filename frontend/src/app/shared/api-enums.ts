@@ -36,10 +36,28 @@ export type ConcernTopic = (typeof CONCERN_TOPIC_VALUES)[number];
 export const CONCERN_STATUS_VALUES = ['Reçu', "En cours d'examen", 'Répondu'] as const;
 export type ConcernStatus = (typeof CONCERN_STATUS_VALUES)[number];
 
-export const AUDIT_ACTION_VALUES = ['account_created', 'account_updated', 'account_role_changed', 'account_password_reset', 'account_deactivated', 'account_reactivated', 'account_deleted', 'institut_created', 'institut_updated', 'institut_manager_changed', 'agent_created', 'agent_moved', 'agent_activated', 'agent_deactivated', 'agent_status_changed', 'data_concern_reviewed', 'data_concern_answered'] as const;
+export const PROJECT_STATUS_VALUES = ["À l'étude", 'En cours', 'Terminé', 'Suspendu'] as const;
+export type ProjectStatus = (typeof PROJECT_STATUS_VALUES)[number];
+
+export const CONSULTATION_KIND_VALUES = ['Vote à choix', 'Avis libre'] as const;
+export type ConsultationKind = (typeof CONSULTATION_KIND_VALUES)[number];
+
+export const CONSULTATION_PHASE_VALUES = ['À venir', 'Ouverte', 'Clôturée', 'Décision publiée'] as const;
+export type ConsultationPhase = (typeof CONSULTATION_PHASE_VALUES)[number];
+
+export const IDEA_THEME_VALUES = ['Environnement et nature', 'Déplacements', 'Cadre de vie', 'Culture, sport et loisirs', 'Solidarité et vie sociale', 'Services et numérique', 'Autre'] as const;
+export type IdeaTheme = (typeof IDEA_THEME_VALUES)[number];
+
+export const IDEA_STATUS_VALUES = ['Reçue', "À l'étude", 'Retenue', 'Non retenue', 'Réalisée'] as const;
+export type IdeaStatus = (typeof IDEA_STATUS_VALUES)[number];
+
+export const IDEA_VISIBILITY_VALUES = ['En attente de modération', 'Publiée', 'Non publiée'] as const;
+export type IdeaVisibility = (typeof IDEA_VISIBILITY_VALUES)[number];
+
+export const AUDIT_ACTION_VALUES = ['account_created', 'account_updated', 'account_role_changed', 'account_password_reset', 'account_deactivated', 'account_reactivated', 'account_deleted', 'institut_created', 'institut_updated', 'institut_manager_changed', 'agent_created', 'agent_moved', 'agent_activated', 'agent_deactivated', 'agent_status_changed', 'data_concern_reviewed', 'data_concern_answered', 'project_created', 'project_updated', 'project_news_published', 'consultation_created', 'consultation_updated', 'consultation_closed', 'consultation_decided', 'idea_moderated', 'idea_status_changed', 'service_review_answered', 'service_review_moderated'] as const;
 export type AuditAction = (typeof AUDIT_ACTION_VALUES)[number];
 
-export const AUDIT_TARGET_VALUES = ['account', 'institut', 'agent', 'data_concern'] as const;
+export const AUDIT_TARGET_VALUES = ['account', 'institut', 'agent', 'data_concern', 'project', 'consultation', 'idea', 'service_review'] as const;
 export type AuditTarget = (typeof AUDIT_TARGET_VALUES)[number];
 
 export const THEME_VALUES = ['light', 'dark', 'system'] as const;

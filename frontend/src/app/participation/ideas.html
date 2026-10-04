@@ -1,0 +1,167 @@
+<section class="mx-auto grid max-w-[1100px] gap-6 px-4">
+    <header>
+        <p class="mb-1 font-semibold text-primary">Participation</p>
+        <h1 class="m-0 text-3xl font-bold">Boîte à idées</h1>
+        <p class="mb-0 mt-3">
+            Proposez une idée pour améliorer la ville. Chaque idée reçoit une référence ; la mairie l’étudie et vous répond par écrit : <strong>reçue → étudiée → retenue, non retenue ou réalisée</strong>. Après relecture, elle
+            est publiée ici et d’autres habitants peuvent la soutenir.
+        </p>
+    </header>
+
+    <section class="card mb-0" aria-labelledby="idea-form-heading">
+        <h2 id="idea-form-heading" class="mt-0 text-xl font-semibold">Proposer une idée</h2>
+        @if (sent(); as idea) {
+            <div #confirmation tabindex="-1" role="status" class="mb-4 rounded-xl border border-green-300 p-4">
+                <p class="m-0 font-semibold"><i class="pi pi-check-circle text-green-600" aria-hidden="true"></i> Votre idée a bien été reçue.</p>
+                <p class="mb-0 mt-1">
+                    Référence <strong>{{ idea.reference }}</strong>, le <time [attr.datetime]="idea.created_at">{{ idea.created_at | date: 'd MMMM y à HH:mm' }}</time>. Suivez son étude dans
+                    <a routerLink="/home/participation" class="font-semibold text-primary underline">Ma participation</a>.
+                </p>
+            </div>
+        }
+        @if (!auth.user()) {
+            <p class="m-0">Pour proposer une idée, <a routerLink="/auth/login" [queryParams]="{ returnUrl: currentUrl }" class="font-semibold text-primary underline">connectez-vous</a> avec votre compte d’habitant.</p>
+        } @else if (!isCitizen) {
+            <p class="m-0 text-muted-color">Seuls les comptes habitants peuvent proposer des idées.</p>
+        } @else {
+            <p class="mt-0 text-muted-color">Les champs marqués d’un astérisque (*) sont obligatoires.</p>
+            @if (sendError(); as message) {
+                <p role="alert" class="rounded-xl border border-red-300 p-4 text-red-700 dark:text-red-300">{{ message }}</p>
+            }
+            <form #ideaForm="ngForm" (ngSubmit)="send(ideaForm)" novalidate class="grid gap-4">
+                <div class="grid gap-2">
+                    <label for="idea-title" class="font-semibold">Votre idée en une phrase *</label>
+                    <input
+                        id="idea-title"
+                        name="title"
+                        #titleModel="ngModel"
+                        [(ngModel)]="form.title"
+                        required
+                        minlength="5"
+                        maxlength="150"
+                        class="p-inputtext w-full"
+                        aria-describedby="idea-title-error"
+                        [attr.aria-invalid]="titleModel.invalid && (titleModel.touched || submitted)"
+                    />
+                    <small id="idea-title-error" class="text-red-700 dark:text-red-300">
+                        @if (titleModel.invalid && (titleModel.touched || submitted)) {
+                            Donnez un titre d’au moins 5 caractères.
+                        }
+                    </small>
+                </div>
+                <div class="grid gap-2">
+                    <label for="idea-description" class="font-semibold">Décrivez-la *</label>
+                    <textarea
+                        id="idea-description"
+                        name="description"
+                        #descriptionModel="ngModel"
+                        [(ngModel)]="form.description"
+                        required
+                        minlength="20"
+                        maxlength="5000"
+                        rows="5"
+                        class="p-inputtext w-full"
+                        aria-describedby="idea-description-help idea-description-error"
+                        [attr.aria-invalid]="descriptionModel.invalid && (descriptionModel.touched || submitted)"
+                    ></textarea>
+                    <small id="idea-description-help" class="text-muted-color">{{ form.description.length }} / 5 000 caractères · 20 minimum. Ce qui pose problème, ce que vous proposez, où.</small>
+                    <small id="idea-description-error" class="text-red-700 dark:text-red-300">
+                        @if (descriptionModel.invalid && (descriptionModel.touched || submitted)) {
+                            Décrivez votre idée en au moins 20 caractères.
+                        }
+                    </small>
+                </div>
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <div class="grid gap-2">
+                        <label for="idea-theme" class="font-semibold">Thème *</label>
+                        <select
+                            id="idea-theme"
+                            name="theme"
+                            #themeModel="ngModel"
+                            [(ngModel)]="form.theme"
+                            required
+                            class="p-inputtext w-full"
+                            aria-describedby="idea-theme-error"
+                            [attr.aria-invalid]="themeModel.invalid && (themeModel.touched || submitted)"
+                        >
+                            <option value="" disabled>Choisissez un thème</option>
+                            @for (theme of themes; track theme) {
+                                <option [value]="theme">{{ theme }}</option>
+                            }
+                        </select>
+                        <small id="idea-theme-error" class="text-red-700 dark:text-red-300">
+                            @if (themeModel.invalid && (themeModel.touched || submitted)) {
+                                Choisissez un thème.
+                            }
+                        </small>
+                    </div>
+                    <div class="grid gap-2">
+                        <label for="idea-district" class="font-semibold">Quartier concerné (facultatif)</label>
+                        <input id="idea-district" name="district" [(ngModel)]="form.district" maxlength="120" class="p-inputtext w-full" aria-describedby="idea-district-help" />
+                        <small id="idea-district-help" class="text-muted-color">Laissez vide si l’idée concerne toute la ville.</small>
+                    </div>
+                </div>
+                <div>
+                    <p-button type="submit" label="Envoyer mon idée" icon="pi pi-send" [loading]="sending()" />
+                </div>
+            </form>
+        }
+    </section>
+
+    <section aria-labelledby="public-ideas-heading" class="grid gap-4">
+        <div class="flex flex-wrap items-end justify-between gap-4">
+            <h2 id="public-ideas-heading" class="m-0 text-xl font-semibold">Idées des habitants</h2>
+            <div class="grid gap-1">
+                <label for="idea-status-filter" class="font-semibold">État</label>
+                <select id="idea-status-filter" class="p-inputtext" [ngModel]="status()" (ngModelChange)="filter($event)" name="idea-status-filter">
+                    <option value="">Tous les états</option>
+                    @for (value of statuses; track value) {
+                        <option [value]="value">{{ value }}</option>
+                    }
+                </select>
+            </div>
+        </div>
+        <p class="sr-only" role="status">{{ supportMessage() }}</p>
+        @if (error(); as message) {
+            <p role="alert" class="text-red-700 dark:text-red-300">{{ message }}</p>
+        }
+        <ul class="m-0 grid list-none gap-4 p-0 md:grid-cols-2">
+            @for (idea of ideas(); track idea.id) {
+                <li class="card mb-0 flex flex-col gap-2">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <p-tag [value]="idea.status" [severity]="severity(idea.status)" />
+                        <span class="text-sm text-muted-color">{{ idea.theme }}@if (idea.district) { · {{ idea.district }} }</span>
+                    </div>
+                    <h3 class="m-0 text-lg font-semibold">{{ idea.title }}</h3>
+                    <p class="m-0 whitespace-pre-line">{{ idea.description }}</p>
+                    @if (idea.response) {
+                        <div class="rounded-lg bg-emphasis p-3">
+                            <p class="m-0 font-semibold">Réponse de la mairie<span class="font-normal"> ({{ idea.answered_by }})</span></p>
+                            <p class="mb-0 mt-1 whitespace-pre-line">{{ idea.response }}</p>
+                        </div>
+                    }
+                    <div class="mt-auto flex flex-wrap items-center justify-between gap-2">
+                        <span>{{ idea.support_count }} soutien(s)</span>
+                        @if (isCitizen && !own().has(idea.id) && idea.status !== 'Non retenue') {
+                            <p-button
+                                [label]="supported().has(idea.id) ? 'Je soutiens' : 'Soutenir'"
+                                [icon]="supported().has(idea.id) ? 'pi pi-check' : 'pi pi-thumbs-up'"
+                                [outlined]="!supported().has(idea.id)"
+                                size="small"
+                                [ariaLabel]="(supported().has(idea.id) ? 'Retirer mon soutien à : ' : 'Soutenir l’idée : ') + idea.title"
+                                [loading]="supporting() === idea.id"
+                                (onClick)="toggleSupport(idea)"
+                            />
+                        } @else if (own().has(idea.id)) {
+                            <span class="text-sm text-muted-color">Votre idée</span>
+                        }
+                    </div>
+                </li>
+            } @empty {
+                @if (!loading()) {
+                    <li class="text-muted-color">Aucune idée publiée pour cet état.</li>
+                }
+            }
+        </ul>
+    </section>
+</section>

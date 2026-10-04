@@ -30,6 +30,7 @@ export class AppMenu {
         }
         if (this.auth.hasRole('citizen')) {
             items.push({ label: 'Mes demandes', icon: 'pi pi-fw pi-list', routerLink: ['/home/my-requests'], badge: this.notificationBadge() });
+            items.push({ label: 'Ma participation', icon: 'pi pi-fw pi-comments', routerLink: ['/home/participation'] });
         }
         if (this.auth.hasRole('manager', 'admin')) {
             items.push({ label: 'Demandes citoyennes', icon: 'pi pi-fw pi-inbox', routerLink: ['/home/requests'], badge: this.notificationBadge() });
@@ -54,6 +55,19 @@ export class AppMenu {
         } else if (this.auth.hasRole('manager')) {
             items.push({ label: 'Comptes citoyens', icon: 'pi pi-fw pi-users', routerLink: ['/home/users'] });
         }
+        if (this.auth.hasRole('manager', 'admin')) {
+            items.push({
+                label: 'Participation',
+                icon: 'pi pi-fw pi-comments',
+                path: '/home/participation-admin',
+                items: [
+                    { label: 'Projets', icon: 'pi pi-fw pi-sitemap', routerLink: ['/home/participation-admin/projets'] },
+                    { label: 'Consultations', icon: 'pi pi-fw pi-check-square', routerLink: ['/home/participation-admin/consultations'] },
+                    { label: 'Idées', icon: 'pi pi-fw pi-lightbulb', routerLink: ['/home/participation-admin/idees'] },
+                    { label: 'Avis sur les services', icon: 'pi pi-fw pi-star', routerLink: ['/home/participation-admin/avis'] }
+                ]
+            });
+        }
         if (this.auth.hasRole('agent', 'manager', 'admin')) {
             items.push({ label: 'Journal', icon: 'pi pi-fw pi-history', routerLink: ['/home/journal'] });
         }
@@ -67,6 +81,14 @@ export class AppMenu {
                 { label: 'Services municipaux', icon: 'pi pi-fw pi-map-marker', routerLink: ['/home/municipal/services'] },
                 { label: 'Publications', icon: 'pi pi-fw pi-megaphone', routerLink: ['/home/municipal/publications'], badge: this.publicationBadge() },
                 { label: 'Contacter la mairie', icon: 'pi pi-fw pi-envelope', routerLink: ['/home/municipal/contact'] }
+            ]
+        });
+        groups.push({
+            label: 'Participer',
+            items: [
+                { label: 'Projets de la ville', icon: 'pi pi-fw pi-sitemap', routerLink: ['/home/municipal/projets'] },
+                { label: 'Donner mon avis', icon: 'pi pi-fw pi-check-square', routerLink: ['/home/municipal/consultations'] },
+                { label: 'Boîte à idées', icon: 'pi pi-fw pi-lightbulb', routerLink: ['/home/municipal/idees'] }
             ]
         });
 

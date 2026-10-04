@@ -33,6 +33,26 @@
         </div>
     </section>
 
+    <section aria-labelledby="participate-heading">
+        <div class="section-heading">
+            <div>
+                <p class="eyebrow">Participer</p>
+                <h2 id="participate-heading">Votre avis compte</h2>
+            </div>
+        </div>
+        <ul class="participate-links">
+            <li>
+                <a [routerLink]="navigation.path('projets')"><i class="pi pi-sitemap" aria-hidden="true"></i> <strong>Projets de la ville</strong><span>Où en sont les chantiers et projets de chaque quartier.</span></a>
+            </li>
+            <li>
+                <a [routerLink]="navigation.path('consultations')"><i class="pi pi-check-square" aria-hidden="true"></i> <strong>Donner mon avis</strong><span>Répondre aux consultations et voter quand la mairie le propose.</span></a>
+            </li>
+            <li>
+                <a [routerLink]="navigation.path('idees')"><i class="pi pi-lightbulb" aria-hidden="true"></i> <strong>Boîte à idées</strong><span>Proposer une idée et suivre la réponse de la mairie.</span></a>
+            </li>
+        </ul>
+    </section>
+
     <section>
         <div class="section-heading">
             <div>

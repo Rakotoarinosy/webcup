@@ -1,0 +1,115 @@
+<section class="mx-auto grid max-w-[900px] gap-6 px-4">
+    <a [routerLink]="navigation.path('services')" class="font-semibold text-primary"><i class="pi pi-arrow-left" aria-hidden="true"></i> Tous les services</a>
+
+    @if (error(); as message) {
+        <p role="alert" class="text-red-700 dark:text-red-300">{{ message }}</p>
+    }
+    @if (loading() && !data()) {
+        <p role="status">Chargement des avis…</p>
+    }
+
+    @if (data(); as d) {
+        <header class="card mb-0">
+            <p class="mb-1 font-semibold text-primary">Avis des habitants</p>
+            <h1 class="m-0 text-3xl font-bold">{{ d.service_name }}</h1>
+            <p class="mb-0 mt-3 text-xl">
+                Note moyenne : <strong>{{ ratingText(d.average) }}</strong>
+                @if (d.count) {
+                    <span class="text-base text-muted-color"> · {{ d.count }} avis</span>
+                }
+            </p>
+        </header>
+
+        <section class="card mb-0" aria-labelledby="review-form-heading">
+            <h2 id="review-form-heading" class="mt-0 text-xl font-semibold">{{ mine() ? 'Votre avis' : 'Donner mon avis sur ce service' }}</h2>
+            @if (mine(); as review) {
+                <div #confirmation tabindex="-1" role="status" class="mb-4 rounded-xl border border-green-300 p-4">
+                    <p class="m-0 font-semibold"><i class="pi pi-check-circle text-green-600" aria-hidden="true"></i> {{ justSent() ? 'Votre avis a bien été enregistré.' : 'Vous avez déjà donné votre avis.' }}</p>
+                    <p class="mb-0 mt-1">
+                        Référence <strong>{{ review.reference }}</strong> · {{ review.rating }} sur 5 · enregistré le <time [attr.datetime]="review.updated_at">{{ review.updated_at | date: 'd MMMM y à HH:mm' }}</time>. Vous pouvez le
+                        modifier ci-dessous.
+                        @if (review.is_hidden) {
+                            Il a été masqué par la modération et n’apparaît pas publiquement.
+                        }
+                    </p>
+                    @if (review.response) {
+                        <p class="mb-0 mt-2"><strong>Réponse de la mairie ({{ review.answered_by }}) :</strong> {{ review.response }}</p>
+                    }
+                </div>
+            }
+            @if (!auth.user()) {
+                <p class="m-0">Vous avez utilisé ce service ? <a routerLink="/auth/login" [queryParams]="{ returnUrl: currentUrl }" class="font-semibold text-primary underline">Connectez-vous</a> pour laisser une note et un commentaire.</p>
+            } @else if (!isCitizen) {
+                <p class="m-0 text-muted-color">Seuls les comptes habitants peuvent donner un avis.</p>
+            } @else {
+                @if (sendError(); as message) {
+                    <p role="alert" class="rounded-xl border border-red-300 p-4 text-red-700 dark:text-red-300">{{ message }}</p>
+                }
+                <form #reviewForm="ngForm" (ngSubmit)="send(reviewForm)" novalidate class="grid gap-4">
+                    <fieldset role="radiogroup" class="m-0 grid gap-2 border-0 p-0" aria-describedby="rating-error" [attr.aria-invalid]="submitted && rating === null">
+                        <legend class="mb-2 font-semibold">Votre note *</legend>
+                        <div class="flex flex-wrap gap-2">
+                            @for (value of ratings; track value) {
+                                <label [for]="'rating-' + value" class="flex items-center gap-2 rounded-lg border border-surface px-3 py-2">
+                                    <input type="radio" [id]="'rating-' + value" name="rating" [value]="value" [(ngModel)]="rating" />
+                                    <span><strong>{{ value }}</strong> — {{ labels[value] }}</span>
+                                </label>
+                            }
+                        </div>
+                        <small id="rating-error" class="text-red-700 dark:text-red-300">
+                            @if (submitted && rating === null) {
+                                Choisissez une note de 1 à 5.
+                            }
+                        </small>
+                    </fieldset>
+                    <div class="grid gap-2">
+                        <label for="review-comment" class="font-semibold">Votre commentaire *</label>
+                        <textarea
+                            id="review-comment"
+                            name="comment"
+                            #commentModel="ngModel"
+                            [(ngModel)]="comment"
+                            required
+                            minlength="5"
+                            maxlength="2000"
+                            rows="4"
+                            class="p-inputtext w-full"
+                            aria-describedby="review-comment-help review-comment-error"
+                            [attr.aria-invalid]="commentModel.invalid && (commentModel.touched || submitted)"
+                        ></textarea>
+                        <small id="review-comment-help" class="text-muted-color">{{ comment.length }} / 2 000 caractères. Votre nom n’est pas publié.</small>
+                        <small id="review-comment-error" class="text-red-700 dark:text-red-300">
+                            @if (commentModel.invalid && (commentModel.touched || submitted)) {
+                                Écrivez un commentaire d’au moins 5 caractères.
+                            }
+                        </small>
+                    </div>
+                    <div>
+                        <p-button type="submit" [label]="mine() ? 'Modifier mon avis' : 'Envoyer mon avis'" icon="pi pi-send" [loading]="sending()" />
+                    </div>
+                </form>
+            }
+        </section>
+
+        <section class="card mb-0" aria-labelledby="reviews-heading">
+            <h2 id="reviews-heading" class="mt-0 text-xl font-semibold">Ce qu’en disent les habitants</h2>
+            <ul class="m-0 grid list-none gap-4 p-0">
+                @for (review of d.reviews; track review.id) {
+                    <li class="rounded-lg border border-surface p-4">
+                        <p class="m-0 font-semibold">{{ review.rating }} sur 5 — {{ labels[review.rating] }}</p>
+                        <p class="my-2 whitespace-pre-line">{{ review.comment }}</p>
+                        <p class="m-0 text-sm text-muted-color">Le <time [attr.datetime]="review.created_at">{{ review.created_at | date: 'd MMMM y' }}</time></p>
+                        @if (review.response) {
+                            <div class="mt-3 rounded-lg bg-emphasis p-3">
+                                <p class="m-0 font-semibold">Réponse de la mairie<span class="font-normal"> ({{ review.answered_by }})</span></p>
+                                <p class="mb-0 mt-1 whitespace-pre-line">{{ review.response }}</p>
+                            </div>
+                        }
+                    </li>
+                } @empty {
+                    <li class="text-muted-color">Aucun avis pour le moment.</li>
+                }
+            </ul>
+        </section>
+    }
+</section>

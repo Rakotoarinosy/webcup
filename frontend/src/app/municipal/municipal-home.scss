@@ -81,3 +81,41 @@
         transition: none;
     }
 }
+
+.participate-links {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    gap: 1rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    a {
+        display: grid;
+        gap: 0.35rem;
+        height: 100%;
+        padding: 1rem;
+        border: 1px solid var(--surface-border);
+        border-radius: 0.75rem;
+        background: var(--surface-card);
+        color: var(--text-color);
+    }
+
+    a:hover {
+        border-color: var(--p-primary-color);
+    }
+
+    a:focus-visible {
+        outline: 2px solid var(--p-primary-color);
+        outline-offset: 3px;
+    }
+
+    i {
+        color: var(--p-primary-color);
+        font-size: 1.25rem;
+    }
+
+    span {
+        color: var(--text-color-secondary);
+    }
+}

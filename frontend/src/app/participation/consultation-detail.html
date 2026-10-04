@@ -1,0 +1,150 @@
+<section class="mx-auto grid max-w-[900px] gap-6 px-4">
+    <a [routerLink]="navigation.path('consultations')" class="font-semibold text-primary"><i class="pi pi-arrow-left" aria-hidden="true"></i> Toutes les consultations</a>
+
+    @if (loading()) {
+        <p role="status">Chargement de la consultation…</p>
+    }
+    @if (error(); as message) {
+        <p role="alert" class="text-red-700 dark:text-red-300">{{ message }}</p>
+    }
+
+    @if (consultation(); as c) {
+        <article class="card mb-0 grid gap-4" aria-labelledby="consultation-title">
+            <div class="flex flex-wrap items-center gap-3">
+                <p-tag [value]="c.phase" [severity]="severity(c.phase)" />
+                <span class="text-muted-color">{{ c.kind }}</span>
+            </div>
+            <h1 id="consultation-title" class="m-0 text-3xl font-bold">{{ c.title }}</h1>
+            @if (c.project_id && c.project_title) {
+                <p class="m-0">Projet concerné : <a [routerLink]="navigation.path('projets/' + c.project_id)" class="font-semibold text-primary underline">{{ c.project_title }}</a></p>
+            }
+            @if (c.description) {
+                <p class="m-0 whitespace-pre-line">{{ c.description }}</p>
+            }
+            <dl class="m-0 grid gap-3 sm:grid-cols-2">
+                <div>
+                    <dt class="font-semibold">Ouverture</dt>
+                    <dd class="m-0"><time [attr.datetime]="c.opens_at">{{ c.opens_at | date: 'd MMMM y à HH:mm' }}</time></dd>
+                </div>
+                <div>
+                    <dt class="font-semibold">Clôture</dt>
+                    <dd class="m-0"><time [attr.datetime]="c.closes_at">{{ c.closes_at | date: 'd MMMM y à HH:mm' }}</time></dd>
+                </div>
+            </dl>
+            <div class="rounded-lg bg-emphasis p-4">
+                <h2 class="m-0 text-base font-semibold">Règles de la consultation</h2>
+                <p class="mb-0 mt-1 whitespace-pre-line">{{ c.rules }}</p>
+                @if (c.kind === 'Avis libre') {
+                    <p class="mb-0 mt-1">Il ne s’agit pas d’un vote officiel : la mairie lit chaque avis pour préparer sa décision.</p>
+                }
+            </div>
+        </article>
+
+        @if (c.phase === 'Ouverte') {
+            <section class="card mb-0" aria-labelledby="answer-heading">
+                <h2 id="answer-heading" class="mt-0 text-xl font-semibold">{{ response() ? 'Votre réponse' : 'Répondre' }}</h2>
+
+                @if (response(); as r) {
+                    <div #confirmation tabindex="-1" role="status" class="mb-4 rounded-xl border border-green-300 p-4">
+                        <p class="m-0 font-semibold"><i class="pi pi-check-circle text-green-600" aria-hidden="true"></i> {{ justSent() ? 'Votre avis a bien été enregistré.' : 'Vous avez déjà répondu.' }}</p>
+                        <p class="mb-0 mt-1">
+                            Référence <strong>{{ r.reference }}</strong> · enregistré le <time [attr.datetime]="r.updated_at">{{ r.updated_at | date: 'd MMMM y à HH:mm' }}</time>. Vous pouvez le modifier jusqu’à la clôture et le retrouver dans
+                            « Ma participation ».
+                        </p>
+                    </div>
+                }
+
+                @if (!auth.user()) {
+                    <p class="m-0">Pour répondre, <a routerLink="/auth/login" [queryParams]="{ returnUrl: currentUrl }" class="font-semibold text-primary underline">connectez-vous</a> avec votre compte d’habitant. Une seule réponse par personne est prise en compte.</p>
+                } @else if (!canAnswer) {
+                    <p class="m-0 text-muted-color">Seuls les comptes habitants peuvent répondre aux consultations.</p>
+                } @else {
+                    @if (sendError(); as message) {
+                        <p role="alert" class="rounded-xl border border-red-300 p-4 text-red-700 dark:text-red-300">{{ message }}</p>
+                    }
+                    <form #answerForm="ngForm" (ngSubmit)="send(answerForm, c)" novalidate class="grid gap-4">
+                        @if (c.kind === 'Vote à choix') {
+                            <fieldset role="radiogroup" class="m-0 grid gap-2 border-0 p-0" aria-describedby="choice-error" [attr.aria-invalid]="submitted && !choice">
+                                <legend class="mb-2 font-semibold">{{ c.question }} *</legend>
+                                @for (option of c.options; track option; let i = $index) {
+                                    <label [for]="'choice-' + i" class="flex items-center gap-2 rounded-lg border border-surface p-3">
+                                        <input type="radio" [id]="'choice-' + i" name="choice" [value]="option" [(ngModel)]="choice" />
+                                        <span>{{ option }}</span>
+                                    </label>
+                                }
+                                <small id="choice-error" class="text-red-700 dark:text-red-300">
+                                    @if (submitted && !choice) {
+                                        Choisissez une des propositions.
+                                    }
+                                </small>
+                            </fieldset>
+                            <div class="grid gap-2">
+                                <label for="answer-comment" class="font-semibold">Un commentaire (facultatif)</label>
+                                <textarea id="answer-comment" name="comment" [(ngModel)]="comment" maxlength="2000" rows="3" class="p-inputtext w-full" aria-describedby="answer-comment-help"></textarea>
+                                <small id="answer-comment-help" class="text-muted-color">{{ comment.length }} / 2 000 caractères. Votre nom n’est jamais publié.</small>
+                            </div>
+                        } @else {
+                            <div class="grid gap-2">
+                                <label for="answer-opinion" class="font-semibold">{{ c.question }} *</label>
+                                <textarea
+                                    id="answer-opinion"
+                                    name="comment"
+                                    [(ngModel)]="comment"
+                                    required
+                                    maxlength="2000"
+                                    rows="5"
+                                    class="p-inputtext w-full"
+                                    aria-describedby="answer-opinion-help answer-opinion-error"
+                                    [attr.aria-invalid]="submitted && !comment.trim()"
+                                ></textarea>
+                                <small id="answer-opinion-help" class="text-muted-color">{{ comment.length }} / 2 000 caractères. Votre nom n’est jamais publié.</small>
+                                <small id="answer-opinion-error" class="text-red-700 dark:text-red-300">
+                                    @if (submitted && !comment.trim()) {
+                                        Écrivez votre avis avant de l’envoyer.
+                                    }
+                                </small>
+                            </div>
+                        }
+                        <div>
+                            <p-button type="submit" [label]="response() ? 'Modifier ma réponse' : 'Envoyer ma réponse'" icon="pi pi-send" [loading]="sending()" />
+                        </div>
+                    </form>
+                }
+            </section>
+        } @else if (c.phase === 'À venir') {
+            <p class="card mb-0">Cette consultation n’est pas encore ouverte. Revenez à partir du {{ c.opens_at | date: 'd MMMM y à HH:mm' }}.</p>
+        }
+
+        @if (c.results; as results) {
+            <section class="card mb-0" aria-labelledby="results-heading">
+                <h2 id="results-heading" class="mt-0 text-xl font-semibold">Résultats</h2>
+                <p class="mt-0">{{ results.total }} habitant(s) ont participé. Résultats anonymes.</p>
+                @if (c.kind === 'Vote à choix') {
+                    <ul class="m-0 grid list-none gap-3 p-0">
+                        @for (option of results.options; track option.option) {
+                            <li>
+                                <div class="flex justify-between gap-3">
+                                    <span class="font-semibold">{{ option.option }}</span>
+                                    <span>{{ option.count }} voix · {{ share(option.count, results.total) }} %</span>
+                                </div>
+                                <progress class="w-full" max="100" [value]="share(option.count, results.total)" aria-hidden="true"></progress>
+                            </li>
+                        }
+                    </ul>
+                }
+            </section>
+        }
+
+        @if (c.decision) {
+            <section class="card mb-0 border-l-4 border-primary" aria-labelledby="decision-heading">
+                <h2 id="decision-heading" class="mt-0 text-xl font-semibold">Décision de la mairie</h2>
+                <p class="m-0 whitespace-pre-line">{{ c.decision }}</p>
+                <p class="mb-0 mt-2 text-sm text-muted-color">
+                    Publiée le <time [attr.datetime]="c.decided_at">{{ c.decided_at | date: 'd MMMM y' }}</time> par {{ c.decided_by }}
+                </p>
+            </section>
+        } @else if (c.phase === 'Clôturée') {
+            <p class="card mb-0">La consultation est close. La mairie publiera ici la suite donnée aux avis.</p>
+        }
+    }
+</section>

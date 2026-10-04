@@ -5,11 +5,13 @@ import { finalize } from 'rxjs';
 import { Component, DestroyRef, ElementRef, computed, inject, OnInit, signal, viewChild } from '@angular/core';
 import { CardModule } from 'primeng/card';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../auth/auth.service';
 import { LocatedService, MunicipalService, directionsUrl, distanceKm, formatDistance, isLocated } from './municipal-content.model';
 import { MunicipalContentService } from './municipal-content.service';
 import { ServicesMap } from './services-map';
+import { ServiceRating, ratingText } from '@/app/participation/participation.model';
+import { ParticipationService } from '@/app/participation/participation.service';
 
 interface Position {
     latitude: number;
@@ -22,12 +24,16 @@ interface LocationForm {
     longitude: number | null;
 }
 
-@Component({ selector: 'app-municipal-services', imports: [CardModule, FormsModule, ServicesMap], templateUrl: './municipal-services.html', styleUrl: './municipal-services.scss' })
+@Component({ selector: 'app-municipal-services', imports: [CardModule, FormsModule, RouterLink, ServicesMap], templateUrl: './municipal-services.html', styleUrl: './municipal-services.scss' })
 export class MunicipalServices implements OnInit {
     private readonly live = inject(LiveDataService);
     private readonly destroyRef = inject(DestroyRef);
     private readonly content = inject(MunicipalContentService);
     private readonly router = inject(Router);
+    private readonly participation = inject(ParticipationService);
+    /** Note moyenne des avis des habitants (F76), par service. */
+    readonly ratings = signal<Map<string, ServiceRating>>(new Map());
+    readonly ratingText = ratingText;
     protected readonly auth = inject(AuthService);
     readonly navigation = inject(MunicipalNavigation);
     readonly openingService = signal<string | null>(null);
@@ -87,6 +93,10 @@ export class MunicipalServices implements OnInit {
                 next: (items) => this.services.set(items),
                 error: () => this.error.set('Impossible de charger les services. Réessayez.')
             });
+        this.participation.ratings().subscribe({
+            next: (items) => this.ratings.set(new Map(items.map((item) => [item.service_id, item]))),
+            error: () => this.ratings.set(new Map())
+        });
     }
 
     distance(service: MunicipalService): string | null {

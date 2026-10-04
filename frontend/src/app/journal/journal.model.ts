@@ -67,7 +67,18 @@ export const AUDIT_LABELS: Record<AuditAction, string> = {
     agent_deactivated: 'Agent désactivé',
     agent_status_changed: 'Disponibilité de l’agent modifiée',
     data_concern_reviewed: 'Signalement sur les données pris en charge',
-    data_concern_answered: 'Réponse à un signalement sur les données'
+    data_concern_answered: 'Réponse à un signalement sur les données',
+    project_created: 'Projet de la ville créé',
+    project_updated: 'Projet de la ville modifié',
+    project_news_published: 'Actualité de projet publiée',
+    consultation_created: 'Consultation créée',
+    consultation_updated: 'Consultation modifiée',
+    consultation_closed: 'Consultation clôturée',
+    consultation_decided: 'Décision de consultation publiée',
+    idea_moderated: 'Idée modérée',
+    idea_status_changed: 'Étape d’une idée',
+    service_review_answered: 'Réponse à un avis sur un service',
+    service_review_moderated: 'Avis sur un service modéré'
 };
 
 const FIELD_LABELS: Record<string, string> = {
@@ -79,7 +90,13 @@ const FIELD_LABELS: Record<string, string> = {
     is_active: 'actif',
     manager: 'responsable',
     institut: 'institut',
-    status: 'disponibilité'
+    status: 'disponibilité',
+    stage: 'étape',
+    project_status: 'état',
+    visibility: 'publication',
+    progress: 'avancement',
+    is_hidden: 'masqué',
+    is_published: 'publié'
 };
 
 /** « rôle : citizen → manager ; email : a → b » : lisible sans connaître le format technique. */

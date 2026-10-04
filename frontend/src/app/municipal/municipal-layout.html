@@ -6,6 +6,9 @@
             <a routerLink="/municipal" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" ariaCurrentWhenActive="page">Accueil municipal</a>
             <a routerLink="/municipal/services" routerLinkActive="active" ariaCurrentWhenActive="page">Services</a>
             <a routerLink="/municipal/publications" routerLinkActive="active" ariaCurrentWhenActive="page">Publications</a>
+            <a routerLink="/municipal/projets" routerLinkActive="active" ariaCurrentWhenActive="page">Projets</a>
+            <a routerLink="/municipal/consultations" routerLinkActive="active" ariaCurrentWhenActive="page">Donner mon avis</a>
+            <a routerLink="/municipal/idees" routerLinkActive="active" ariaCurrentWhenActive="page">Idées</a>
             <a routerLink="/municipal/contact" routerLinkActive="active" ariaCurrentWhenActive="page">Contacter la mairie</a>
         </nav>
         @if (auth.user(); as user) {

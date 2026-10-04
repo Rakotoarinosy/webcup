@@ -13,9 +13,13 @@ from src.domain.user.repository import UserRepository
 from src.infrastructure.persistence.models import (
     CitizenRequestEventModel,
     CitizenRequestModel,
+    ConsultationResponseModel,
     DataConcernModel,
+    IdeaModel,
+    IdeaSupportModel,
     NotificationReadModel,
     RefreshTokenModel,
+    ServiceReviewModel,
     TerraRequestReadModel,
     UserModel,
     UserPreferenceModel,
@@ -92,10 +96,15 @@ class SqlAlchemyUserRepository(UserRepository):
                 raise UserNotFoundError(user_id)
             if model.role != Role.CITIZEN.value or not model.is_active:
                 raise ForbiddenError("Only citizens can delete their own account")
-            # Demandes et signalements sur les données restent au dossier de la mairie.
+            # Demandes, signalements et contributions à la participation (idées, réponses aux
+            # consultations, soutiens, avis) restent au dossier de la mairie, sans l'identité.
             owned = (
                 (CitizenRequestModel, CitizenRequestModel.citizen_id),
                 (DataConcernModel, DataConcernModel.user_id),
+                (IdeaModel, IdeaModel.user_id),
+                (IdeaSupportModel, IdeaSupportModel.user_id),
+                (ConsultationResponseModel, ConsultationResponseModel.user_id),
+                (ServiceReviewModel, ServiceReviewModel.user_id),
             )
             has_records = any(
                 self.db.scalar(select(table.id).where(column == user_id).limit(1))

@@ -1,0 +1,124 @@
+<p-toast />
+
+<div class="card">
+    <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+            <h1 class="m-0 text-2xl font-semibold">Boîte à idées</h1>
+            <p class="mb-0 mt-2 text-muted-color">Publiez les idées recevables, étudiez-les et répondez de façon motivée : l’habitant voit chaque étape datée.</p>
+        </div>
+        <div class="flex flex-wrap items-end gap-2">
+            <div class="grid gap-1">
+                <label for="ideas-status-filter" class="text-sm font-semibold">État</label>
+                <select id="ideas-status-filter" class="p-inputtext" [(ngModel)]="status" (ngModelChange)="load()" name="status">
+                    <option value="">Tous</option>
+                    @for (value of statuses; track value) {
+                        <option [value]="value">{{ value }}</option>
+                    }
+                </select>
+            </div>
+            <div class="grid gap-1">
+                <label for="ideas-visibility-filter" class="text-sm font-semibold">Publication</label>
+                <select id="ideas-visibility-filter" class="p-inputtext" [(ngModel)]="visibility" (ngModelChange)="load()" name="visibility">
+                    <option value="">Toutes</option>
+                    @for (value of visibilities; track value) {
+                        <option [value]="value">{{ value }}</option>
+                    }
+                </select>
+            </div>
+            <p-button icon="pi pi-refresh" severity="secondary" [text]="true" [loading]="loading()" ariaLabel="Actualiser les idées" (onClick)="load()" />
+        </div>
+    </div>
+
+    @for (idea of ideas(); track idea.id) {
+        <article class="mt-4 rounded-lg border border-surface p-4" [attr.aria-labelledby]="'admin-idea-' + idea.id">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <h2 [id]="'admin-idea-' + idea.id" class="m-0 text-lg font-semibold">{{ idea.reference }} · {{ idea.title }}</h2>
+                <div class="flex items-center gap-2">
+                    <p-tag [value]="idea.visibility" severity="secondary" />
+                    <p-tag [value]="idea.status" [severity]="severity(idea.status)" />
+                </div>
+            </div>
+            <p class="mb-0 mt-1 text-sm text-muted-color">{{ idea.user_name }} · {{ idea.theme }}@if (idea.district) { · {{ idea.district }} } · {{ idea.support_count }} soutien(s)</p>
+            <p class="whitespace-pre-line">{{ idea.description }}</p>
+            <ol class="m-0 flex list-none flex-wrap gap-4 p-0 text-sm" [attr.aria-label]="'Suivi de ' + idea.reference">
+                @for (step of idea.history; track $index) {
+                    <li><span class="font-semibold">{{ stepLabel(step) }} :</span> {{ step.at | date: 'dd/MM/y HH:mm' }}</li>
+                }
+            </ol>
+            @if (idea.response) {
+                <div class="mt-3 rounded-lg bg-emphasis p-3">
+                    <p class="m-0 font-semibold">Réponse de {{ idea.answered_by }}</p>
+                    <p class="mb-0 mt-1 whitespace-pre-line">{{ idea.response }}</p>
+                </div>
+            }
+            <div class="mt-3 flex flex-wrap gap-2">
+                <p-button
+                    [label]="idea.visibility === 'Publiée' ? 'Retirer de la page publique' : 'Publier / masquer'"
+                    icon="pi pi-eye"
+                    severity="secondary"
+                    [outlined]="true"
+                    [ariaLabel]="'Modérer ' + idea.reference"
+                    (onClick)="openModeration(idea)"
+                />
+                @if (next[idea.status].length) {
+                    <p-button label="Faire avancer" icon="pi pi-forward" [ariaLabel]="'Faire avancer ' + idea.reference" (onClick)="openStatus(idea)" />
+                }
+            </div>
+        </article>
+    } @empty {
+        @if (!loading()) {
+            <p class="mb-0 mt-4 text-muted-color">Aucune idée pour ces filtres.</p>
+        }
+    }
+</div>
+
+<p-dialog [(visible)]="statusVisible" [modal]="true" [style]="{ width: '40rem' }" [header]="'Étape suivante : ' + (target?.reference ?? '')">
+    <form #statusForm="ngForm" (ngSubmit)="saveStatus(statusForm)" novalidate class="grid gap-3">
+        <label for="idea-next-status" class="font-semibold">Nouvel état *</label>
+        <select id="idea-next-status" name="status" [(ngModel)]="nextStatus" required class="p-inputtext w-full">
+            @for (value of target ? next[target.status] : []; track value) {
+                <option [value]="value">{{ value }}</option>
+            }
+        </select>
+        <label for="idea-response" class="font-semibold">Réponse à l’habitant {{ responseRequired ? '*' : '(facultative)' }}</label>
+        <textarea
+            id="idea-response"
+            name="response"
+            #responseModel="ngModel"
+            [(ngModel)]="response"
+            [required]="responseRequired"
+            maxlength="5000"
+            rows="5"
+            class="p-inputtext w-full"
+            aria-describedby="idea-response-help idea-response-error"
+            [attr.aria-invalid]="responseModel.invalid && responseModel.touched"
+        ></textarea>
+        <small id="idea-response-help" class="text-muted-color">Retenue, non retenue ou réalisée : expliquez pourquoi et ce qui va suivre. L’habitant lit cette réponse dans « Ma participation ».</small>
+        <small id="idea-response-error" class="text-red-700 dark:text-red-300">
+            @if (responseModel.invalid && responseModel.touched) {
+                Cette décision doit être motivée.
+            }
+        </small>
+        <div class="flex justify-end gap-2">
+            <p-button label="Annuler" severity="secondary" [text]="true" (onClick)="statusVisible = false" />
+            <p-button type="submit" label="Enregistrer" icon="pi pi-check" [loading]="busy()" />
+        </div>
+    </form>
+</p-dialog>
+
+<p-dialog [(visible)]="moderationVisible" [modal]="true" [style]="{ width: '36rem' }" [header]="'Modération : ' + (target?.reference ?? '')">
+    <form #moderationForm="ngForm" (ngSubmit)="saveModeration(moderationForm)" novalidate class="grid gap-3">
+        <fieldset class="m-0 grid gap-2 border-0 p-0">
+            <legend class="mb-2 font-semibold">Publication sur la page publique</legend>
+            <label class="flex items-center gap-2" for="moderation-public"><input id="moderation-public" type="radio" name="visibility" value="Publiée" [(ngModel)]="moderationVisibility" /> Publier l’idée</label>
+            <label class="flex items-center gap-2" for="moderation-hidden"><input id="moderation-hidden" type="radio" name="visibility" value="Non publiée" [(ngModel)]="moderationVisibility" /> Ne pas publier</label>
+        </fieldset>
+        <label for="moderation-note" class="font-semibold">Motif (visible par l’auteur)</label>
+        <input id="moderation-note" name="note" [(ngModel)]="moderationNote" maxlength="500" class="p-inputtext w-full" aria-describedby="moderation-note-help" />
+        <small id="moderation-note-help" class="text-muted-color">Par exemple : « contient des données personnelles ». L’idée reste étudiée même si elle n’est pas publiée.</small>
+        <div class="flex justify-end gap-2">
+            <p-button label="Annuler" severity="secondary" [text]="true" (onClick)="moderationVisible = false" />
+            <p-button type="submit" label="Enregistrer" icon="pi pi-check" [loading]="busy()" />
+        </div>
+    </form>
+</p-dialog>

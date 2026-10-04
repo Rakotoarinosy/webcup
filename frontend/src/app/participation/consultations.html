@@ -1,0 +1,54 @@
+<section class="mx-auto grid max-w-[1100px] gap-6 px-4">
+    <header>
+        <p class="mb-1 font-semibold text-primary">Participation</p>
+        <h1 class="m-0 text-3xl font-bold">Donner mon avis</h1>
+        <p class="mb-0 mt-3">
+            La mairie soumet certaines décisions et certains projets à l’avis des habitants. Choisissez une consultation ouverte, répondez en une minute : vous recevez une référence qui prouve que votre avis est enregistré,
+            et vous pouvez le modifier jusqu’à la clôture. Les résultats et la décision de la mairie sont publiés ensuite.
+        </p>
+    </header>
+
+    @if (error(); as message) {
+        <p role="alert" class="text-red-700 dark:text-red-300">{{ message }} <button type="button" class="underline" (click)="load()">Réessayer</button></p>
+    }
+    @if (loading() && !consultations().length) {
+        <p role="status">Chargement des consultations…</p>
+    }
+
+    @for (group of groups(); track group.id) {
+        @if (group.items.length || group.empty) {
+            <section [attr.aria-labelledby]="'consultations-' + group.id">
+                <h2 [id]="'consultations-' + group.id" class="mb-3 text-xl font-semibold">{{ group.title }}</h2>
+                <ul class="m-0 grid list-none gap-4 p-0 md:grid-cols-2">
+                    @for (consultation of group.items; track consultation.id) {
+                        <li class="card mb-0 flex flex-col gap-2">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <p-tag [value]="consultation.phase" [severity]="severity(consultation.phase)" />
+                                <span class="text-sm text-muted-color">{{ consultation.kind }}</span>
+                            </div>
+                            <h3 class="m-0 text-lg font-semibold">{{ consultation.title }}</h3>
+                            <p class="m-0">{{ consultation.question }}</p>
+                            @if (consultation.project_title) {
+                                <p class="m-0 text-sm text-muted-color">Projet : {{ consultation.project_title }}</p>
+                            }
+                            <p class="m-0 text-sm">
+                                @if (consultation.phase === 'À venir') {
+                                    Ouverture le <time [attr.datetime]="consultation.opens_at">{{ consultation.opens_at | date: 'd MMMM y à HH:mm' }}</time>
+                                } @else {
+                                    Clôture le <time [attr.datetime]="consultation.closes_at">{{ consultation.closes_at | date: 'd MMMM y à HH:mm' }}</time>
+                                }
+                            </p>
+                            <a [routerLink]="navigation.path('consultations/' + consultation.id)" class="mt-auto font-semibold text-primary">
+                                {{ consultation.phase === 'Ouverte' ? 'Répondre' : 'Voir le détail' }}<span class="sr-only"> : {{ consultation.title }}</span> <i class="pi pi-arrow-right" aria-hidden="true"></i>
+                            </a>
+                        </li>
+                    } @empty {
+                        @if (!loading()) {
+                            <li class="text-muted-color">{{ group.empty }}</li>
+                        }
+                    }
+                </ul>
+            </section>
+        }
+    }
+</section>

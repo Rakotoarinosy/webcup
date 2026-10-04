@@ -1,0 +1,77 @@
+<section class="mx-auto grid max-w-[1100px] gap-6 px-4">
+    <header>
+        <p class="mb-1 font-semibold text-primary">Participation</p>
+        <h1 class="m-0 text-3xl font-bold">Projets de la ville</h1>
+        <p class="mb-0 mt-3">Ce que la mairie prépare et construit dans chaque quartier : où en est chaque projet, ce qui a été fait et ce qui vient ensuite.</p>
+        <p class="mb-0 mt-2">
+            Vous pouvez aussi <a [routerLink]="navigation.path('consultations')" class="font-semibold text-primary underline">donner votre avis</a> ou
+            <a [routerLink]="navigation.path('idees')" class="font-semibold text-primary underline">proposer une idée</a>.
+        </p>
+    </header>
+
+    <form class="card mb-0 flex flex-wrap items-end gap-4" aria-label="Filtrer les projets" (submit)="$event.preventDefault()">
+        <div class="grid gap-1">
+            <label for="project-status-filter" class="font-semibold">État</label>
+            <select id="project-status-filter" name="status" class="p-inputtext" aria-describedby="project-count" [ngModel]="status()" (ngModelChange)="status.set($event)">
+                <option value="">Tous les états</option>
+                @for (value of statuses; track value) {
+                    <option [value]="value">{{ value }}</option>
+                }
+            </select>
+        </div>
+        <div class="grid gap-1">
+            <label for="project-district-filter" class="font-semibold">Quartier</label>
+            <select id="project-district-filter" name="district" class="p-inputtext" aria-describedby="project-count" [ngModel]="district()" (ngModelChange)="district.set($event)">
+                <option value="">Tous les quartiers</option>
+                @for (value of districts(); track value) {
+                    <option [value]="value">{{ value }}</option>
+                }
+            </select>
+        </div>
+        <p id="project-count" class="m-0 text-muted-color" aria-live="polite">{{ visible().length }} projet(s) affiché(s)</p>
+    </form>
+
+    @if (error(); as message) {
+        <p role="alert" class="text-red-700 dark:text-red-300">{{ message }} <button type="button" class="underline" (click)="load()">Réessayer</button></p>
+    }
+    @if (loading() && !projects().length) {
+        <p role="status">Chargement des projets…</p>
+    }
+
+    <ul class="m-0 grid list-none gap-4 p-0 md:grid-cols-2">
+        @for (project of visible(); track project.id) {
+            <li class="card mb-0 flex flex-col gap-3">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <p-tag [value]="project.status" [severity]="severity(project.status)" />
+                    <span class="text-sm text-muted-color"><i class="pi pi-map-marker" aria-hidden="true"></i> {{ project.district }}</span>
+                </div>
+                <h2 class="m-0 text-xl font-semibold">
+                    <a [routerLink]="navigation.path('projets/' + project.id)" class="text-color hover:underline">{{ project.title }}</a>
+                </h2>
+                <p class="m-0">{{ project.summary }}</p>
+                <div>
+                    <div class="flex justify-between text-sm"><span>Avancement</span><span>{{ project.progress }} %</span></div>
+                    <progress class="w-full" max="100" [value]="project.progress" [attr.aria-label]="'Avancement de ' + project.title + ' : ' + project.progress + ' %'"></progress>
+                </div>
+                @if (project.planned_start || project.planned_end) {
+                    <p class="m-0 text-sm text-muted-color">
+                        Calendrier prévu :
+                        @if (project.planned_start) {
+                            du {{ project.planned_start | date: 'd MMMM y' }}
+                        }
+                        @if (project.planned_end) {
+                            au {{ project.planned_end | date: 'd MMMM y' }}
+                        }
+                    </p>
+                }
+                <a [routerLink]="navigation.path('projets/' + project.id)" class="mt-auto font-semibold text-primary">
+                    Voir le projet<span class="sr-only"> : {{ project.title }}</span> <i class="pi pi-arrow-right" aria-hidden="true"></i>
+                </a>
+            </li>
+        } @empty {
+            @if (!loading()) {
+                <li class="text-muted-color">Aucun projet ne correspond à ces filtres.</li>
+            }
+        }
+    </ul>
+</section>

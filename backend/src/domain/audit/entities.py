@@ -31,6 +31,17 @@ class AuditAction(StrEnum):
     AGENT_STATUS_CHANGED = "agent_status_changed"
     DATA_CONCERN_REVIEWED = "data_concern_reviewed"
     DATA_CONCERN_ANSWERED = "data_concern_answered"
+    PROJECT_CREATED = "project_created"
+    PROJECT_UPDATED = "project_updated"
+    PROJECT_NEWS_PUBLISHED = "project_news_published"
+    CONSULTATION_CREATED = "consultation_created"
+    CONSULTATION_UPDATED = "consultation_updated"
+    CONSULTATION_CLOSED = "consultation_closed"
+    CONSULTATION_DECIDED = "consultation_decided"
+    IDEA_MODERATED = "idea_moderated"
+    IDEA_STATUS_CHANGED = "idea_status_changed"
+    SERVICE_REVIEW_ANSWERED = "service_review_answered"
+    SERVICE_REVIEW_MODERATED = "service_review_moderated"
 
 
 class AuditTarget(StrEnum):
@@ -38,6 +49,10 @@ class AuditTarget(StrEnum):
     INSTITUT = "institut"
     AGENT = "agent"
     DATA_CONCERN = "data_concern"
+    PROJECT = "project"
+    CONSULTATION = "consultation"
+    IDEA = "idea"
+    SERVICE_REVIEW = "service_review"
 
 
 @dataclass(frozen=True)

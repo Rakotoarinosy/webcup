@@ -1,0 +1,108 @@
+<p-toast />
+
+<div class="card">
+    <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+            <h1 class="m-0 text-2xl font-semibold">Projets de la ville</h1>
+            <p class="mb-0 mt-2 text-muted-color">Fiches publiées sur la page « Projets de la ville ». Chaque changement d’état devient une étape datée visible par les habitants.</p>
+        </div>
+        <div class="flex gap-2">
+            <p-button icon="pi pi-refresh" severity="secondary" [text]="true" [loading]="loading()" ariaLabel="Actualiser les projets" (onClick)="load()" />
+            <p-button label="Nouveau projet" icon="pi pi-plus" (onClick)="openCreate()" />
+        </div>
+    </div>
+
+    @for (project of projects(); track project.id) {
+        <article class="mt-4 rounded-lg border border-surface p-4" [attr.aria-labelledby]="'admin-project-' + project.id">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <h2 [id]="'admin-project-' + project.id" class="m-0 text-lg font-semibold">{{ project.title }}</h2>
+                <div class="flex items-center gap-2">
+                    @if (!project.is_published) {
+                        <p-tag value="Brouillon (non publié)" severity="secondary" />
+                    }
+                    <p-tag [value]="project.status" [severity]="severity(project.status)" />
+                </div>
+            </div>
+            <p class="mb-0 mt-1 text-sm text-muted-color">{{ project.district }} · avancement {{ project.progress }} % · mis à jour le {{ project.updated_at | date: 'dd/MM/y HH:mm' }}</p>
+            <p class="mb-0 mt-2">{{ project.summary }}</p>
+            <div class="mt-3 flex flex-wrap gap-2">
+                <p-button label="Modifier" icon="pi pi-pencil" severity="secondary" [outlined]="true" [ariaLabel]="'Modifier ' + project.title" (onClick)="openEdit(project)" />
+                <p-button label="Publier une actualité" icon="pi pi-megaphone" severity="secondary" [outlined]="true" [ariaLabel]="'Publier une actualité pour ' + project.title" (onClick)="openNews(project)" />
+            </div>
+        </article>
+    } @empty {
+        @if (!loading()) {
+            <p class="mb-0 mt-4 text-muted-color">Aucun projet pour le moment.</p>
+        }
+    }
+</div>
+
+<p-dialog [(visible)]="formVisible" [modal]="true" [style]="{ width: '48rem' }" [header]="editing ? 'Modifier le projet' : 'Nouveau projet'">
+    <form #projectForm="ngForm" (ngSubmit)="save(projectForm)" novalidate class="grid gap-3">
+        <label for="project-title" class="font-semibold">Titre *</label>
+        <input id="project-title" name="title" [(ngModel)]="form.title" required minlength="3" maxlength="200" class="p-inputtext w-full" aria-describedby="project-required" />
+        <label for="project-summary" class="font-semibold">Résumé (une ou deux phrases) *</label>
+        <input id="project-summary" name="summary" [(ngModel)]="form.summary" required minlength="10" maxlength="500" class="p-inputtext w-full" aria-describedby="project-required" />
+        <label for="project-description" class="font-semibold">Description *</label>
+        <textarea id="project-description" name="description" [(ngModel)]="form.description" required minlength="10" maxlength="10000" rows="5" class="p-inputtext w-full" aria-describedby="project-required"></textarea>
+        <div class="grid gap-3 sm:grid-cols-2">
+            <div class="grid gap-1">
+                <label for="project-district" class="font-semibold">Quartier *</label>
+                <input id="project-district" name="district" [(ngModel)]="form.district" required minlength="2" maxlength="120" class="p-inputtext w-full" aria-describedby="project-required" />
+            </div>
+            <div class="grid gap-1">
+                <label for="project-location" class="font-semibold">Lieu précis</label>
+                <input id="project-location" name="location" [(ngModel)]="form.location" maxlength="255" class="p-inputtext w-full" />
+            </div>
+            <div class="grid gap-1">
+                <label for="project-status" class="font-semibold">État *</label>
+                <select id="project-status" name="status" [(ngModel)]="form.status" required class="p-inputtext w-full">
+                    @for (status of statuses; track status) {
+                        <option [value]="status">{{ status }}</option>
+                    }
+                </select>
+            </div>
+            <div class="grid gap-1">
+                <label for="project-progress" class="font-semibold">Avancement (%) *</label>
+                <input id="project-progress" name="progress" type="number" min="0" max="100" [(ngModel)]="form.progress" required class="p-inputtext w-full" aria-describedby="project-progress-help" />
+                <small id="project-progress-help" class="text-muted-color">Entre 0 et 100. « Terminé » le porte à 100.</small>
+            </div>
+            <div class="grid gap-1">
+                <label for="project-start" class="font-semibold">Début prévu</label>
+                <input id="project-start" name="planned_start" type="date" [(ngModel)]="form.planned_start" class="p-inputtext w-full" />
+            </div>
+            <div class="grid gap-1">
+                <label for="project-end" class="font-semibold">Fin prévue</label>
+                <input id="project-end" name="planned_end" type="date" [(ngModel)]="form.planned_end" class="p-inputtext w-full" />
+            </div>
+            <div class="grid gap-1">
+                <label for="project-budget" class="font-semibold">Budget prévu</label>
+                <input id="project-budget" name="budget" [(ngModel)]="form.budget" maxlength="120" class="p-inputtext w-full" aria-describedby="project-budget-help" />
+                <small id="project-budget-help" class="text-muted-color">Avec l’unité, par exemple « 120 000 crédits ».</small>
+            </div>
+            <label class="flex items-center gap-2 self-end" for="project-published">
+                <input id="project-published" name="is_published" type="checkbox" [(ngModel)]="form.is_published" />
+                Visible par les habitants
+            </label>
+        </div>
+        <small id="project-required" class="text-muted-color">Les champs marqués d’un astérisque (*) sont obligatoires.</small>
+        <div class="flex justify-end gap-2">
+            <p-button label="Annuler" severity="secondary" [text]="true" (onClick)="formVisible = false" />
+            <p-button type="submit" label="Enregistrer" icon="pi pi-check" [loading]="busy()" />
+        </div>
+    </form>
+</p-dialog>
+
+<p-dialog [(visible)]="newsVisible" [modal]="true" [style]="{ width: '40rem' }" [header]="'Actualité : ' + (newsFor?.title ?? '')">
+    <form #newsForm="ngForm" (ngSubmit)="publishNews(newsForm)" novalidate class="grid gap-3">
+        <label for="news-title" class="font-semibold">Titre de l’étape *</label>
+        <input id="news-title" name="title" [(ngModel)]="news.title" required minlength="3" maxlength="200" class="p-inputtext w-full" aria-describedby="news-help" />
+        <label for="news-content" class="font-semibold">Ce qui a été fait ou va se passer *</label>
+        <textarea id="news-content" name="content" [(ngModel)]="news.content" required minlength="10" maxlength="5000" rows="5" class="p-inputtext w-full" aria-describedby="news-help"></textarea>
+        <small id="news-help" class="text-muted-color">Publiée immédiatement et datée sur la page du projet.</small>
+        <div class="flex justify-end gap-2">
+            <p-button label="Annuler" severity="secondary" [text]="true" (onClick)="newsVisible = false" />
+            <p-button type="submit" label="Publier" icon="pi pi-send" [loading]="busy()" />
+        </div>
+    </form>
+</p-dialog>
