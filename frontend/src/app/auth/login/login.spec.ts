@@ -24,14 +24,14 @@ describe('Login accessibility', () => {
     }
 
     it('labels every field, marks them required and offers autocomplete', () => {
-        for (const id of ['email', 'password']) {
+        for (const id of ['identifier', 'password']) {
             const input = element<HTMLInputElement>('#' + id);
             expect(element(`label[for="${id}"]`)).withContext(id).not.toBeNull();
             expect(input.required).withContext(id).toBeTrue();
             expect(input.getAttribute('aria-describedby')).withContext(id).toBe(`${id}-error`);
             expect(element('#' + id + '-error')).withContext(id).not.toBeNull();
         }
-        expect(element('#email').getAttribute('autocomplete')).toBe('username');
+        expect(element('#identifier').getAttribute('autocomplete')).toBe('username');
         expect(element('#password').getAttribute('autocomplete')).toBe('current-password');
     });
 
@@ -41,9 +41,9 @@ describe('Login accessibility', () => {
         await fixture.whenStable();
 
         expect(auth.login).not.toHaveBeenCalled();
-        expect(element('#email').getAttribute('aria-invalid')).toBe('true');
+        expect(element('#identifier').getAttribute('aria-invalid')).toBe('true');
         expect(element('#password').getAttribute('aria-invalid')).toBe('true');
-        expect(element('#email-error').textContent).toContain('L’email est obligatoire.');
+        expect(element('#identifier-error').textContent).toContain('L’email est obligatoire.');
         const summary = element('#login-error-summary');
         expect(summary.getAttribute('role')).toBe('alert');
         expect(summary.querySelectorAll('li').length).toBe(2);

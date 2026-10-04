@@ -16,6 +16,7 @@ from pydantic import (
     model_validator,
 )
 
+from src.domain.user import Role
 from src.domain.user.rules import normalize_identifier
 from src.shared.validation import Email, Name, OptionalEmail, OptionalPhone, Password
 

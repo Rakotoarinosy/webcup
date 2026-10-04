@@ -37,6 +37,7 @@ class SqlAlchemyUserExportRepository(UserExportRepository):
         return PersonalData(
             name=user.name,
             email=user.email,
+            phone=user.phone,
             role=Role(user.role),
             created_at=_aware(user.created_at),
             theme=Theme(preferences.theme) if preferences else Theme.SYSTEM,

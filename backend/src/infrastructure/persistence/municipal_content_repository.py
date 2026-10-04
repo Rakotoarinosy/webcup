@@ -240,7 +240,9 @@ class SqlAlchemyMunicipalContentRepository(MunicipalContentRepository):
             row.like_count = max(0, row.like_count - 1)
             liked = False
         else:
-            self.db.add(MunicipalPublicationLikeModel(publication_id=publication_id, user_id=user_id))
+            self.db.add(
+                MunicipalPublicationLikeModel(publication_id=publication_id, user_id=user_id)
+            )
             row.like_count += 1
             liked = True
         self.db.commit()
@@ -334,4 +336,11 @@ class SqlAlchemyMunicipalContentRepository(MunicipalContentRepository):
         )
 
     def _comment(self, row: MunicipalPublicationCommentModel) -> MunicipalPublicationComment:
-        return MunicipalPublicationComment(row.id, row.publication_id, row.user_id, row.author_name, row.content, self._utc(row.created_at))
+        return MunicipalPublicationComment(
+            row.id,
+            row.publication_id,
+            row.user_id,
+            row.author_name,
+            row.content,
+            self._utc(row.created_at),
+        )

@@ -35,7 +35,8 @@ class PersonalData:
     """Données exportables d'un compte, sans secrets d'authentification."""
 
     name: str
-    email: str
+    email: str | None  # None pour un compte créé avec un numéro de téléphone seul
+    phone: str | None
     role: Role
     created_at: datetime
     theme: Theme

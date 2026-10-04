@@ -110,14 +110,19 @@ class SqlAlchemySearchRepository:
             select(UserModel)
             .where(
                 UserModel.role == Role.CITIZEN.value,
-                _matches([UserModel.name, UserModel.email], patterns),
+                _matches([UserModel.name, UserModel.email, UserModel.phone], patterns),
             )
             .order_by(UserModel.name)
             .limit(limit)
         )
 
         return [
-            SearchHit(kind=SearchKind.CITOYEN, id=row.id, title=row.name, subtitle=row.email)
+            SearchHit(
+                kind=SearchKind.CITOYEN,
+                id=row.id,
+                title=row.name,
+                subtitle=row.email or row.phone or "",
+            )
             for row in self._db.scalars(stmt).all()
         ]
 

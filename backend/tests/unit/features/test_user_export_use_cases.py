@@ -32,6 +32,7 @@ def test_export_personal_data_generates_the_requested_download(
         PersonalData(
             name="Ada Lovelace",
             email="ada@example.test",
+            phone=None,
             role="citizen",
             created_at=datetime(2026, 10, 3, tzinfo=UTC),
             theme="dark",

@@ -6,7 +6,7 @@ import { JournalService } from '@/app/journal/journal.service';
 import { CitizenRequestService } from '@/app/requests/request.service';
 import { AgentWorkspace } from './agent-workspace';
 
-describe('AgentWorkspace pending counter', () => {
+describe('AgentWorkspace', () => {
     let fixture: ComponentFixture<AgentWorkspace>;
     let byStatus: Record<string, number>;
 
@@ -51,22 +51,7 @@ describe('AgentWorkspace pending counter', () => {
         await fixture.whenStable();
     });
 
-    it('counts in-progress and waiting requests as to be handled', () => {
-        expect(fixture.nativeElement.textContent).toContain('Demandes à traiter');
-        expect(fixture.nativeElement.textContent).toContain('3');
-    });
-
-    it('uses a neutral message when nothing is waiting', async () => {
-        byStatus = { Nouveau: 0, 'En cours': 0, 'En attente': 0, Résolu: 0, Rejeté: 0 };
-        const refreshButton = [...fixture.nativeElement.querySelectorAll('button')].find((button) => button.textContent.includes('Actualiser')) as HTMLButtonElement;
-        refreshButton.click();
-        fixture.detectChanges();
-        await fixture.whenStable();
-        fixture.detectChanges();
-
-        expect(fixture.nativeElement.textContent).toContain('Aucune demande ne nécessite une prise en charge.');
-    });
-
+    // Les compteurs « Demandes à traiter » sont affichés dans « Mon espace » (account) pour les agents.
     it('shows the latest actions on the agent requests with author and date', () => {
         fixture.detectChanges();
         const entries = Array.from(fixture.nativeElement.querySelectorAll('.activity-list li')) as HTMLElement[];

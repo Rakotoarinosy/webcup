@@ -5,7 +5,7 @@ import { authGuard, guestGuard } from './auth.guard';
 import { AuthService } from './auth.service';
 import { AuthUser, Role } from './auth.model';
 
-const user: AuthUser = { id: 'id', name: 'Test', email: 't@test.mg', role: 'citizen', agent_id: null, institut_id: null, created_at: '', email_verified: true, avatar_url: null };
+const user: AuthUser = { id: 'id', name: 'Test', email: 't@test.mg', role: 'citizen', agent_id: null, institut_id: null, created_at: '', email_verified: true, phone: null, phone_verified: false, avatar_url: null };
 describe('Route access by role', () => {
     let auth: jasmine.SpyObj<AuthService>;
     const run = (guard: CanActivateFn, roles?: Role[]) =>

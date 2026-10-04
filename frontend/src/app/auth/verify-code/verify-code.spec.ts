@@ -18,8 +18,8 @@ class FloatingStub {
 describe('Code confirmation screen', () => {
     let fixture: ComponentFixture<VerifyCode>;
     let service: jasmine.SpyObj<VerificationService>;
-    const pending: VerificationChallenge = { challenge_id: 'challenge', email: 'citizen@test.mg', expires_in: 600, resend_after: 0 };
-    const user: AuthUser = { id: 'citizen', name: 'Citizen', email: pending.email, role: 'citizen', agent_id: null, institut_id: null, created_at: '', email_verified: true, avatar_url: null };
+    const pending: VerificationChallenge = { challenge_id: 'challenge', channel: 'email', destination: 'citizen@test.mg', email: 'citizen@test.mg', expires_in: 600, resend_after: 0 };
+    const user: AuthUser = { id: 'citizen', name: 'Citizen', email: pending.destination, role: 'citizen', agent_id: null, institut_id: null, created_at: '', email_verified: true, phone: null, phone_verified: false, avatar_url: null };
     beforeEach(async () => {
         service = jasmine.createSpyObj<VerificationService>('VerificationService', ['verify', 'resend']);
         TestBed.configureTestingModule({ imports: [VerifyCode], providers: [provideRouter([]), { provide: VerificationService, useValue: service }, { provide: AuthService, useValue: { homeUrl: () => '/home/account' } }] });

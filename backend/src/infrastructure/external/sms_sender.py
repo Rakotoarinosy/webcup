@@ -51,6 +51,8 @@ class ConsoleSmsSender(SmsSender):
 
     def send_verification_code(self, to: str, code: str, ttl_minutes: int) -> None:
         if not self._allow:
-            logger.error("SMS_GATEWAY_API_KEY / SMS_GATEWAY_FROM not configured: sms cannot be sent")
+            logger.error(
+                "SMS_GATEWAY_API_KEY / SMS_GATEWAY_FROM not configured: sms cannot be sent"
+            )
             raise SmsDeliveryUnavailableError()
         logger.warning("DEV ONLY - verification code for %s: %s", to, code)
