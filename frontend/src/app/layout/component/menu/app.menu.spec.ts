@@ -11,7 +11,7 @@ describe('Menu follows the authenticated role', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({ providers: [
             { provide: AuthService, useValue: { hasRole: (...allowed: Role[]) => allowed.includes(role()) } },
-            { provide: NotificationService, useValue: { unreadCount: signal(0) } },
+            { provide: NotificationService, useValue: { unreadCount: signal(0), requestUnreadCount: signal(0), alertUnreadCount: signal(2) } },
             { provide: PublicationReadService, useValue: { unreadCount: signal(0) } }
         ] });
     });
@@ -25,14 +25,17 @@ describe('Menu follows the authenticated role', () => {
             expect(labels.includes('Comptes citoyens')).toBe(value === 'agent' || value === 'manager');
             expect(labels.includes('Utilisateurs')).toBe(value === 'admin');
             expect(labels.includes('Instituts')).toBe(value === 'admin');
+            expect(labels.includes('Publier une alerte')).toBe(value === 'manager' || value === 'admin');
             // Les comptes agents sont gérés dans Utilisateurs ▸ Agents (admin) : plus d'entrée « Agents » au premier niveau.
             expect(labels).not.toContain('Agents');
             expect(labels).not.toContain('Transaction');
             expect(menu.model().some((group) => group.label === 'API Terra Nova')).toBe(value !== 'citizen');
             const municipal = menu.model().find((group) => group.label === 'La mairie')!;
             expect(municipal.items!.map((item) => item.routerLink[0])).toEqual([
-                '/home/municipal', '/home/municipal/services', '/home/municipal/publications', '/home/municipal/contact'
+                '/home/municipal', '/home/municipal/services', '/home/municipal/publications', '/home/alerts', '/home/municipal/contact'
             ]);
+            // Pastille : alertes officielles non lues (F30).
+            expect(municipal.items!.find((item) => item.routerLink[0] === '/home/alerts')!.badge).toBe('2');
         }
     });
 });

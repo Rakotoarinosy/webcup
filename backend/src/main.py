@@ -10,6 +10,7 @@ from starlette.responses import HTMLResponse
 
 from src.bootstrap import ensure_bootstrap_admin, start_terra_sync
 from src.features.agent.router import router as agent_router
+from src.features.alert.router import router as alert_router
 from src.features.audit.router import router as audit_router
 from src.features.auth.router import router as auth_router
 from src.features.citizen_request.router import dashboard_router, request_router
@@ -46,6 +47,7 @@ FEATURE_ROUTERS: list[APIRouter] = [
     audit_router,
     terra_request_router,
     realtime_router,
+    alert_router,
 ]
 
 

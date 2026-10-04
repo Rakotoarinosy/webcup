@@ -6,6 +6,8 @@
 
     <!-- Main content -->
     <div class="layout-main-container">
+        <!-- Alertes officielles en cours : en haut de toutes les pages (D18, F73) -->
+        <app-alert-banner alertsLink="/home/alerts" />
         <main id="main-content" class="layout-main" tabindex="-1">
             <app-breadcrumb />
             <router-outlet></router-outlet>

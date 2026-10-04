@@ -12,7 +12,8 @@ class NotificationOut(BaseModel):
     kind: NotificationKind
     title: str
     message: str
-    request_id: str
+    request_id: str | None
+    alert_id: str | None = None
     created_at: datetime
     is_read: bool
 

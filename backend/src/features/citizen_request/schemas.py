@@ -72,6 +72,7 @@ class CitizenRequestOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: str
+    reference: str  # « TN-2026-1A2B3C4D », identique partout (voir domain.request_reference)
     title: str
     description: str
     category: RequestCategory
@@ -90,6 +91,24 @@ class CitizenRequestOut(BaseModel):
     updated_at: datetime
     scheduled_at: datetime | None
     resolved_at: datetime | None
+
+
+class RequestReceiptOut(BaseModel):
+    """Accusé de réception (D16, F83)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    reference: str
+    request_id: str
+    title: str
+    description: str
+    category: RequestCategory
+    location: str
+    status: RequestStatus
+    received_at: datetime
+    service: str
+    citizen_name: str
+    issued_at: datetime
 
 
 class CitizenRequestPageOut(BaseModel):

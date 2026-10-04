@@ -343,6 +343,29 @@ class AuditEntryModel(Base):
     __table_args__ = (Index("ix_audit_entries_occurred_at", "occurred_at"),)
 
 
+class AlertModel(Base):
+    """Alerte ou message officiel diffusé à tous les habitants (bandeau sur toutes les pages)."""
+
+    __tablename__ = "alerts"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    title: Mapped[str] = mapped_column(String(200))
+    message: Mapped[str] = mapped_column(Text)
+    instructions: Mapped[str] = mapped_column(Text, default="")
+    level: Mapped[str] = mapped_column(String(30), index=True)
+    audience: Mapped[str] = mapped_column(String(60))
+    zone: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    issuer: Mapped[str] = mapped_column(String(200))
+    # Instantané de l'auteur : l'alerte reste signée si le compte est supprimé.
+    author_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+    author_name: Mapped[str] = mapped_column(String(255))
+    starts_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    ends_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
 class ContactMessageModel(Base):
     __tablename__ = "contact_messages"
 

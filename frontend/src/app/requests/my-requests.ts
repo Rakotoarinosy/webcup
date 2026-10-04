@@ -26,6 +26,16 @@ import { apiErrorMessage } from '@/app/users/user.service';
 
 const PAGE_SIZE = 10;
 
+/** Confirmation affichée juste après l'envoi (D16) : de quoi citer et retrouver la demande (F83). */
+export interface SubmissionConfirmation {
+    id: string;
+    reference: string;
+    title: string;
+    receivedAt: string;
+    /** null tant que l'accusé n'est pas chargé (ou s'il n'a pas pu l'être). */
+    service: string | null;
+}
+
 interface RequestForm {
     title: string;
     description: string;
@@ -77,6 +87,7 @@ export class MyRequests implements OnInit {
     protected readonly creationStep = signal(1);
     protected readonly createError = signal<string | null>(null);
     protected readonly submitting = signal(false);
+    protected readonly confirmation = signal<SubmissionConfirmation | null>(null);
     /** Passe à true quand l’étape « Description » a été validée avec des champs vides. */
     protected readonly descriptionAttempted = signal(false);
     protected readonly categories = [...REQUEST_CATEGORIES];
@@ -229,12 +240,28 @@ export class MyRequests implements OnInit {
             })
             .pipe(finalize(() => this.submitting.set(false)))
             .subscribe({
-                next: () => {
+                next: (created) => {
                     this.createDialogVisible.set(false);
+                    this.showConfirmation(created);
                     this.load(1);
                 },
                 error: (error: unknown) => this.createError.set(apiErrorMessage(error))
             });
+    }
+
+    private showConfirmation(created: CitizenRequest): void {
+        this.confirmation.set({ id: created.id, reference: created.reference, title: created.title, receivedAt: created.created_at, service: null });
+        // Le focus va sur la confirmation pour qu'elle soit lue immédiatement.
+        afterNextRender(() => document.getElementById('submission-confirmation')?.focus(), { injector: this.injector });
+        this.requestsApi.receipt(created.id).subscribe({
+            next: (receipt) => this.confirmation.update((current) => (current?.id === created.id ? { ...current, service: receipt.service, receivedAt: receipt.received_at } : current)),
+            error: () => undefined // la référence et l'heure restent affichées ; l'accusé reste accessible
+        });
+    }
+
+    protected dismissConfirmation(): void {
+        this.confirmation.set(null);
+        document.getElementById('history-title')?.focus();
     }
 
     private loadDetail(id: string): void {

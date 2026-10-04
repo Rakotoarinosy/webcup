@@ -101,7 +101,7 @@
 
         <ng-template #body let-request>
             <tr>
-                <td><span class="font-mono text-xs" [title]="request.id">{{ request.id.slice(0, 8) }}</span></td>
+                <td><span class="font-mono text-xs" [title]="request.id">{{ request.reference }}</span></td>
                 <td class="font-medium">{{ request.title }}</td>
                 <td>{{ request.category }}</td>
                 <td><p-tag [value]="request.priority" [severity]="prioritySeverity(request.priority)" /></td>
@@ -281,7 +281,7 @@
 <p-dialog [(visible)]="detailsDialogVisible" header="Détail de la demande" [modal]="true" [style]="{ width: 'min(48rem, 95vw)' }">
     @if (selectedRequest(); as request) {
         <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div><dt class="text-sm text-muted-color">Référence</dt><dd class="mt-1 font-mono text-sm">#{{ request.id.slice(0, 8) }}</dd></div>
+            <div><dt class="text-sm text-muted-color">Référence</dt><dd class="mt-1 font-mono text-sm">{{ request.reference }}</dd></div>
             <div><dt class="text-sm text-muted-color">Date de création</dt><dd class="mt-1">{{ request.created_at | date: 'dd/MM/yyyy HH:mm' }}</dd></div>
             <div class="sm:col-span-2"><dt class="text-sm text-muted-color">Titre</dt><dd class="mt-1 font-semibold">{{ request.title }}</dd></div>
             <div class="sm:col-span-2"><dt class="text-sm text-muted-color">Description</dt><dd class="mt-1 whitespace-pre-wrap">{{ request.description }}</dd></div>

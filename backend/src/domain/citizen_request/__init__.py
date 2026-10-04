@@ -32,6 +32,8 @@ from src.domain.citizen_request.entities import (
     SortOrder,
     can_transition,
     ensure_transition,
+    id_prefix_from_reference,
+    request_reference,
 )
 from src.domain.citizen_request.events import (
     ActivityQuery,
@@ -50,9 +52,11 @@ from src.domain.citizen_request.exceptions import (
     NotACitizenError,
     RequestClosedError,
 )
+from src.domain.citizen_request.receipt import DEFAULT_SERVICE, RequestReceipt
 from src.domain.citizen_request.repository import CitizenRequestRepository
 
 __all__ = [
+    "DEFAULT_SERVICE",
     "OPEN_STATUSES",
     "ActivityQuery",
     "Actor",
@@ -78,6 +82,7 @@ __all__ = [
     "RequestClosedError",
     "RequestEventType",
     "RequestPriority",
+    "RequestReceipt",
     "RequestScope",
     "RequestSortBy",
     "RequestStatus",
@@ -96,5 +101,7 @@ __all__ = [
     "ensure_can_manage_institut",
     "ensure_can_view",
     "ensure_transition",
+    "id_prefix_from_reference",
+    "request_reference",
     "scope_for",
 ]

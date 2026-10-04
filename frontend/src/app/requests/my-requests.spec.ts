@@ -17,6 +17,7 @@ describe('MyRequests', () => {
 
     const savedRequest = {
         id: 'request-12345678',
+        reference: 'TN-2026-REQUEST-',
         title: 'Lampadaire en panne',
         description: 'Le lampadaire est éteint.',
         category: 'Éclairage public' as const,
@@ -38,7 +39,22 @@ describe('MyRequests', () => {
     };
 
     beforeEach(async () => {
-        requestsApi = jasmine.createSpyObj<CitizenRequestService>('CitizenRequestService', ['get', 'events', 'list', 'submit']);
+        requestsApi = jasmine.createSpyObj<CitizenRequestService>('CitizenRequestService', ['get', 'events', 'list', 'submit', 'receipt']);
+        requestsApi.receipt.and.returnValue(
+            of({
+                reference: 'TN-2026-REQUEST-',
+                request_id: 'request-12345678',
+                title: 'Lampadaire en panne',
+                description: 'Le lampadaire est éteint.',
+                category: 'Éclairage public' as const,
+                location: 'Rue Centrale',
+                status: 'Nouveau' as const,
+                received_at: '2026-10-03T10:00:00Z',
+                service: 'Voirie',
+                citizen_name: 'Rina',
+                issued_at: '2026-10-03T10:00:05Z'
+            })
+        );
         requestsApi.get.and.returnValue(of(savedRequest));
         requestsApi.events.and.returnValue(
             of([
@@ -115,5 +131,39 @@ describe('MyRequests', () => {
 
         expect(fixture.nativeElement.textContent).toContain('Quel est le problème ?');
         expect(fixture.nativeElement.textContent).toContain('transmise automatiquement au service compétent');
+    });
+
+    it('confirms the submission immediately with the reference, time and receiving service', async () => {
+        await router.navigateByUrl('/home/my-requests');
+        fixture.detectChanges();
+        await fixture.whenStable();
+
+        const page = fixture.debugElement.query((element) => element.componentInstance instanceof MyRequests).componentInstance as MyRequests;
+        const internals = page as unknown as { form: { title: string; description: string; category: string; location: string }; submitCreation(): void };
+        internals.form = { title: 'Lampadaire en panne', description: 'Le lampadaire est éteint.', category: 'Éclairage public', location: 'Rue Centrale' };
+        internals.submitCreation();
+        fixture.detectChanges();
+        await fixture.whenStable();
+        fixture.detectChanges();
+
+        const confirmation = fixture.nativeElement.querySelector('#submission-confirmation') as HTMLElement;
+        expect(confirmation.getAttribute('role')).toBe('status');
+        expect(confirmation.textContent).toContain('Votre demande a bien été reçue');
+        expect(confirmation.textContent).toContain('TN-2026-REQUEST-');
+        expect(confirmation.textContent).toContain('Voirie');
+        expect(confirmation.querySelector('time')?.getAttribute('datetime')).toBe('2026-10-03T10:00:00Z');
+        const receiptLink = confirmation.querySelector('a[href="/accuse-reception/request-12345678"]');
+        expect(receiptLink).not.toBeNull();
+        expect(document.activeElement).toBe(confirmation);
+    });
+
+    it('shows the readable reference in the detail with a link to the receipt', async () => {
+        await router.navigateByUrl('/home/my-requests/request-12345678');
+        fixture.detectChanges();
+        await fixture.whenStable();
+        fixture.detectChanges();
+
+        expect(fixture.nativeElement.textContent).toContain('TN-2026-REQUEST-');
+        expect(fixture.nativeElement.querySelector('a[href="/accuse-reception/request-12345678"]')).not.toBeNull();
     });
 });

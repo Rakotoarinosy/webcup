@@ -1,0 +1,174 @@
+<section class="card" aria-labelledby="alerts-admin-title">
+    <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div>
+            <h1 id="alerts-admin-title" class="m-0 text-xl font-semibold" tabindex="-1">Publier une alerte</h1>
+            <p class="mb-0 mt-1 text-sm text-muted-color">Les alertes en cours s’affichent en haut de toutes les pages, pour tous les habitants, connectés ou non.</p>
+        </div>
+        @if (!formOpen()) {
+            <p-button label="Nouvelle alerte" icon="pi pi-plus" (onClick)="openCreate()" />
+        }
+    </div>
+
+    <p id="alerts-admin-notice" role="status" tabindex="-1" class="m-0" [class.mb-4]="notice()">{{ notice() }}</p>
+
+    @if (formOpen()) {
+        <form class="mb-6 rounded-xl border border-surface p-4" aria-labelledby="alert-form-title" novalidate (ngSubmit)="save()">
+            <h2 id="alert-form-title" class="m-0 text-lg font-semibold" tabindex="-1">{{ editing() ? 'Modifier l’alerte' : 'Nouvelle alerte' }}</h2>
+            <p class="mt-1 text-sm text-muted-color">Les champs marqués d’un astérisque (*) sont obligatoires.</p>
+
+            @if (formError(); as message) {
+                <p id="alert-form-error" class="rounded-lg border border-red-300 bg-red-50 p-3 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-100" role="alert" tabindex="-1">{{ message }}</p>
+            }
+
+            <div class="grid gap-4 md:grid-cols-2">
+                <div class="md:col-span-2">
+                    <label for="alert-title" class="mb-1 block font-medium">Titre *</label>
+                    <input id="alert-title" name="title" class="w-full rounded border border-surface bg-transparent p-3" [(ngModel)]="form.title" required maxlength="200" [attr.aria-invalid]="!!fieldError('title')" [attr.aria-describedby]="describedBy('title', 'alert-title-help')" />
+                    <p id="alert-title-help" class="m-0 mt-1 text-sm text-muted-color">Ce qui se passe, en quelques mots (ex. « Montée des eaux dans le quartier sud »).</p>
+                    @if (fieldError('title'); as error) { <p id="alert-title-error" class="m-0 mt-1 text-sm text-red-700 dark:text-red-300">{{ error }}</p> }
+                </div>
+
+                <div class="md:col-span-2">
+                    <label for="alert-message" class="mb-1 block font-medium">Message *</label>
+                    <textarea id="alert-message" name="message" rows="4" class="w-full rounded border border-surface bg-transparent p-3" [(ngModel)]="form.message" required maxlength="5000" [attr.aria-invalid]="!!fieldError('message')" [attr.aria-describedby]="describedBy('message', 'alert-message-help')"></textarea>
+                    <p id="alert-message-help" class="m-0 mt-1 text-sm text-muted-color">Ce que les habitants doivent savoir, en phrases courtes et simples.</p>
+                    @if (fieldError('message'); as error) { <p id="alert-message-error" class="m-0 mt-1 text-sm text-red-700 dark:text-red-300">{{ error }}</p> }
+                </div>
+
+                <fieldset class="m-0 border-0 p-0 md:col-span-2" aria-describedby="alert-level-help">
+                    <legend class="mb-1 font-medium">Niveau *</legend>
+                    <div class="flex flex-wrap gap-3">
+                        @for (level of levels; track level) {
+                            <label class="flex cursor-pointer items-center gap-2 rounded-lg border border-surface px-3 py-2 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-primary" [class.border-primary]="form.level === level">
+                                <input type="radio" name="level" [value]="level" [(ngModel)]="form.level" />
+                                <i [class]="display[level].icon" aria-hidden="true"></i>
+                                <span>{{ level }}</span>
+                            </label>
+                        }
+                    </div>
+                    <p id="alert-level-help" class="m-0 mt-1 text-sm text-muted-color">« Urgence » est annoncée immédiatement par les lecteurs d’écran ; réservez-la aux dangers pour les personnes.</p>
+                </fieldset>
+
+                <div>
+                    <label for="alert-audience" class="mb-1 block font-medium">Public visé *</label>
+                    <select id="alert-audience" name="audience" class="w-full rounded border border-surface bg-transparent p-3" [(ngModel)]="form.audience" aria-describedby="alert-audience-help">
+                        @for (audience of audiences; track audience) { <option [ngValue]="audience">{{ audience }}</option> }
+                    </select>
+                    <p id="alert-audience-help" class="m-0 mt-1 text-sm text-muted-color">L’alerte reste visible par tous ; le public visé est indiqué dans le bandeau.</p>
+                </div>
+
+                <div>
+                    <label for="alert-zone" class="mb-1 block font-medium">Zone ou quartier concerné{{ form.audience === 'Habitants du quartier concerné' ? ' *' : '' }}</label>
+                    <input id="alert-zone" name="zone" class="w-full rounded border border-surface bg-transparent p-3" [(ngModel)]="form.zone" maxlength="200" [attr.aria-invalid]="!!fieldError('zone')" [attr.aria-describedby]="describedBy('zone', 'alert-zone-help')" />
+                    <p id="alert-zone-help" class="m-0 mt-1 text-sm text-muted-color">Facultatif, sauf si l’alerte vise les habitants d’un quartier.</p>
+                    @if (fieldError('zone'); as error) { <p id="alert-zone-error" class="m-0 mt-1 text-sm text-red-700 dark:text-red-300">{{ error }}</p> }
+                </div>
+
+                <div class="md:col-span-2">
+                    <label for="alert-issuer" class="mb-1 block font-medium">Émetteur *</label>
+                    <input id="alert-issuer" name="issuer" list="alert-issuers" class="w-full rounded border border-surface bg-transparent p-3" [(ngModel)]="form.issuer" required maxlength="200" [attr.aria-invalid]="!!fieldError('issuer')" [attr.aria-describedby]="describedBy('issuer', 'alert-issuer-help')" />
+                    <datalist id="alert-issuers">
+                        @for (issuer of issuers; track issuer) { <option [value]="issuer"></option> }
+                    </datalist>
+                    <p id="alert-issuer-help" class="m-0 mt-1 text-sm text-muted-color">Au nom de qui le message est publié (ex. Haut Conseil de la Ville).</p>
+                    @if (fieldError('issuer'); as error) { <p id="alert-issuer-error" class="m-0 mt-1 text-sm text-red-700 dark:text-red-300">{{ error }}</p> }
+                </div>
+
+                <div class="md:col-span-2">
+                    <label for="alert-instructions" class="mb-1 block font-medium">Que faire ? (consignes)</label>
+                    <textarea id="alert-instructions" name="instructions" rows="5" class="w-full rounded border border-surface bg-transparent p-3" [(ngModel)]="form.instructions" maxlength="5000" aria-describedby="alert-instructions-help alert-ai-status"></textarea>
+                    <p id="alert-instructions-help" class="m-0 mt-1 text-sm text-muted-color">Les actions concrètes attendues des habitants, une par ligne.</p>
+                    <div class="mt-2 flex flex-wrap items-center gap-3">
+                        <p-button label="Proposer des recommandations (IA)" icon="pi pi-sparkles" severity="secondary" [outlined]="true" [loading]="suggesting()" (onClick)="suggest()" ariaLabel="Proposer des recommandations pour les personnes vulnérables avec l’IA" />
+                    </div>
+                    <div id="alert-ai-status">
+                        <p role="status" class="m-0 mt-2 text-sm">{{ suggesting() ? 'L’IA prépare des recommandations…' : (aiMessage() ?? '') }}</p>
+                        @if (aiError(); as error) { <p role="alert" class="m-0 mt-2 text-sm text-red-700 dark:text-red-300">{{ error }}</p> }
+                    </div>
+                </div>
+
+                <div>
+                    <label for="alert-starts" class="mb-1 block font-medium">Début d’affichage</label>
+                    <input id="alert-starts" name="startsAt" type="datetime-local" class="w-full rounded border border-surface bg-transparent p-3" [(ngModel)]="form.startsAt" aria-describedby="alert-starts-help" />
+                    <p id="alert-starts-help" class="m-0 mt-1 text-sm text-muted-color">Laissez vide pour publier immédiatement.</p>
+                </div>
+
+                <div>
+                    <label for="alert-ends" class="mb-1 block font-medium">Fin d’affichage</label>
+                    <input id="alert-ends" name="endsAt" type="datetime-local" class="w-full rounded border border-surface bg-transparent p-3" [(ngModel)]="form.endsAt" [attr.aria-invalid]="!!fieldError('endsAt')" [attr.aria-describedby]="describedBy('endsAt', 'alert-ends-help')" />
+                    <p id="alert-ends-help" class="m-0 mt-1 text-sm text-muted-color">Facultatif : sinon, l’alerte reste affichée jusqu’à ce que vous la terminiez.</p>
+                    @if (fieldError('endsAt'); as error) { <p id="alert-endsAt-error" class="m-0 mt-1 text-sm text-red-700 dark:text-red-300">{{ error }}</p> }
+                </div>
+
+                @if (!editing()) {
+                    <div class="flex items-start gap-2 md:col-span-2">
+                        <input id="alert-email" name="notifyByEmail" type="checkbox" class="mt-1" [(ngModel)]="form.notifyByEmail" aria-describedby="alert-email-help" />
+                        <div>
+                            <label for="alert-email" class="font-medium">Prévenir aussi les habitants par email</label>
+                            <p id="alert-email-help" class="m-0 text-sm text-muted-color">Les habitants connectés reçoivent toujours une notification. L’email part en arrière-plan : un échec d’envoi n’empêche pas la publication.</p>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <div class="mt-6 flex flex-wrap justify-end gap-2">
+                <p-button label="Annuler" severity="secondary" [text]="true" [disabled]="saving()" (onClick)="closeForm()" />
+                <p-button type="submit" [label]="editing() ? 'Enregistrer' : 'Publier l’alerte'" icon="pi pi-send" [loading]="saving()" />
+            </div>
+        </form>
+    }
+
+    <h2 id="alerts-list-title" class="text-lg font-semibold">Alertes publiées</h2>
+    @if (loading() && !alerts().length) {
+        <p role="status">Chargement des alertes…</p>
+    } @else if (listError(); as message) {
+        <p role="alert" class="text-red-700 dark:text-red-300">{{ message }}</p>
+    } @else if (alerts().length) {
+        <div class="overflow-x-auto">
+            <table class="app-data-table" aria-labelledby="alerts-list-title">
+                <thead>
+                    <tr>
+                        <th scope="col" class="p-3">Alerte</th>
+                        <th scope="col" class="p-3">Niveau</th>
+                        <th scope="col" class="p-3">État</th>
+                        <th scope="col" class="p-3">Affichage</th>
+                        <th scope="col" class="p-3">Auteur</th>
+                        <th scope="col" class="p-3"><span class="sr-only">Actions</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (alert of alerts(); track alert.id) {
+                        <tr>
+                            <th scope="row" class="max-w-md p-3 text-left font-normal">
+                                <span class="block font-medium">{{ alert.title }}</span>
+                                <span class="block text-sm text-muted-color">{{ alert.issuer }}{{ alert.zone ? ' · ' + alert.zone : '' }}</span>
+                            </th>
+                            <td class="whitespace-nowrap p-3"><i [class]="display[alert.level].icon" aria-hidden="true"></i> {{ alert.level }}</td>
+                            <td class="whitespace-nowrap p-3">{{ alert.status }}</td>
+                            <td class="whitespace-nowrap p-3 text-sm">
+                                Du {{ alert.starts_at | date: 'dd/MM/yyyy HH:mm' }}
+                                @if (alert.ended_at || alert.ends_at) { <br />au {{ (alert.ended_at ?? alert.ends_at) | date: 'dd/MM/yyyy HH:mm' }} }
+                            </td>
+                            <td class="p-3 text-sm">{{ alert.author_name }}</td>
+                            <td class="whitespace-nowrap p-3">
+                                @if (alert.can_manage) {
+                                    <div class="flex gap-1">
+                                        <p-button icon="pi pi-pencil" [text]="true" [ariaLabel]="'Modifier l’alerte ' + alert.title" (onClick)="openEdit(alert)" />
+                                        @if (alert.status !== 'Terminée') {
+                                            <p-button icon="pi pi-stop-circle" severity="warn" [text]="true" [ariaLabel]="'Terminer l’alerte ' + alert.title" [loading]="busy() === alert.id" (onClick)="end(alert)" />
+                                        }
+                                        @if (isAdmin()) {
+                                            <p-button icon="pi pi-trash" severity="danger" [text]="true" [ariaLabel]="'Supprimer l’alerte ' + alert.title" [disabled]="busy() === alert.id" (onClick)="remove(alert)" />
+                                        }
+                                    </div>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    } @else {
+        <p>Aucune alerte publiée pour le moment.</p>
+    }
+</section>

@@ -38,6 +38,8 @@ export const appRoutes: Routes = [
                     { path: 'admins', data: { breadcrumb: 'Administrateurs', role: 'admin' }, loadComponent: () => import('./app/users/accounts').then((m) => m.Accounts) }
                 ]
             },
+            { path: 'alerts', data: { breadcrumb: 'Alertes et messages officiels' }, loadComponent: () => import('./app/alerts/alerts-page').then((m) => m.AlertsPage) },
+            { path: 'alerts-admin', data: { breadcrumb: 'Publier une alerte', roles: ['manager', 'admin'] }, loadComponent: () => import('./app/alerts/alerts-admin').then((m) => m.AlertsAdmin) },
             { path: 'data-concerns', data: { breadcrumb: 'Signalements sur les données', roles: ['admin'] }, loadComponent: () => import('./app/data-privacy/data-concerns-admin').then((m) => m.DataConcernsAdmin) },
             { path: 'instituts', data: { breadcrumb: 'Instituts', roles: ['admin'] }, loadComponent: () => import('./app/instituts/instituts').then((m) => m.Instituts) },
             { path: 'journal', data: { breadcrumb: 'Journal', roles: ['agent', 'manager', 'admin'] }, loadComponent: () => import('./app/journal/journal').then((m) => m.Journal) },
@@ -58,10 +60,13 @@ export const appRoutes: Routes = [
             { path: '', loadComponent: () => import('./app/municipal/municipal-home').then((m) => m.MunicipalHome) },
             { path: 'services', loadComponent: () => import('./app/municipal/municipal-services').then((m) => m.MunicipalServices) },
             { path: 'publications', loadComponent: () => import('./app/municipal/municipal-publications').then((m) => m.MunicipalPublications) },
-            { path: 'contact', loadComponent: () => import('./app/municipal/municipal-contact').then((m) => m.MunicipalContact) }
+            { path: 'contact', loadComponent: () => import('./app/municipal/municipal-contact').then((m) => m.MunicipalContact) },
+            { path: 'alertes', loadComponent: () => import('./app/alerts/alerts-page').then((m) => m.AlertsPage) }
         ]
     },
     { path: '', component: Landing, canActivate: [publicSessionGuard] },
+    // Accusé de réception imprimable, hors mise en page (seul le document est imprimé).
+    { path: 'accuse-reception/:id', canActivate: [authGuard], loadComponent: () => import('./app/requests/request-receipt').then((m) => m.RequestReceiptPage) },
     { path: 'notfound', component: Notfound },
     { path: 'auth', loadChildren: () => import('./app/auth/auth.routes') },
     { path: '**', redirectTo: '/notfound' }

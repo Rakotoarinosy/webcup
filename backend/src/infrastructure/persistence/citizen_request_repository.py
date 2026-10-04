@@ -14,6 +14,7 @@ from src.domain.citizen_request import (
     RequestSortBy,
     RequestStatus,
     SortOrder,
+    id_prefix_from_reference,
 )
 from src.infrastructure.persistence.models import CitizenRequestModel
 
@@ -64,13 +65,16 @@ class SqlAlchemyCitizenRequestRepository(CitizenRequestRepository):
         filters = scope_conditions(scope)
         if search is not None:
             search_pattern = f"%{search.strip()}%"
-            filters.append(
-                or_(
-                    CitizenRequestModel.title.ilike(search_pattern),
-                    CitizenRequestModel.description.ilike(search_pattern),
-                    CitizenRequestModel.location.ilike(search_pattern),
-                )
-            )
+            matches = [
+                CitizenRequestModel.title.ilike(search_pattern),
+                CitizenRequestModel.description.ilike(search_pattern),
+                CitizenRequestModel.location.ilike(search_pattern),
+            ]
+            # Recherche par référence (« TN-2026-1A2B3C4D ») : retrouver une demande citée.
+            id_prefix = id_prefix_from_reference(search)
+            if id_prefix is not None:
+                matches.append(CitizenRequestModel.id.like(f"{id_prefix}%"))
+            filters.append(or_(*matches))
         if category is not None:
             filters.append(CitizenRequestModel.category == category.value)
         if priority is not None:

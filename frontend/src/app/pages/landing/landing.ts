@@ -8,8 +8,9 @@ import { MunicipalContentService } from '@/app/municipal/municipal-content.servi
 import { MunicipalService, MunicipalPublication } from '@/app/municipal/municipal-content.model';
 import { LiveDataService } from '@/app/shared/live-data.service';
 import { TopbarWidget } from './components/topbarwidget/topbarwidget.component';
+import { AlertBanner } from '@/app/alerts/alert-banner';
 
-@Component({ selector: 'app-landing', imports: [DatePipe, RouterModule, TopbarWidget], templateUrl: './landing.html', styleUrl: './landing.scss' })
+@Component({ selector: 'app-landing', imports: [DatePipe, RouterModule, TopbarWidget, AlertBanner], templateUrl: './landing.html', styleUrl: './landing.scss' })
 export class Landing implements OnInit {
     readonly auth = inject(AuthService);
     private readonly content = inject(MunicipalContentService);

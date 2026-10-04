@@ -11,11 +11,14 @@
             <h1 id="request-detail-title">{{ request.title }}</h1>
             <p>{{ request.description }}</p>
             <dl>
-                <dt>Référence</dt><dd>#{{ request.id.slice(0, 8) }}</dd>
+                <dt>Référence</dt><dd><strong>{{ request.reference }}</strong></dd>
                 <dt>Statut actuel</dt><dd><strong>{{ request.status }}</strong></dd>
                 <dt>Créée le</dt><dd>{{ request.created_at | date: 'dd/MM/yyyy à HH:mm' }}</dd>
                 <dt>Lieu</dt><dd>{{ request.location }}</dd>
             </dl>
+            <a [routerLink]="['/accuse-reception', request.id]" class="mt-2 inline-flex items-center gap-2 font-medium text-primary underline focus-visible:outline-2 focus-visible:outline-offset-2">
+                <i class="pi pi-file" aria-hidden="true"></i> Accusé de réception (imprimable, PDF)
+            </a>
             <section aria-labelledby="request-timeline-title" class="mt-8">
                 <h2 id="request-timeline-title" class="text-lg font-semibold">Étapes de traitement</h2>
                 @if (historyLoading()) {
@@ -38,16 +41,39 @@
         }
     </section>
 } @else {
+    @if (confirmation(); as sent) {
+        <section id="submission-confirmation" class="card border-2 border-green-700 dark:border-green-400" role="status" tabindex="-1" aria-labelledby="confirmation-title">
+            <h2 id="confirmation-title" class="m-0 flex items-center gap-2 text-lg font-semibold">
+                <i class="pi pi-check-circle text-green-700 dark:text-green-400" aria-hidden="true"></i> Votre demande a bien été reçue
+            </h2>
+            <p class="mb-2 mt-2">La ville a enregistré votre demande « {{ sent.title }} ». Conservez sa référence pour la retrouver ou la citer.</p>
+            <dl class="m-0 grid gap-x-6 gap-y-2 sm:grid-cols-[12rem_1fr]">
+                <dt class="font-medium">Référence</dt>
+                <dd class="m-0"><strong class="text-lg">{{ sent.reference }}</strong></dd>
+                <dt class="font-medium">Reçue le</dt>
+                <dd class="m-0"><time [attr.datetime]="sent.receivedAt">{{ sent.receivedAt | date: 'dd/MM/yyyy à HH:mm' }}</time></dd>
+                <dt class="font-medium">Service destinataire</dt>
+                <dd class="m-0">{{ sent.service ?? 'Service compétent (en cours de chargement)' }}</dd>
+            </dl>
+            <div class="mt-4 flex flex-wrap gap-3">
+                <a [routerLink]="['/accuse-reception', sent.id]" class="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 font-medium text-primary-contrast focus-visible:outline-2 focus-visible:outline-offset-2">
+                    <i class="pi pi-file" aria-hidden="true"></i> Accusé de réception (imprimable, PDF)
+                </a>
+                <a [routerLink]="['/home/my-requests', sent.id]" class="inline-flex items-center gap-2 px-2 py-2 font-medium text-primary underline">Suivre ma demande</a>
+                <button type="button" class="px-2 py-2 text-muted-color underline" (click)="dismissConfirmation()">Fermer ce message</button>
+            </div>
+        </section>
+    }
     <section class="card" aria-labelledby="history-title">
         <div>
             <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-                <div><h1 id="history-title" class="m-0 text-lg font-semibold">Toutes mes demandes</h1><p class="mb-0 mt-1 text-sm text-muted-color">Recherchez, filtrez et consultez vos signalements.</p></div>
+                <div><h1 id="history-title" class="m-0 text-lg font-semibold" tabindex="-1">Toutes mes demandes</h1><p class="mb-0 mt-1 text-sm text-muted-color">Recherchez, filtrez et consultez vos signalements.</p></div>
                 <p-button label="Ajouter une demande" icon="pi pi-plus" (onClick)="openCreateDialog()" />
             </div>
             <div class="mb-4 grid gap-3 md:grid-cols-3">
                 <label class="md:col-span-1">
                     <span class="mb-1 block font-medium">Rechercher</span>
-                    <input id="request-search" type="search" class="w-full rounded border border-surface bg-transparent p-2" placeholder="Mot-clé, description, lieu…" [ngModel]="searchTerm()" (ngModelChange)="searchChanged($event)" />
+                    <input id="request-search" type="search" class="w-full rounded border border-surface bg-transparent p-2" placeholder="Mot-clé, lieu ou référence (TN-…)" [ngModel]="searchTerm()" (ngModelChange)="searchChanged($event)" />
                 </label>
                 <label>
                     <span class="mb-1 block font-medium">Type</span>
@@ -72,11 +98,12 @@
                 <div class="overflow-x-auto">
                     <table class="app-data-table">
                         <caption class="sr-only">Vos demandes, triées par date de création décroissante</caption>
-                        <thead><tr class="border-b border-surface"><th scope="col" class="p-3">Date</th><th scope="col" class="p-3">Type</th><th scope="col" class="p-3">Description</th><th scope="col" class="p-3">Statut</th></tr></thead>
+                        <thead><tr class="border-b border-surface"><th scope="col" class="p-3">Date</th><th scope="col" class="p-3">Référence</th><th scope="col" class="p-3">Type</th><th scope="col" class="p-3">Description</th><th scope="col" class="p-3">Statut</th></tr></thead>
                         <tbody>
                             @for (request of requests(); track request.id) {
                                 <tr class="border-b border-surface">
                                     <td class="whitespace-nowrap p-3">{{ request.created_at | date: 'dd/MM/yyyy HH:mm' }}</td>
+                                    <td class="whitespace-nowrap p-3 font-mono text-sm">{{ request.reference }}</td>
                                     <td class="p-3">{{ request.category }}</td>
                                     <th scope="row" class="max-w-md p-3 text-left font-normal"><a class="font-medium text-primary underline" [routerLink]="['/home/my-requests', request.id]">{{ request.title }}</a><p class="mb-0 mt-1 line-clamp-2 text-sm text-muted-color">{{ request.description }}</p></th>
                                     <td class="whitespace-nowrap p-3">{{ request.status }}</td>

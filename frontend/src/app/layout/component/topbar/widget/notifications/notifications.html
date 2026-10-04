@@ -42,7 +42,7 @@
                             (click)="open(notification)"
                         >
                             <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emphasis">
-                                <i [class]="notification.typeLabel === 'Publication' ? 'pi pi-megaphone text-amber-500' : 'pi pi-inbox text-blue-500'"></i>
+                                <i aria-hidden="true" [class]="notification.typeLabel === 'Alerte' ? 'pi pi-exclamation-triangle text-red-600' : notification.typeLabel === 'Publication' ? 'pi pi-megaphone text-amber-500' : 'pi pi-inbox text-blue-500'"></i>
                             </span>
 
                             <span class="min-w-0 flex-1">

@@ -31,6 +31,10 @@ class AuditAction(StrEnum):
     AGENT_STATUS_CHANGED = "agent_status_changed"
     DATA_CONCERN_REVIEWED = "data_concern_reviewed"
     DATA_CONCERN_ANSWERED = "data_concern_answered"
+    ALERT_PUBLISHED = "alert_published"
+    ALERT_UPDATED = "alert_updated"
+    ALERT_ENDED = "alert_ended"
+    ALERT_DELETED = "alert_deleted"
 
 
 class AuditTarget(StrEnum):
@@ -38,6 +42,7 @@ class AuditTarget(StrEnum):
     INSTITUT = "institut"
     AGENT = "agent"
     DATA_CONCERN = "data_concern"
+    ALERT = "alert"
 
 
 @dataclass(frozen=True)

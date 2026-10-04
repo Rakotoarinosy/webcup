@@ -1,7 +1,10 @@
 """Lecture des demandes : détail, liste paginée et timeline, toujours filtrées par les droits de l'Actor."""
 
+from datetime import UTC, datetime
+
 from src.domain.agent import AgentRepository
 from src.domain.citizen_request import (
+    DEFAULT_SERVICE,
     ActivityQuery,
     Actor,
     CitizenRequest,
@@ -14,12 +17,15 @@ from src.domain.citizen_request import (
     RequestCategory,
     RequestEventType,
     RequestPriority,
+    RequestReceipt,
     RequestSortBy,
     RequestStatus,
     SortOrder,
     ensure_can_view,
     scope_for,
 )
+from src.domain.institut import InstitutRepository
+from src.domain.user import UserRepository
 
 
 def load_request(request_id: str, repo: CitizenRequestRepository) -> CitizenRequest:
@@ -36,6 +42,34 @@ def get_request(request_id: str, actor: Actor, repo: CitizenRequestRepository) -
     ensure_can_view(actor, request)
 
     return request
+
+
+def get_receipt(
+    request_id: str,
+    actor: Actor,
+    repo: CitizenRequestRepository,
+    instituts: InstitutRepository,
+    users: UserRepository,
+    now: datetime | None = None,
+) -> RequestReceipt:
+    """Accusé de réception : l'auteur de la demande et le personnel qui peut la consulter."""
+    request = get_request(request_id, actor, repo)
+    institut = instituts.get_by_id(request.institut_id) if request.institut_id else None
+    citizen = users.get_by_id(request.citizen_id)
+
+    return RequestReceipt(
+        reference=request.reference,
+        request_id=request.id,
+        title=request.title,
+        description=request.description,
+        category=request.category,
+        location=request.location,
+        status=request.status,
+        received_at=request.created_at,
+        service=institut.name if institut else DEFAULT_SERVICE,
+        citizen_name=citizen.name if citizen else "Compte supprimé",
+        issued_at=now or datetime.now(UTC),
+    )
 
 
 def list_requests(

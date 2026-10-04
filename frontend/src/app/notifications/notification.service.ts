@@ -12,7 +12,9 @@ export interface PlatformNotification {
     kind: NotificationKind;
     title: string;
     message: string;
-    request_id: string;
+    request_id: string | null;
+    /** Renseigné pour une alerte officielle (kind « alert », F30). */
+    alert_id?: string | null;
     created_at: string;
     is_read: boolean;
 }
@@ -30,6 +32,10 @@ export class NotificationService {
     readonly unreadCount = signal(0);
     readonly error = signal<string | null>(null);
     readonly recent = computed(() => this.items().slice(0, 8));
+    /** Alertes officielles non lues (parmi les notifications chargées). */
+    readonly alertUnreadCount = computed(() => this.items().filter((item) => item.kind === 'alert' && !item.is_read).length);
+    /** Notifications non lues sur les demandes, hors alertes. */
+    readonly requestUnreadCount = computed(() => Math.max(0, this.unreadCount() - this.alertUnreadCount()));
 
     constructor() {
         effect((onCleanup) => {

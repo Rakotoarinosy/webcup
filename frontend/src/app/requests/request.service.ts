@@ -14,6 +14,7 @@ import {
     RequestAnalysis,
     RequestCategory,
     RequestEvent,
+    RequestReceipt,
     RequestStatus,
     SubmitRequestIn
 } from './request.model';
@@ -50,6 +51,10 @@ export class CitizenRequestService {
 
     get(id: string): Observable<CitizenRequest> {
         return this.http.get<CitizenRequest>(`${this.baseUrl}/${id}`);
+    }
+
+    receipt(id: string): Observable<RequestReceipt> {
+        return this.http.get<RequestReceipt>(`${this.baseUrl}/${id}/receipt`);
     }
 
     events(id: string): Observable<RequestEvent[]> {

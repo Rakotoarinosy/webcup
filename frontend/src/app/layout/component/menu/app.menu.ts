@@ -54,6 +54,9 @@ export class AppMenu {
         } else if (this.auth.hasRole('manager')) {
             items.push({ label: 'Comptes citoyens', icon: 'pi pi-fw pi-users', routerLink: ['/home/users'] });
         }
+        if (this.auth.hasRole('manager', 'admin')) {
+            items.push({ label: 'Publier une alerte', icon: 'pi pi-fw pi-send', routerLink: ['/home/alerts-admin'] });
+        }
         if (this.auth.hasRole('agent', 'manager', 'admin')) {
             items.push({ label: 'Journal', icon: 'pi pi-fw pi-history', routerLink: ['/home/journal'] });
         }
@@ -66,6 +69,7 @@ export class AppMenu {
                 { label: 'Accueil municipal', icon: 'pi pi-fw pi-building', routerLink: ['/home/municipal'], routerLinkActiveOptions: { exact: true } },
                 { label: 'Services municipaux', icon: 'pi pi-fw pi-map-marker', routerLink: ['/home/municipal/services'] },
                 { label: 'Publications', icon: 'pi pi-fw pi-megaphone', routerLink: ['/home/municipal/publications'], badge: this.publicationBadge() },
+                { label: 'Alertes et messages officiels', icon: 'pi pi-fw pi-exclamation-triangle', routerLink: ['/home/alerts'], badge: this.alertBadge() },
                 { label: 'Contacter la mairie', icon: 'pi pi-fw pi-envelope', routerLink: ['/home/municipal/contact'] }
             ]
         });
@@ -85,7 +89,12 @@ export class AppMenu {
     });
 
     private notificationBadge(): string | undefined {
-        const count = this.notifications.unreadCount();
+        const count = this.notifications.requestUnreadCount();
+        return count ? (count > 99 ? '99+' : String(count)) : undefined;
+    }
+
+    private alertBadge(): string | undefined {
+        const count = this.notifications.alertUnreadCount();
         return count ? (count > 99 ? '99+' : String(count)) : undefined;
     }
 

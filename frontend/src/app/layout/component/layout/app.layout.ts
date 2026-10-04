@@ -6,10 +6,11 @@ import { LayoutService } from '@/app/layout/service/layout.service';
 import { AppSidebar } from '../sidebar/app.sidebar';
 import { AppTopbar } from '../topbar/app.topbar';
 import { BreadcrumbComponent } from '../breadcrumb/breadcrumb';
+import { AlertBanner } from '@/app/alerts/alert-banner';
 
 @Component({
     selector: 'app-layout',
-    imports: [CommonModule, AppTopbar, AppSidebar, RouterModule, BreadcrumbComponent],
+    imports: [CommonModule, AppTopbar, AppSidebar, RouterModule, BreadcrumbComponent, AlertBanner],
     templateUrl: './app.layout.html',
     styleUrl: './app.layout.scss'
 })

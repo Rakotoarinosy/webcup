@@ -1,5 +1,6 @@
 """Entités métier et valeurs du domaine des demandes citoyennes."""
 
+import re
 from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
@@ -68,6 +69,29 @@ class SortOrder(StrEnum):
     DESC = "desc"
 
 
+# ─── Référence lisible (D16, F83) ───────────────────────────────────
+# « TN-2026-1A2B3C4D » : année de réception + début de l'identifiant. Dérivée de l'id, donc
+# stable et identique partout (liste, détail, notifications, accusé de réception), sans stockage.
+
+REFERENCE_PREFIX = "TN"
+_REFERENCE_LENGTH = 8
+_REFERENCE_PATTERN = re.compile(
+    rf"^\s*#?\s*(?:{REFERENCE_PREFIX}-\d{{4}}-)?([0-9a-f]{{{_REFERENCE_LENGTH}}})\s*$",
+    re.IGNORECASE,
+)
+
+
+def request_reference(request_id: str, created_at: datetime) -> str:
+    return f"{REFERENCE_PREFIX}-{created_at:%Y}-{request_id[:_REFERENCE_LENGTH].upper()}"
+
+
+def id_prefix_from_reference(text: str) -> str | None:
+    """Début d'identifiant désigné par une référence saisie (« TN-2026-1A2B3C4D », « #1a2b3c4d »),
+    ou None si le texte n'a pas la forme d'une référence."""
+    match = _REFERENCE_PATTERN.match(text)
+    return match.group(1).lower() if match else None
+
+
 @dataclass
 class CitizenRequest:
     id: str
@@ -92,6 +116,10 @@ class CitizenRequest:
     priority_score: int = 0
     # Institut destinataire, déduit de la catégorie (None : traitée par l'administration).
     institut_id: str | None = None
+
+    @property
+    def reference(self) -> str:
+        return request_reference(self.id, self.created_at)
 
     @property
     def is_open(self) -> bool:

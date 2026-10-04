@@ -7,6 +7,7 @@
             <a routerLink="/municipal/services" routerLinkActive="active" ariaCurrentWhenActive="page">Services</a>
             <a routerLink="/municipal/publications" routerLinkActive="active" ariaCurrentWhenActive="page">Publications</a>
             <a routerLink="/municipal/contact" routerLinkActive="active" ariaCurrentWhenActive="page">Contacter la mairie</a>
+            <a routerLink="/municipal/alertes" routerLinkActive="active" ariaCurrentWhenActive="page">Alertes</a>
         </nav>
         @if (auth.user(); as user) {
             <a class="account" [routerLink]="auth.homeUrl()">{{ user.name }} · Mon espace</a>
@@ -16,4 +17,5 @@
     </div>
     <div class="header-row" style="justify-content: flex-end; margin-top: 0.5rem"><app-font-size /></div>
 </header>
+<div class="alerts-zone"><app-alert-banner alertsLink="/municipal/alertes" /></div>
 <main id="main-content" tabindex="-1"><router-outlet /></main>

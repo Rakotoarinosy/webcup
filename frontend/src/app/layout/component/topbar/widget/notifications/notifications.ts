@@ -30,7 +30,7 @@ export class Notifications {
     readonly canView = this.auth.isAuthenticated;
     readonly unreadCount = computed(() => this.api.unreadCount() + this.publications.unreadCount());
     readonly allNotifications = computed<DisplayNotification[]>(() => [
-        ...this.api.recent().map((notification) => ({ ...notification, typeLabel: 'Demande' })),
+        ...this.api.recent().map((notification) => ({ ...notification, typeLabel: notification.kind === 'alert' ? 'Alerte' : 'Demande' })),
         ...this.publications.notificationItems().map((notification) => ({ ...notification, typeLabel: 'Publication' }))
     ].sort((left, right) => Date.parse(right.created_at) - Date.parse(left.created_at)).slice(0, 12));
     readonly error = this.api.error;
@@ -58,6 +58,10 @@ export class Notifications {
         }
         if (!notification.is_read) {
             this.api.markRead(notification.key).pipe(catchError(() => EMPTY)).subscribe();
+        }
+        if (notification.kind === 'alert' || !notification.request_id) {
+            void this.router.navigate(['/home/alerts']);
+            return;
         }
         const role = this.auth.user()?.role;
         void this.router.navigate(role === 'citizen' ? ['/home/my-requests', notification.request_id] : role === 'agent' ? ['/home/agent'] : ['/home/requests']);

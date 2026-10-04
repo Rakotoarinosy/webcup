@@ -11,6 +11,7 @@ from src.features.citizen_request.use_cases.prioritization import (
     update_priority_inputs,
 )
 from src.features.citizen_request.use_cases.read import (
+    get_receipt,
     get_request,
     list_activity,
     list_request_events,
@@ -27,6 +28,7 @@ __all__ = [
     "edit_request",
     "get_dashboard",
     "get_public_dashboard",
+    "get_receipt",
     "get_request",
     "list_activity",
     "list_map_points",

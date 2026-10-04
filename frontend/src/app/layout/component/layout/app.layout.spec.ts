@@ -7,6 +7,7 @@ import { BreadcrumbComponent } from '../breadcrumb/breadcrumb';
 import { AppSidebar } from '../sidebar/app.sidebar';
 import { AppTopbar } from '../topbar/app.topbar';
 import { AppLayout } from './app.layout';
+import { AlertBanner } from '@/app/alerts/alert-banner';
 
 describe('AppLayout accessibility', () => {
     let fixture: ComponentFixture<AppLayout>;
@@ -14,7 +15,7 @@ describe('AppLayout accessibility', () => {
     beforeEach(async () => {
         await TestBed.configureTestingModule({ imports: [AppLayout], providers: [provideRouter([])] })
             .overrideComponent(AppLayout, {
-                remove: { imports: [AppTopbar, AppSidebar, BreadcrumbComponent] },
+                remove: { imports: [AppTopbar, AppSidebar, BreadcrumbComponent, AlertBanner] },
                 add: { imports: [CommonModule, RouterModule], schemas: [CUSTOM_ELEMENTS_SCHEMA] }
             })
             .compileComponents();

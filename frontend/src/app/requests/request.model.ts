@@ -63,6 +63,8 @@ export function requestPrioritySeverity(priority: RequestPriority): 'warn' | 'da
 /** Miroir de CitizenRequestOut. */
 export interface CitizenRequest {
     id: string;
+    /** Référence lisible « TN-2026-1A2B3C4D », identique partout (liste, détail, accusé). */
+    reference: string;
     title: string;
     description: string;
     category: RequestCategory;
@@ -206,4 +208,19 @@ export interface RequestAnalysis {
         status: 'available' | 'in_intervention' | 'unavailable' | 'offline';
         interventions: number;
     } | null;
+}
+
+/** Accusé de réception (GET /requests/{id}/receipt) : D16, F83. */
+export interface RequestReceipt {
+    reference: string;
+    request_id: string;
+    title: string;
+    description: string;
+    category: RequestCategory;
+    location: string;
+    status: RequestStatus;
+    received_at: string;
+    service: string;
+    citizen_name: string;
+    issued_at: string;
 }

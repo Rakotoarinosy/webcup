@@ -10,7 +10,7 @@ import unicodedata
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
-from src.domain.citizen_request import RequestScope
+from src.domain.citizen_request import RequestScope, id_prefix_from_reference, request_reference
 from src.domain.search import SearchHit, SearchKind, SearchScope
 from src.domain.user import Role
 from src.infrastructure.persistence.citizen_request_repository import scope_conditions
@@ -58,8 +58,8 @@ def _matches(columns: list, patterns: list[str]):
     )
 
 
-def _ref(demande_id: str) -> str:
-    return demande_id[:8]
+def _ref(row: CitizenRequestModel) -> str:
+    return request_reference(row.id, row.created_at)
 
 
 class SqlAlchemySearchRepository:
@@ -86,7 +86,8 @@ class SqlAlchemySearchRepository:
         condition = _matches(
             [model.title, model.description, model.location, model.category], patterns
         )
-        ref = query.strip().lstrip("#")
+        # « TN-2026-AB12CD34 » (référence complète) ou « #ab12cd34 » (début d'identifiant)
+        ref = id_prefix_from_reference(query) or query.strip().lstrip("#")
         if len(ref) >= _MIN_REF_LENGTH:  # « #ab12cd34 » : recherche par début d'identifiant
             condition = or_(condition, model.id.ilike(f"{_escape(ref)}%", escape=_ESCAPE))
 
@@ -97,7 +98,7 @@ class SqlAlchemySearchRepository:
             SearchHit(
                 kind=SearchKind.DEMANDE,
                 id=row.id,
-                title=f"#{_ref(row.id)} {row.title}",
+                title=f"{_ref(row)} {row.title}",
                 subtitle=f"{row.category} · {row.status}",
                 demande_id=row.id,
                 agent_id=row.assigned_agent_id,
@@ -166,7 +167,7 @@ class SqlAlchemySearchRepository:
             SearchHit(
                 kind=SearchKind.INTERVENTION,
                 id=row.id,
-                title=f"Intervention #{_ref(row.id)} — {row.title}",
+                title=f"Intervention {_ref(row)} — {row.title}",
                 subtitle=f"{agent_name} · {row.scheduled_at:%d/%m/%Y %H:%M}",
                 demande_id=row.id,
                 agent_id=row.assigned_agent_id,

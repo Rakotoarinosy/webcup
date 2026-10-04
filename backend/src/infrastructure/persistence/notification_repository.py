@@ -1,8 +1,9 @@
-"""Notifications dérivées du journal d'événements des demandes.
+"""Notifications dérivées du journal d'événements des demandes et des alertes publiées.
 
 Pas de table de notifications à alimenter : une notification est un événement
 (citizen_request_events) ou un retard (calculé), limité au périmètre du destinataire
-(access.scope_for). Seul l'état « lu » est stocké (notification_reads).
+(access.scope_for), ou une alerte officielle publiée (alerts), adressée à tous.
+Seul l'état « lu » est stocké (notification_reads).
 """
 
 from dataclasses import replace
@@ -12,12 +13,19 @@ from sqlalchemy import and_, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from src.domain.citizen_request import Actor, RequestEventType, RequestStatus, scope_for
+from src.domain.citizen_request import (
+    Actor,
+    RequestEventType,
+    RequestStatus,
+    request_reference,
+    scope_for,
+)
 from src.domain.citizen_request.priority import NEW_MAX_AGE, WAITING_MAX_AGE, late_since
 from src.domain.notification import Notification, NotificationKind
 from src.domain.user import Role
 from src.infrastructure.persistence.citizen_request_repository import as_utc, scope_conditions
 from src.infrastructure.persistence.models import (
+    AlertModel,
     CitizenRequestEventModel,
     CitizenRequestModel,
     NotificationReadModel,
@@ -37,13 +45,14 @@ _AUDIENCE_EVENTS = {
     "agent": (RequestEventType.ASSIGNED,),
 }
 _TITLES = {
-    RequestEventType.CREATED: "Nouvelle demande #{ref}",
-    RequestEventType.STATUS_CHANGED: "Demande #{ref} mise à jour",
-    RequestEventType.REJECTED: "Demande #{ref} rejetée",
-    RequestEventType.ASSIGNED: "Demande #{ref} assignée",
-    RequestEventType.RESOLVED: "Demande #{ref} résolue",
+    RequestEventType.CREATED: "Nouvelle demande {ref}",
+    RequestEventType.STATUS_CHANGED: "Demande {ref} mise à jour",
+    RequestEventType.REJECTED: "Demande {ref} rejetée",
+    RequestEventType.ASSIGNED: "Demande {ref} assignée",
+    RequestEventType.RESOLVED: "Demande {ref} résolue",
 }
-_LATE_TITLE = "Demande #{ref} en retard"
+_LATE_TITLE = "Demande {ref} en retard"
+_ALERT_TITLE = "{level} : {title}"
 
 
 def _audience(actor: Actor) -> str:
@@ -53,8 +62,8 @@ def _audience(actor: Actor) -> str:
     return "agent" if actor.role is Role.AGENT else "citizen"
 
 
-def _ref(request_id: str) -> str:
-    return request_id[:8]
+def _ref(request_id: str, created_at: datetime) -> str:
+    return request_reference(request_id, created_at)
 
 
 class SqlAlchemyNotificationRepository:
@@ -64,12 +73,11 @@ class SqlAlchemyNotificationRepository:
     def list_for(
         self, actor: Actor, *, unread_only: bool, limit: int
     ) -> tuple[list[Notification], int]:
-        scope = scope_for(actor)
-        if scope.is_empty:
-            return [], 0
-
         now = datetime.now(UTC)
-        items = self._event_notifications(actor, now) + self._late_notifications(actor, now)
+        # Les alertes concernent tout le monde, même sans demande dans son périmètre.
+        items = self._alert_notifications(actor, now)
+        if not scope_for(actor).is_empty:
+            items += self._event_notifications(actor, now) + self._late_notifications(actor, now)
         items.sort(key=lambda item: item.created_at, reverse=True)
         items = items[:MAX_ITEMS]
 
@@ -109,6 +117,7 @@ class SqlAlchemyNotificationRepository:
                 CitizenRequestEventModel.request_id,
                 CitizenRequestEventModel.created_at,
                 CitizenRequestModel.title,
+                CitizenRequestModel.created_at,
             )
             .join(
                 CitizenRequestModel, CitizenRequestModel.id == CitizenRequestEventModel.request_id
@@ -131,12 +140,16 @@ class SqlAlchemyNotificationRepository:
             Notification(
                 key=str(event_id),
                 kind=NotificationKind(event_type),
-                title=_TITLES[RequestEventType(event_type)].format(ref=_ref(request_id)),
+                title=_TITLES[RequestEventType(event_type)].format(
+                    ref=_ref(request_id, as_utc(request_created_at))
+                ),
                 message=title,
                 request_id=request_id,
                 created_at=as_utc(created_at),
             )
-            for event_id, event_type, request_id, created_at, title in self._db.execute(stmt)
+            for event_id, event_type, request_id, created_at, title, request_created_at in (
+                self._db.execute(stmt)
+            )
         ]
 
     def _late_notifications(self, actor: Actor, now: datetime) -> list[Notification]:
@@ -175,7 +188,7 @@ class SqlAlchemyNotificationRepository:
                 Notification(
                     key=f"late:{row.id}",
                     kind=NotificationKind.LATE,
-                    title=_LATE_TITLE.format(ref=_ref(row.id)),
+                    title=_LATE_TITLE.format(ref=_ref(row.id, as_utc(row.created_at))),
                     message=row.title,
                     request_id=row.id,
                     created_at=since,
@@ -183,6 +196,32 @@ class SqlAlchemyNotificationRepository:
             )
 
         return notifications
+
+    def _alert_notifications(self, actor: Actor, now: datetime) -> list[Notification]:
+        """Alertes publiées récemment (F30), sauf celles que l'utilisateur a lui-même publiées."""
+        stmt = (
+            select(AlertModel)
+            .where(
+                AlertModel.starts_at <= now,
+                AlertModel.starts_at >= now - EVENT_WINDOW,
+                or_(AlertModel.author_id.is_(None), AlertModel.author_id != actor.user_id),
+            )
+            .order_by(AlertModel.starts_at.desc())
+            .limit(MAX_ITEMS)
+        )
+
+        return [
+            Notification(
+                key=f"alert:{row.id}",
+                kind=NotificationKind.ALERT,
+                title=_ALERT_TITLE.format(level=row.level, title=row.title),
+                message=row.issuer,
+                request_id=None,
+                alert_id=row.id,
+                created_at=as_utc(row.starts_at),
+            )
+            for row in self._db.scalars(stmt).all()
+        ]
 
     def _read_keys(self, user_id: str, keys: list[str]) -> set[str]:
         if not keys:

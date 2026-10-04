@@ -52,6 +52,7 @@ from src.features.citizen_request.schemas import (
     RequestActivityPageOut,
     RequestAnalysisOut,
     RequestEventOut,
+    RequestReceiptOut,
     SubmitRequestIn,
 )
 from src.features.citizen_request.use_cases import (
@@ -62,6 +63,7 @@ from src.features.citizen_request.use_cases import (
     edit_request,
     get_dashboard,
     get_public_dashboard,
+    get_receipt,
     get_request,
     list_activity,
     list_map_points,
@@ -295,6 +297,18 @@ def get_request_endpoint(
     repo: CitizenRequestRepository = Depends(get_request_repo),
 ) -> CitizenRequest:
     return get_request(request_id, actor, repo)
+
+
+@request_router.get("/{request_id}/receipt", response_model=RequestReceiptOut)
+def request_receipt_endpoint(
+    request_id: str,
+    actor: Actor = Depends(get_current_actor),
+    repo: CitizenRequestRepository = Depends(get_request_repo),
+    instituts: InstitutRepository = Depends(get_instituts_repo),
+    users: UserRepository = Depends(get_users_repo),
+) -> RequestReceiptOut:
+    """Accusé de réception : citoyen auteur, ou personnel habilité à consulter la demande."""
+    return RequestReceiptOut.model_validate(get_receipt(request_id, actor, repo, instituts, users))
 
 
 @request_router.get("/{request_id}/events", response_model=list[RequestEventOut])

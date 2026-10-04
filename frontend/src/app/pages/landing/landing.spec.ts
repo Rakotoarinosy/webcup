@@ -7,6 +7,7 @@ import { MunicipalContentService } from '../../municipal/municipal-content.servi
 import { LiveDataService } from '../../shared/live-data.service';
 import { TopbarWidget } from './components/topbarwidget/topbarwidget.component';
 import { Landing } from './landing';
+import { AlertBanner } from '../../alerts/alert-banner';
 
 describe('Landing real municipal data', () => {
     let fixture: ComponentFixture<Landing>;
@@ -24,7 +25,7 @@ describe('Landing real municipal data', () => {
             ]
         })
             // La barre du haut (configurateur d'affichage) fait recharger la page de test : hors sujet ici.
-            .overrideComponent(Landing, { remove: { imports: [TopbarWidget] }, add: { schemas: [CUSTOM_ELEMENTS_SCHEMA] } })
+            .overrideComponent(Landing, { remove: { imports: [TopbarWidget, AlertBanner] }, add: { schemas: [CUSTOM_ELEMENTS_SCHEMA] } })
             .compileComponents();
         fixture = TestBed.createComponent(Landing);
         fixture.detectChanges();
