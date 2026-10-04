@@ -1,6 +1,7 @@
 """Priorisation automatique et règles de retard.
 
 Score sur 100 = urgence (30) + citoyens concernés (25) + ancienneté (20) + criticité (25).
+Citoyens concernés = estimation de l'auteur + soutiens d'autres habitants (F52).
 Niveaux : >= 70 URGENTE, >= 50 HAUTE, >= 30 NORMALE, sinon BASSE.
 Fonctions pures, sans base de données : faciles à tester et à ajuster.
 """
@@ -75,10 +76,11 @@ def compute_score(
     created_at: datetime,
     category: RequestCategory,
     now: datetime | None = None,
+    supporters: int = 0,
 ) -> ScoreBreakdown:
     now = as_utc(now) if now else datetime.now(UTC)
     urgency = min(max(urgency, URGENCY_MIN), URGENCY_MAX)
-    affected = max(affected_citizens, 1)
+    affected = max(affected_citizens, 1) + max(supporters, 0)
     age_days = max((now - as_utc(created_at)).total_seconds() / 86400, 0.0)
 
     return ScoreBreakdown(
@@ -146,6 +148,7 @@ class PriorityItem:
     assigned_agent_id: str | None
     location: str
     is_late: bool
+    support_count: int = 0
 
 
 class PriorityRepository(Protocol):

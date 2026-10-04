@@ -3,7 +3,8 @@ import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { catchError, finalize, forkJoin, of } from 'rxjs';
 
-import { CitizenRequest, RequestEvent, RequestStatus, STATUS_TRANSITIONS, eventLabel } from '@/app/requests/request.model';
+import { CitizenRequest, RequestEvent, RequestStatus, STATUS_TRANSITIONS, awaitingReply, eventLabel } from '@/app/requests/request.model';
+import { RequestThread } from '@/app/requests/request-thread';
 import { CitizenRequestService } from '@/app/requests/request.service';
 import { RequestActivity } from '@/app/journal/journal.model';
 import { JournalService } from '@/app/journal/journal.service';
@@ -22,7 +23,7 @@ const ACTION_LABELS: Partial<Record<RequestStatus, string>> = {
 /** « Mes interventions » : le serveur ne renvoie que les demandes attribuées à l'agent connecté. */
 @Component({
     selector: 'app-agent-workspace',
-    imports: [DatePipe, RouterLink],
+    imports: [DatePipe, RouterLink, RequestThread],
     templateUrl: './agent-workspace.html',
     styleUrl: './agent-workspace.scss'
 })
@@ -41,10 +42,15 @@ export class AgentWorkspace {
     protected readonly timelineFor = signal<string | null>(null);
     protected readonly timeline = signal<RequestEvent[]>([]);
     protected readonly eventLabel = eventLabel;
+    protected readonly awaitingReply = awaitingReply;
+    /** F84 : fil de messages ouvert (une demande à la fois) et filtre « réponse attendue ». */
+    protected readonly threadFor = signal<string | null>(null);
+    protected readonly awaitingOnly = signal(false);
     /** Dernières actions sur les demandes de l'agent (F47), le détail complet est dans le Journal. */
     protected readonly recentActivity = signal<RequestActivity[]>([]);
 
     protected readonly actionRequired = computed(() => this.items().filter((item) => item.status === 'En cours'));
+    protected readonly awaitingCount = computed(() => this.items().filter((item) => awaitingReply(item)).length);
 
     constructor() {
         // Rafraîchit la liste quand la mairie la modifie ailleurs (autre onglet, autre poste).
@@ -56,7 +62,7 @@ export class AgentWorkspace {
         this.loading.set(true);
         this.error.set(null);
         forkJoin({
-            page: this.api.list({ page: this.page(), page_size: PAGE_SIZE, sort_by: 'created_at', sort_order: 'desc' }),
+            page: this.api.list({ page: this.page(), page_size: PAGE_SIZE, sort_by: 'created_at', sort_order: 'desc', awaiting_reply: this.awaitingOnly() || undefined }),
             // Le journal est un complément : son indisponibilité ne bloque pas la liste.
             activity: this.journal.activity({ type: null, since: null, until: null, search: '', page: 1 }, 5).pipe(catchError(() => of(null)))
         })
@@ -100,6 +106,23 @@ export class AgentWorkspace {
                 next: () => this.refresh(),
                 error: (error: unknown) => this.error.set(`« ${item.title} » : ${apiErrorMessage(error)}`)
             });
+    }
+
+    protected toggleAwaiting(): void {
+        this.awaitingOnly.update((value) => !value);
+        this.page.set(1);
+        this.refresh();
+    }
+
+    protected toggleThread(item: CitizenRequest): void {
+        this.threadFor.set(this.threadFor() === item.id ? null : item.id);
+    }
+
+    /** Après une réponse, l'indicateur « réponse attendue » se met à jour. */
+    protected onPosted(item: CitizenRequest): void {
+        this.api.get(item.id).subscribe({
+            next: (updated) => this.items.update((items) => items.map((current) => (current.id === updated.id ? updated : current)))
+        });
     }
 
     protected toggleTimeline(item: CitizenRequest): void {

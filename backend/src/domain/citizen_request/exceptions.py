@@ -44,3 +44,30 @@ class NotACitizenError(DomainError):  # → 400
 class AnalysisUnavailableError(DomainError):  # → 503
     def __init__(self, reason: str = "AI analysis is temporarily unavailable") -> None:
         super().__init__(reason)
+
+
+class CannotSupportOwnRequestError(DomainError):  # → 400
+    def __init__(self) -> None:
+        super().__init__("You cannot support your own request")
+
+
+class AlreadySupportedConflictError(DomainError):  # → 409
+    def __init__(self, request_id: str) -> None:
+        super().__init__(f"You already support citizen request '{request_id}'")
+
+
+class SupportNotFoundError(DomainError):  # → 404
+    def __init__(self, request_id: str) -> None:
+        super().__init__(f"You do not support citizen request '{request_id}'")
+
+
+class RequestNotPublicError(DomainError):  # → 400
+    """Seules les demandes ouvertes et non regroupées sont consultables et soutenables."""
+
+    def __init__(self, request_id: str) -> None:
+        super().__init__(f"Citizen request '{request_id}' is not open to public support")
+
+
+class InvalidDuplicateError(DomainError):  # → 400
+    def __init__(self, reason: str) -> None:
+        super().__init__(reason)

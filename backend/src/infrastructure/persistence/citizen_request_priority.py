@@ -44,6 +44,7 @@ class SqlAlchemyPriorityRepository(PriorityRepository):
                 created_at=row.created_at,
                 category=RequestCategory(row.category),
                 now=now,
+                supporters=row.support_count or 0,
             ).total
             level = priority_for(total).value
             if total == row.priority_score and level == row.priority:
@@ -129,6 +130,7 @@ def _to_item(row: CitizenRequestModel, now: datetime) -> PriorityItem:
         created_at=as_utc(row.created_at),
         assigned_agent_id=row.assigned_agent_id,
         location=row.location,
+        support_count=row.support_count or 0,
         is_late=is_late(
             status,
             created_at=row.created_at,

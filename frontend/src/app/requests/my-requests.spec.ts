@@ -34,11 +34,16 @@ describe('MyRequests', () => {
         created_at: '2026-10-03T10:00:00Z',
         updated_at: '2026-10-03T10:00:00Z',
         scheduled_at: null,
-        resolved_at: null
+        resolved_at: null,
+        support_count: 2,
+        duplicate_of_id: null,
+        conversation_state: 'answered' as const,
+        last_message_at: '2026-10-04T11:00:00Z',
+        similar_count: 0
     };
 
     beforeEach(async () => {
-        requestsApi = jasmine.createSpyObj<CitizenRequestService>('CitizenRequestService', ['get', 'events', 'list', 'submit']);
+        requestsApi = jasmine.createSpyObj<CitizenRequestService>('CitizenRequestService', ['get', 'events', 'list', 'submit', 'messages', 'postMessage', 'similarCheck', 'support']);
         requestsApi.get.and.returnValue(of(savedRequest));
         requestsApi.events.and.returnValue(
             of([
@@ -56,6 +61,32 @@ describe('MyRequests', () => {
         );
         requestsApi.list.and.returnValue(of({ items: [], total: 0, page: 1, page_size: 10, total_pages: 0 }));
         requestsApi.submit.and.returnValue(of(savedRequest));
+        requestsApi.messages.and.returnValue(
+            of([
+                { id: 'm1', request_id: savedRequest.id, visibility: 'public' as const, body: 'Intervention prévue jeudi.', created_at: '2026-10-04T11:00:00Z', author_name: 'Jean', author_role: 'agent' as const, from_staff: true }
+            ])
+        );
+        requestsApi.similarCheck.and.returnValue(
+            of([
+                {
+                    id: 'other-1',
+                    title: 'Lampadaire éteint',
+                    category: 'Éclairage public' as const,
+                    status: 'Nouveau' as const,
+                    location: 'Rue Centrale',
+                    created_at: '2026-10-02T10:00:00Z',
+                    support_count: 3,
+                    supported_by_me: false,
+                    is_mine: false,
+                    supported_at: null,
+                    score: 80,
+                    same_place: true
+                }
+            ])
+        );
+        requestsApi.support.and.returnValue(
+            of({ id: 'other-1', title: 'Lampadaire éteint', category: 'Éclairage public' as const, status: 'Nouveau' as const, location: 'Rue Centrale', created_at: '2026-10-02T10:00:00Z', support_count: 4, supported_by_me: true, is_mine: false, supported_at: '2026-10-04T12:00:00Z' })
+        );
         await TestBed.configureTestingModule({
             imports: [TestShell, MyRequests],
             providers: [
@@ -115,5 +146,42 @@ describe('MyRequests', () => {
 
         expect(fixture.nativeElement.textContent).toContain('Quel est le problème ?');
         expect(fixture.nativeElement.textContent).toContain('transmise automatiquement au service compétent');
+    });
+
+    it('shows the conversation with the town hall as an accessible log', async () => {
+        await router.navigateByUrl('/home/my-requests/request-12345678');
+        fixture.detectChanges();
+        await fixture.whenStable();
+        fixture.detectChanges();
+
+        const log = fixture.nativeElement.querySelector('ol[role="log"]') as HTMLElement;
+        expect(log).not.toBeNull();
+        expect(log.textContent).toContain('Intervention prévue jeudi.');
+        expect(log.textContent).toContain('Jean (agent)');
+        expect(fixture.nativeElement.textContent).toContain('La mairie vous a répondu');
+        // Le citoyen n'a pas d'option de note interne.
+        expect(fixture.nativeElement.textContent).not.toContain('Note interne');
+    });
+
+    it('suggests supporting a similar request instead of creating a duplicate', async () => {
+        await router.navigateByUrl('/home/my-requests');
+        fixture.detectChanges();
+        const component = fixture.debugElement.query((el) => el.componentInstance instanceof MyRequests).componentInstance as MyRequests;
+        const internals = component as unknown as { form: { title: string; description: string; category: string; location: string }; creationStep: { set(v: number): void }; nextCreationStep(): void; createDialogVisible: { set(v: boolean): void } };
+        internals.createDialogVisible.set(true);
+        internals.form = { title: 'Lampadaire éteint', description: 'Plus de lumière', category: 'Éclairage public', location: 'Rue Centrale' };
+        internals.creationStep.set(2);
+        internals.nextCreationStep();
+        fixture.detectChanges();
+        await fixture.whenStable();
+        fixture.detectChanges();
+
+        expect(requestsApi.similarCheck).toHaveBeenCalledWith(jasmine.objectContaining({ title: 'Lampadaire éteint', category: 'Éclairage public' }));
+        const button = Array.from(document.querySelectorAll('button')).find((b) => b.textContent?.includes('Soutenir plutôt que créer un doublon')) as HTMLButtonElement;
+        expect(button).toBeTruthy();
+        button.click();
+        fixture.detectChanges();
+        expect(requestsApi.support).toHaveBeenCalledWith('other-1');
+        expect(document.body.textContent).toContain('votre soutien à « Lampadaire éteint » est enregistré');
     });
 });

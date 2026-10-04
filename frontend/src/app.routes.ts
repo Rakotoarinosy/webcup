@@ -24,6 +24,7 @@ export const appRoutes: Routes = [
                     { path: ':id', data: { breadcrumb: 'Détail' }, loadComponent: () => import('./app/requests/my-requests').then((m) => m.MyRequests) }
                 ]
             },
+            { path: 'community', canActivate: [roleGuard], data: { breadcrumb: 'Demandes du quartier', roles: ['citizen'] }, loadComponent: () => import('./app/requests/community-requests').then((m) => m.CommunityRequests) },
             { path: 'users', data: { breadcrumb: 'Comptes citoyens', roles: ['agent', 'manager', 'admin'] }, loadComponent: () => import('./app/users/users').then((m) => m.Users) },
             { path: 'requests', data: { breadcrumb: 'Demandes citoyennes', roles: ['manager', 'admin'] }, loadComponent: () => import('./app/requests/requests').then((m) => m.Requests) },
             {

@@ -47,7 +47,11 @@ export const ACTIVITY_TYPES: { value: RequestEventType; label: string }[] = [
     { value: 'resolved', label: 'Demande résolue' },
     { value: 'rejected', label: 'Demande rejetée' },
     { value: 'priority_changed', label: 'Changement de priorité' },
-    { value: 'updated', label: 'Demande modifiée' }
+    { value: 'updated', label: 'Demande modifiée' },
+    { value: 'supported', label: 'Soutien d’un habitant' },
+    { value: 'marked_duplicate', label: 'Regroupement de doublons' },
+    { value: 'message_posted', label: 'Message public' },
+    { value: 'internal_note_added', label: 'Note interne' }
 ];
 
 export const AUDIT_LABELS: Record<AuditAction, string> = {

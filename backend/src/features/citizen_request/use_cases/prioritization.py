@@ -47,15 +47,7 @@ def update_priority_inputs(
         request.affected_citizens = dto.affected_citizens
 
     previous_priority = request.priority
-    score = compute_score(
-        urgency=request.urgency,
-        affected_citizens=request.affected_citizens,
-        created_at=request.created_at,
-        category=request.category,
-        now=now,
-    )
-    request.priority_score = score.total
-    request.priority = priority_for(score.total)
+    rescore(request, now)
     request.updated_at = now
     updated = repo.update(request)
 
@@ -70,6 +62,20 @@ def update_priority_inputs(
         )
 
     return updated
+
+
+def rescore(request: CitizenRequest, now: datetime) -> None:
+    """Recalcule score et niveau : urgence, citoyens concernés (+ soutiens), ancienneté, criticité."""
+    score = compute_score(
+        urgency=request.urgency,
+        affected_citizens=request.affected_citizens,
+        created_at=request.created_at,
+        category=request.category,
+        now=now,
+        supporters=request.support_count,
+    )
+    request.priority_score = score.total
+    request.priority = priority_for(score.total)
 
 
 def priority_queue(

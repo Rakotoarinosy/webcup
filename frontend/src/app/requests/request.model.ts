@@ -1,4 +1,7 @@
 import {
+    ConversationState,
+    MessageVisibility,
+    PublicRequestSort,
     REQUEST_CATEGORY_VALUES,
     REQUEST_PRIORITY_VALUES,
     REQUEST_STATUS_VALUES,
@@ -14,7 +17,7 @@ import {
 export const REQUEST_CATEGORIES = REQUEST_CATEGORY_VALUES;
 export const REQUEST_PRIORITIES = REQUEST_PRIORITY_VALUES;
 export const REQUEST_STATUSES = REQUEST_STATUS_VALUES;
-export type { RequestCategory, RequestEventType, RequestPriority, RequestSortBy, RequestStatus, SortOrder };
+export type { ConversationState, MessageVisibility, PublicRequestSort, RequestCategory, RequestEventType, RequestPriority, RequestSortBy, RequestStatus, SortOrder };
 
 /**
  * Miroir des transitions du domaine (backend : CitizenRequest.change_status).
@@ -81,6 +84,15 @@ export interface CitizenRequest {
     updated_at: string;
     scheduled_at: string | null;
     resolved_at: string | null;
+    /** F52 : soutiens d'autres habitants (comptent dans la priorité). */
+    support_count: number;
+    /** F75 : demande principale si celle-ci a été regroupée comme doublon. */
+    duplicate_of_id: string | null;
+    /** F84 : « awaiting_staff » = le citoyen attend une réponse de la mairie. */
+    conversation_state: ConversationState;
+    last_message_at: string | null;
+    /** F75 : demandes ouvertes du périmètre qui semblent parler du même problème. */
+    similar_count: number;
 }
 
 /** POST /requests : statut, priorité, institut et agent sont décidés par le serveur. */
@@ -138,6 +150,18 @@ export function eventLabel(event: RequestEvent): string {
             return 'Intervention commencée';
         case 'intervention_finished':
             return 'Intervention terminée';
+        case 'supported':
+            return `Soutenue par un habitant (${payload['support_count'] ?? '?'} soutien(s))`;
+        case 'unsupported':
+            return `Soutien retiré (${payload['support_count'] ?? '?'} soutien(s))`;
+        case 'marked_duplicate':
+            return payload['role'] === 'principal'
+                ? `Demande similaire rattachée : « ${payload['duplicate_title'] ?? '?'} »`
+                : `Regroupée avec la demande « ${payload['duplicate_of_title'] ?? '?'} »`;
+        case 'message_posted':
+            return payload['from_staff'] ? 'Réponse de la mairie' : 'Message du citoyen';
+        case 'internal_note_added':
+            return 'Note interne ajoutée';
     }
 }
 
@@ -159,6 +183,10 @@ export interface CitizenRequestQuery {
     status?: RequestStatus;
     sort_by: RequestSortBy;
     sort_order: SortOrder;
+    /** F75 : seulement les demandes ayant des doublons potentiels. */
+    has_similar?: boolean;
+    /** F84 : seulement les demandes où le citoyen attend une réponse. */
+    awaiting_reply?: boolean;
 }
 
 /** Point de la carte (GET /requests/map). */
@@ -206,4 +234,91 @@ export interface RequestAnalysis {
         status: 'available' | 'in_intervention' | 'unavailable' | 'offline';
         interventions: number;
     } | null;
+}
+
+/**
+ * Vue publique minimale d'une demande (F52) : ni auteur, ni description, ni coordonnées précises.
+ * Le titre est débarrassé des téléphones et e-mails, le lieu des numéros de rue.
+ */
+export interface PublicRequest {
+    id: string;
+    title: string;
+    category: RequestCategory;
+    status: RequestStatus;
+    location: string;
+    created_at: string;
+    support_count: number;
+    supported_by_me: boolean;
+    is_mine: boolean;
+    supported_at: string | null;
+}
+
+export interface PublicRequestPage {
+    items: PublicRequest[];
+    total: number;
+    page: number;
+    page_size: number;
+    total_pages: number;
+}
+
+export interface PublicRequestQuery {
+    page: number;
+    page_size: number;
+    search?: string;
+    category?: RequestCategory;
+    sort?: PublicRequestSort;
+}
+
+/** Demande existante proche d'un brouillon (POST /requests/similar-check). */
+export interface SimilarPublic extends PublicRequest {
+    score: number;
+    same_place: boolean;
+}
+
+export interface SimilarDraftIn {
+    title: string;
+    description?: string;
+    category: RequestCategory;
+    location?: string;
+    latitude?: number | null;
+    longitude?: number | null;
+}
+
+/** Vue groupée (GET /requests/{id}/similar), réservée aux agents et gestionnaires. */
+export interface RequestGroup {
+    principal: CitizenRequest | null;
+    duplicates: CitizenRequest[];
+    similar: { request: CitizenRequest; score: number; shared_keywords: string[]; distance_km: number | null; same_place: boolean }[];
+}
+
+/** Message du fil d'une demande (F84). */
+export interface RequestMessage {
+    id: string;
+    request_id: string;
+    visibility: MessageVisibility;
+    body: string;
+    created_at: string;
+    author_name: string;
+    author_role: 'admin' | 'manager' | 'agent' | 'citizen';
+    from_staff: boolean;
+}
+
+export interface MessageIn {
+    body: string;
+    visibility?: MessageVisibility;
+}
+
+export const MESSAGE_MAX_LENGTH = 4000;
+
+/** Modèles de réponses rapides proposés aux agents (modifiables avant l'envoi). */
+export const QUICK_REPLIES: { label: string; body: string }[] = [
+    { label: 'Accusé de réception', body: 'Bonjour, nous avons bien reçu votre demande. Elle est en cours d’examen par nos services. Merci pour votre signalement.' },
+    { label: 'Intervention planifiée', body: 'Bonjour, une intervention est planifiée. Nous vous tiendrons informé(e) dès qu’elle sera réalisée.' },
+    { label: 'Précision demandée', body: 'Bonjour, pour traiter votre demande, pourriez-vous nous préciser l’emplacement exact (repère visible, numéro le plus proche) ?' },
+    { label: 'Problème résolu', body: 'Bonjour, l’intervention a été réalisée et le problème est résolu. Merci de nous signaler s’il persiste.' }
+];
+
+/** Indicateur « réponse attendue » : le citoyen a écrit en dernier. */
+export function awaitingReply(request: Pick<CitizenRequest, 'conversation_state'>): boolean {
+    return request.conversation_state === 'awaiting_staff';
 }

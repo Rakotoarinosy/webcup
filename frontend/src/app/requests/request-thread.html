@@ -1,0 +1,85 @@
+<section class="request-thread" [attr.aria-labelledby]="uid + '-title'">
+    <h3 [id]="uid + '-title'" class="m-0 text-base font-semibold">Échanges sur la demande</h3>
+    <p class="mt-1 mb-3 text-sm text-muted-color">
+        @if (staff()) {
+            Les réponses sont visibles du citoyen ; les notes internes restent réservées aux agents et à l’encadrement.
+        } @else {
+            Vos échanges avec les services de la mairie, du plus ancien au plus récent.
+        }
+    </p>
+
+    @if (loading() && !messages().length) {
+        <p role="status">Chargement des messages…</p>
+    } @else if (loadError(); as message) {
+        <p role="alert" class="text-red-600">Les messages n’ont pas pu être chargés : {{ message }}</p>
+    } @else {
+        <ol role="log" aria-live="polite" [attr.aria-label]="'Messages de la demande, ' + messages().length + ' message(s)'" class="m-0 flex list-none flex-col gap-3 p-0">
+            @for (message of messages(); track message.id) {
+                <li
+                    class="rounded-border border p-3"
+                    [class.border-primary]="message.from_staff && message.visibility === 'public'"
+                    [class.border-dashed]="message.visibility === 'internal'"
+                    [class.border-surface]="!message.from_staff"
+                >
+                    <p class="m-0 text-sm">
+                        <strong>{{ authorLabel(message) }}</strong>
+                        @if (message.visibility === 'internal') {
+                            <span class="ml-2 rounded bg-emphasis px-2 py-0.5 text-xs font-semibold">Note interne</span>
+                        }
+                        · <time [attr.datetime]="message.created_at">{{ message.created_at | date: 'dd/MM/yyyy à HH:mm' }}</time>
+                    </p>
+                    <p class="mt-2 mb-0 whitespace-pre-wrap">{{ message.body }}</p>
+                </li>
+            } @empty {
+                <li class="text-muted-color">Aucun message pour le moment.</li>
+            }
+        </ol>
+    }
+
+    @if (canWrite()) {
+        <form class="mt-4 grid gap-3" novalidate (ngSubmit)="send()">
+            @if (staff()) {
+                <div>
+                    <p [id]="uid + '-templates'" class="m-0 mb-2 text-sm font-medium">Réponses rapides</p>
+                    <div class="flex flex-wrap gap-2" role="group" [attr.aria-labelledby]="uid + '-templates'">
+                        @for (template of quickReplies; track template.label) {
+                            <button type="button" class="rounded-border border border-surface px-3 py-1 text-sm hover:bg-emphasis focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" (click)="useTemplate(template.body)">
+                                {{ template.label }}
+                            </button>
+                        }
+                    </div>
+                </div>
+                <fieldset class="m-0 border-0 p-0">
+                    <legend class="mb-1 text-sm font-medium">Type de message</legend>
+                    <label class="mr-4 inline-flex items-center gap-2"><input type="radio" [name]="uid + '-visibility'" value="public" [(ngModel)]="visibility" /> Réponse au citoyen</label>
+                    <label class="inline-flex items-center gap-2"><input type="radio" [name]="uid + '-visibility'" value="internal" [(ngModel)]="visibility" /> Note interne</label>
+                </fieldset>
+            }
+            <div>
+                <label [for]="uid + '-body'" class="mb-1 block font-medium">{{ staff() ? (visibility === 'internal' ? 'Note interne' : 'Votre réponse') : 'Votre message' }}</label>
+                <textarea
+                    [id]="uid + '-body'"
+                    [name]="uid + '-body'"
+                    rows="3"
+                    class="w-full rounded border border-surface bg-transparent p-2"
+                    [(ngModel)]="body"
+                    [attr.maxlength]="maxLength"
+                    [attr.aria-invalid]="invalid()"
+                    [attr.aria-describedby]="uid + '-help ' + uid + '-error'"
+                ></textarea>
+                <small [id]="uid + '-help'" class="block text-sm text-muted-color">{{ maxLength }} caractères maximum.</small>
+                <small [id]="uid + '-error'" class="block text-sm text-red-600 dark:text-red-300">
+                    @if (sendError(); as message) {
+                        <span role="alert">{{ message }}</span>
+                    }
+                </small>
+            </div>
+            <div class="flex flex-wrap items-center gap-3">
+                <button type="submit" class="rounded-border bg-primary px-4 py-2 font-medium text-primary-contrast focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-60" [disabled]="sending()">
+                    {{ sending() ? 'Envoi…' : staff() && visibility === 'internal' ? 'Enregistrer la note' : 'Envoyer' }}
+                </button>
+                <span role="status" class="text-sm">{{ confirmation() }}</span>
+            </div>
+        </form>
+    }
+</section>

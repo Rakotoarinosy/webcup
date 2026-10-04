@@ -19,8 +19,10 @@ import {
     RequestCategory,
     RequestEvent,
     RequestStatus,
+    SimilarPublic,
     eventLabel
 } from './request.model';
+import { RequestThread } from './request-thread';
 import { CitizenRequestService } from './request.service';
 import { apiErrorMessage } from '@/app/users/user.service';
 
@@ -48,7 +50,7 @@ export const CATEGORY_HINTS: Record<RequestCategory, string> = {
 
 @Component({
     selector: 'app-my-requests',
-    imports: [DatePipe, FormsModule, RouterLink, ButtonModule, DialogModule, StepperModule],
+    imports: [DatePipe, FormsModule, RouterLink, ButtonModule, DialogModule, StepperModule, RequestThread],
     templateUrl: './my-requests.html'
 })
 export class MyRequests implements OnInit {
@@ -83,6 +85,10 @@ export class MyRequests implements OnInit {
     protected readonly categoryHints = CATEGORY_HINTS;
     protected readonly statuses = [...REQUEST_STATUSES];
     protected form: RequestForm = { ...EMPTY_FORM };
+    /** F75 : demandes existantes proches du brouillon, proposées à l'étape de validation. */
+    protected readonly similar = signal<SimilarPublic[]>([]);
+    protected readonly supportBusy = signal<string | null>(null);
+    protected readonly supportConfirmation = signal<string | null>(null);
 
     ngOnInit(): void {
         this.route.paramMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
@@ -162,6 +168,8 @@ export class MyRequests implements OnInit {
         this.creationStep.set(1);
         this.createError.set(null);
         this.descriptionAttempted.set(false);
+        this.similar.set([]);
+        this.supportConfirmation.set(null);
         this.form = { ...EMPTY_FORM };
         this.createDialogVisible.set(true);
     }
@@ -189,7 +197,35 @@ export class MyRequests implements OnInit {
         }
         this.createError.set(null);
         this.creationStep.update((step) => Math.min(3, step + 1));
+        if (this.creationStep() === 3) this.checkSimilar();
         this.focusStepHeading();
+    }
+
+    /** Avant l'envoi : y a-t-il déjà une demande ouverte pour le même problème ? */
+    private checkSimilar(): void {
+        const category = this.form.category;
+        this.similar.set([]);
+        this.supportConfirmation.set(null);
+        if (!category) return;
+        this.requestsApi
+            .similarCheck({ title: this.form.title.trim(), description: this.form.description.trim(), location: this.form.location.trim(), category })
+            .subscribe({ next: (items) => this.similar.set(items), error: () => this.similar.set([]) });
+    }
+
+    /** « Soutenir plutôt que créer un doublon » : le soutien remplace l'envoi d'une nouvelle demande. */
+    protected supportInstead(item: SimilarPublic): void {
+        if (this.supportBusy() || item.is_mine || item.supported_by_me) return;
+        this.supportBusy.set(item.id);
+        this.requestsApi
+            .support(item.id)
+            .pipe(finalize(() => this.supportBusy.set(null)))
+            .subscribe({
+                next: (updated) => {
+                    this.similar.update((items) => items.map((current) => (current.id === updated.id ? { ...current, ...updated } : current)));
+                    this.supportConfirmation.set(`Merci : votre soutien à « ${updated.title} » est enregistré (${updated.support_count} soutien(s)). Vous pouvez fermer cette fenêtre ; retrouvez-la dans « Demandes du quartier ».`);
+                },
+                error: (error: unknown) => this.createError.set(apiErrorMessage(error))
+            });
     }
 
     protected previousCreationStep(): void {

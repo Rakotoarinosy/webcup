@@ -6,8 +6,11 @@ from sqlalchemy import ColumnElement, false, func, or_, select
 from sqlalchemy.orm import Session
 
 from src.domain.citizen_request import (
+    OPEN_STATUSES,
     CitizenRequest,
     CitizenRequestRepository,
+    ConversationState,
+    PublicRequestSort,
     RequestCategory,
     RequestPriority,
     RequestScope,
@@ -60,8 +63,14 @@ class SqlAlchemyCitizenRequestRepository(CitizenRequestRepository):
         scope: RequestScope,
         sort_by: RequestSortBy,
         sort_order: SortOrder,
+        only_ids: frozenset[str] | None = None,
+        conversation_state: ConversationState | None = None,
     ) -> tuple[list[CitizenRequest], int]:
         filters = scope_conditions(scope)
+        if only_ids is not None:
+            filters.append(CitizenRequestModel.id.in_(sorted(only_ids)))
+        if conversation_state is not None:
+            filters.append(CitizenRequestModel.conversation_state == conversation_state.value)
         if search is not None:
             search_pattern = f"%{search.strip()}%"
             filters.append(
@@ -92,6 +101,91 @@ class SqlAlchemyCitizenRequestRepository(CitizenRequestRepository):
         ).all()
 
         return [to_entity(model) for model in models], total or 0
+
+    def list_candidates(
+        self,
+        *,
+        scope: RequestScope,
+        since: datetime,
+        category: RequestCategory | None = None,
+        limit: int = 1000,
+    ) -> list[CitizenRequest]:
+        filters = [
+            *scope_conditions(scope),
+            CitizenRequestModel.status.in_([status.value for status in OPEN_STATUSES]),
+            CitizenRequestModel.duplicate_of_id.is_(None),
+            CitizenRequestModel.created_at >= since,
+        ]
+        if category is not None:
+            filters.append(CitizenRequestModel.category == category.value)
+        models = self.db.scalars(
+            select(CitizenRequestModel)
+            .where(*filters)
+            .order_by(CitizenRequestModel.created_at.desc(), CitizenRequestModel.id.asc())
+            .limit(limit)
+        )
+
+        return [to_entity(model) for model in models]
+
+    def get_many(self, request_ids: list[str]) -> list[CitizenRequest]:
+        if not request_ids:
+            return []
+        models = self.db.scalars(
+            select(CitizenRequestModel).where(CitizenRequestModel.id.in_(request_ids))
+        )
+
+        return [to_entity(model) for model in models]
+
+    def list_public(
+        self,
+        *,
+        page: int,
+        page_size: int,
+        search: str | None,
+        category: RequestCategory | None,
+        sort: PublicRequestSort,
+    ) -> tuple[list[CitizenRequest], int]:
+        filters: list[ColumnElement[bool]] = [
+            CitizenRequestModel.status.in_([status.value for status in OPEN_STATUSES]),
+            CitizenRequestModel.duplicate_of_id.is_(None),
+        ]
+        if search:
+            pattern = f"%{search.strip()}%"
+            filters.append(
+                or_(
+                    CitizenRequestModel.title.ilike(pattern),
+                    CitizenRequestModel.location.ilike(pattern),
+                )
+            )
+        if category is not None:
+            filters.append(CitizenRequestModel.category == category.value)
+
+        total = self.db.scalar(
+            select(func.count()).select_from(CitizenRequestModel).where(*filters)
+        )
+        order = (
+            [CitizenRequestModel.support_count.desc(), CitizenRequestModel.created_at.desc()]
+            if sort is PublicRequestSort.MOST_SUPPORTED
+            else [CitizenRequestModel.created_at.desc()]
+        )
+        models = self.db.scalars(
+            select(CitizenRequestModel)
+            .where(*filters)
+            .order_by(*order, CitizenRequestModel.id.asc())
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+        )
+
+        return [to_entity(model) for model in models], total or 0
+
+    def list_duplicates_of(self, request_id: str) -> list[CitizenRequest]:
+        models = self.db.scalars(
+            select(CitizenRequestModel)
+            .where(CitizenRequestModel.duplicate_of_id == request_id)
+            .order_by(CitizenRequestModel.created_at.asc())
+        )
+
+        return [to_entity(model) for model in models]
 
     def list_by_agent(self, agent_id: str) -> list[CitizenRequest]:
         models = self.db.scalars(
@@ -143,6 +237,10 @@ def to_entity(model: CitizenRequestModel) -> CitizenRequest:
         affected_citizens=model.affected_citizens,
         priority_score=model.priority_score,
         institut_id=model.institut_id,
+        support_count=model.support_count or 0,
+        duplicate_of_id=model.duplicate_of_id,
+        conversation_state=ConversationState(model.conversation_state or "none"),
+        last_message_at=as_utc(model.last_message_at) if model.last_message_at else None,
     )
 
 
@@ -167,4 +265,8 @@ def _to_model(request: CitizenRequest) -> CitizenRequestModel:
         affected_citizens=request.affected_citizens,
         priority_score=request.priority_score,
         institut_id=request.institut_id,
+        support_count=request.support_count,
+        duplicate_of_id=request.duplicate_of_id,
+        conversation_state=request.conversation_state.value,
+        last_message_at=request.last_message_at,
     )

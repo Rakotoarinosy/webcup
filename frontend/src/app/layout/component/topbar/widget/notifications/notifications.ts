@@ -60,6 +60,11 @@ export class Notifications {
             this.api.markRead(notification.key).pipe(catchError(() => EMPTY)).subscribe();
         }
         const role = this.auth.user()?.role;
+        // Une demande soutenue n'appartient pas à l'habitant : elle se suit depuis « Demandes du quartier ».
+        if (notification.kind === 'supported_update') {
+            void this.router.navigate(['/home/community']);
+            return;
+        }
         void this.router.navigate(role === 'citizen' ? ['/home/my-requests', notification.request_id] : role === 'agent' ? ['/home/agent'] : ['/home/requests']);
     }
 

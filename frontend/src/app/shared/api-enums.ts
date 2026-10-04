@@ -15,7 +15,7 @@ export type RequestPriority = (typeof REQUEST_PRIORITY_VALUES)[number];
 export const REQUEST_STATUS_VALUES = ['Nouveau', 'En cours', 'En attente', 'Résolu', 'Rejeté'] as const;
 export type RequestStatus = (typeof REQUEST_STATUS_VALUES)[number];
 
-export const REQUEST_EVENT_TYPE_VALUES = ['created', 'updated', 'priority_changed', 'status_changed', 'assigned', 'resolved', 'rejected', 'intervention_started', 'intervention_finished'] as const;
+export const REQUEST_EVENT_TYPE_VALUES = ['created', 'updated', 'priority_changed', 'status_changed', 'assigned', 'resolved', 'rejected', 'intervention_started', 'intervention_finished', 'supported', 'unsupported', 'marked_duplicate', 'message_posted', 'internal_note_added'] as const;
 export type RequestEventType = (typeof REQUEST_EVENT_TYPE_VALUES)[number];
 
 export const REQUEST_SORT_BY_VALUES = ['created_at', 'title', 'category', 'priority', 'status'] as const;
@@ -24,10 +24,19 @@ export type RequestSortBy = (typeof REQUEST_SORT_BY_VALUES)[number];
 export const SORT_ORDER_VALUES = ['asc', 'desc'] as const;
 export type SortOrder = (typeof SORT_ORDER_VALUES)[number];
 
+export const PUBLIC_REQUEST_SORT_VALUES = ['recent', 'most_supported'] as const;
+export type PublicRequestSort = (typeof PUBLIC_REQUEST_SORT_VALUES)[number];
+
+export const CONVERSATION_STATE_VALUES = ['none', 'awaiting_staff', 'answered'] as const;
+export type ConversationState = (typeof CONVERSATION_STATE_VALUES)[number];
+
+export const MESSAGE_VISIBILITY_VALUES = ['public', 'internal'] as const;
+export type MessageVisibility = (typeof MESSAGE_VISIBILITY_VALUES)[number];
+
 export const AGENT_STATUS_VALUES = ['available', 'in_intervention', 'unavailable', 'offline'] as const;
 export type AgentStatus = (typeof AGENT_STATUS_VALUES)[number];
 
-export const NOTIFICATION_KIND_VALUES = ['created', 'status_changed', 'rejected', 'assigned', 'resolved', 'late'] as const;
+export const NOTIFICATION_KIND_VALUES = ['created', 'status_changed', 'rejected', 'assigned', 'resolved', 'late', 'message_posted', 'marked_duplicate', 'supported_update'] as const;
 export type NotificationKind = (typeof NOTIFICATION_KIND_VALUES)[number];
 
 export const CONCERN_TOPIC_VALUES = ['Collecte', 'Utilisation', 'Partage', 'Conservation', 'Accès, rectification ou suppression', 'Autre'] as const;

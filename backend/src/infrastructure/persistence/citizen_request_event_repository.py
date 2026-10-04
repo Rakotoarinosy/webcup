@@ -82,6 +82,10 @@ def _activity_conditions(query: ActivityQuery) -> list[ColumnElement[bool]]:
     conditions: list[ColumnElement[bool]] = []
     if query.types:
         conditions.append(CitizenRequestEventModel.type.in_([t.value for t in query.types]))
+    if query.exclude_types:
+        conditions.append(
+            CitizenRequestEventModel.type.not_in([t.value for t in query.exclude_types])
+        )
     if query.since is not None:
         conditions.append(CitizenRequestEventModel.created_at >= query.since)
     if query.until is not None:

@@ -24,6 +24,20 @@ class RequestEventType(StrEnum):
     # Réservés pour l'étape « interventions » (démarrage / fin d'intervention).
     INTERVENTION_STARTED = "intervention_started"
     INTERVENTION_FINISHED = "intervention_finished"
+    # Participation des habitants (F52) : l'identité du soutien n'est jamais montrée à l'auteur.
+    SUPPORTED = "supported"
+    UNSUPPORTED = "unsupported"
+    # Regroupement des doublons (F75) : écrit sur la demande doublon et sur la principale.
+    MARKED_DUPLICATE = "marked_duplicate"
+    # Fil de messages (F84). La note interne n'est jamais visible du citoyen.
+    MESSAGE_POSTED = "message_posted"
+    INTERNAL_NOTE_ADDED = "internal_note_added"
+
+
+# Événements réservés aux agents et gestionnaires : jamais montrés à un citoyen.
+STAFF_ONLY_EVENTS = frozenset({RequestEventType.INTERNAL_NOTE_ADDED})
+# Événements dont l'auteur reste anonyme pour un citoyen (un soutien est une participation privée).
+ANONYMOUS_FOR_CITIZENS = frozenset({RequestEventType.SUPPORTED, RequestEventType.UNSUPPORTED})
 
 
 @dataclass
@@ -53,6 +67,7 @@ class ActivityQuery:
     """Filtres du journal d'activité (toutes demandes du périmètre confondues)."""
 
     types: frozenset[RequestEventType] = frozenset()
+    exclude_types: frozenset[RequestEventType] = frozenset()
     since: datetime | None = None
     until: datetime | None = None
     search: str | None = None  # titre de la demande ou auteur de l'action

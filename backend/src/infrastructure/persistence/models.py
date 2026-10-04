@@ -181,8 +181,61 @@ class CitizenRequestModel(Base):
     institut_id: Mapped[str | None] = mapped_column(
         String(36), ForeignKey("instituts.id", ondelete="SET NULL"), nullable=True, index=True
     )
+    # F52 : nombre de soutiens (dénormalisé, tenu à jour avec citizen_request_supports).
+    support_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    # F75 : demande principale dont celle-ci est le doublon.
+    duplicate_of_id: Mapped[str | None] = mapped_column(
+        String(36),
+        ForeignKey(
+            "citizen_requests.id", ondelete="SET NULL", name="fk_citizen_requests_duplicate_of"
+        ),
+        nullable=True,
+        index=True,
+    )
+    # F84 : état du fil de messages (ConversationState) et date du dernier message public.
+    conversation_state: Mapped[str] = mapped_column(
+        String(20), default="none", server_default="none", index=True
+    )
+    last_message_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     __table_args__ = (Index("ix_citizen_requests_status_created_at", "status", "created_at"),)
+
+
+class CitizenRequestSupportModel(Base):
+    """Soutien d'une demande par un autre habitant (F52) : un par habitant et par demande."""
+
+    __tablename__ = "citizen_request_supports"
+
+    request_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("citizen_requests.id", ondelete="CASCADE"), primary_key=True
+    )
+    citizen_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True, index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class CitizenRequestMessageModel(Base):
+    """Fil de messages d'une demande (F84) : réponses publiques et notes internes."""
+
+    __tablename__ = "citizen_request_messages"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    request_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("citizen_requests.id", ondelete="CASCADE"), nullable=False
+    )
+    author_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    author_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    author_role: Mapped[str] = mapped_column(String(20), nullable=False)
+    visibility: Mapped[str] = mapped_column(String(20), nullable=False)
+    body: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    __table_args__ = (
+        Index("ix_citizen_request_messages_request_created", "request_id", "created_at"),
+    )
 
 
 class CitizenRequestEventModel(Base):

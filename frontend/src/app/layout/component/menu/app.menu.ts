@@ -29,7 +29,10 @@ export class AppMenu {
             );
         }
         if (this.auth.hasRole('citizen')) {
-            items.push({ label: 'Mes demandes', icon: 'pi pi-fw pi-list', routerLink: ['/home/my-requests'], badge: this.notificationBadge() });
+            items.push(
+                { label: 'Mes demandes', icon: 'pi pi-fw pi-list', routerLink: ['/home/my-requests'], badge: this.notificationBadge() },
+                { label: 'Demandes du quartier', icon: 'pi pi-fw pi-thumbs-up', routerLink: ['/home/community'] }
+            );
         }
         if (this.auth.hasRole('manager', 'admin')) {
             items.push({ label: 'Demandes citoyennes', icon: 'pi pi-fw pi-inbox', routerLink: ['/home/requests'], badge: this.notificationBadge() });

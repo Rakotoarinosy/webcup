@@ -9,6 +9,20 @@ import { AgentWorkspace } from './agent-workspace';
 describe('AgentWorkspace', () => {
     let fixture: ComponentFixture<AgentWorkspace>;
     let byStatus: Record<string, number>;
+    let lastQuery: { awaiting_reply?: boolean } = {};
+    const awaitingItem = {
+        id: 'r1',
+        title: 'Lampadaire cassé',
+        description: 'Rue sombre',
+        category: 'Éclairage public',
+        priority: 'Normale',
+        status: 'En cours',
+        location: 'Rue A',
+        scheduled_at: null,
+        support_count: 3,
+        similar_count: 1,
+        conversation_state: 'awaiting_staff'
+    };
 
     beforeEach(async () => {
         byStatus = { Nouveau: 0, 'En cours': 2, 'En attente': 1, Résolu: 0, Rejeté: 0 };
@@ -38,7 +52,13 @@ describe('AgentWorkspace', () => {
                 {
                     provide: CitizenRequestService,
                     useValue: {
-                        list: () => of({ items: [], total: 0, page: 1, page_size: 20, total_pages: 1 }),
+                        list: (query: { awaiting_reply?: boolean }) => {
+                            lastQuery = query;
+                            return of({ items: [awaitingItem], total: 1, page: 1, page_size: 20, total_pages: 1 });
+                        },
+                        get: () => of(awaitingItem),
+                        messages: () => of([]),
+                        postMessage: () => of({}),
                         dashboard: () => of({ total: 3, by_status: byStatus }),
                         changeStatus: () => of({}),
                         events: () => of([])
@@ -61,5 +81,23 @@ describe('AgentWorkspace', () => {
         expect(entries[0].textContent).toContain('par Hery');
         expect(entries[0].querySelector('time')?.getAttribute('datetime')).toBe('2026-10-03T08:00:00Z');
         expect(fixture.nativeElement.querySelector('a[href="/home/journal"]')).not.toBeNull();
+    });
+
+    it('flags requests awaiting a reply, filters them and opens the thread with quick replies', () => {
+        fixture.detectChanges();
+        const element = fixture.nativeElement as HTMLElement;
+        expect(element.querySelector('.awaiting-badge')?.textContent).toContain('Réponse attendue');
+        expect(element.textContent).toContain('3 soutien(s)');
+
+        const filter = Array.from(element.querySelectorAll('button[aria-pressed]'))[0] as HTMLButtonElement;
+        filter.click();
+        fixture.detectChanges();
+        expect(lastQuery.awaiting_reply).toBeTrue();
+
+        const open = Array.from(element.querySelectorAll('button')).find((b) => b.textContent?.includes('Répondre au citoyen')) as HTMLButtonElement;
+        open.click();
+        fixture.detectChanges();
+        expect(element.querySelector('app-request-thread')).not.toBeNull();
+        expect(element.textContent).toContain('Réponses rapides');
     });
 });

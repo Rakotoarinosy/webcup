@@ -7,12 +7,16 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from src.domain.agent import AgentStatus
 from src.domain.citizen_request import (
+    MESSAGE_MAX_LENGTH,
+    ConversationState,
+    MessageVisibility,
     RequestCategory,
     RequestEventType,
     RequestPriority,
     RequestStatus,
 )
 from src.domain.citizen_request.priority import DEFAULT_URGENCY, URGENCY_MAX, URGENCY_MIN
+from src.domain.user import Role
 
 # ─── Entrées ────────────────────────────────────────────────────────
 
@@ -65,6 +69,33 @@ class PriorityInputsIn(BaseModel):
         return self
 
 
+class SimilarDraftIn(BaseModel):
+    """Brouillon de demande, comparé aux demandes existantes avant l'envoi (F75)."""
+
+    title: str = Field(min_length=1, max_length=255)
+    description: str = Field(default="", max_length=10_000)
+    category: RequestCategory
+    location: str = Field(default="", max_length=500)
+    latitude: float | None = Field(default=None, ge=-90, le=90)
+    longitude: float | None = Field(default=None, ge=-180, le=180)
+
+
+class MarkDuplicateIn(BaseModel):
+    duplicate_of_id: str = Field(min_length=1, max_length=36)
+
+
+class MessageIn(BaseModel):
+    body: str = Field(min_length=1, max_length=MESSAGE_MAX_LENGTH)
+    visibility: MessageVisibility = MessageVisibility.PUBLIC
+
+    @model_validator(mode="after")
+    def not_blank(self) -> Self:
+        self.body = self.body.strip()
+        if not self.body:
+            raise ValueError("The message cannot be empty")
+        return self
+
+
 # ─── Sorties ────────────────────────────────────────────────────────
 
 
@@ -90,6 +121,12 @@ class CitizenRequestOut(BaseModel):
     updated_at: datetime
     scheduled_at: datetime | None
     resolved_at: datetime | None
+    support_count: int = 0
+    duplicate_of_id: str | None = None
+    conversation_state: ConversationState = ConversationState.NONE
+    last_message_at: datetime | None = None
+    # Demandes ouvertes du même périmètre qui semblent parler du même problème (F75).
+    similar_count: int = 0
 
 
 class CitizenRequestPageOut(BaseModel):
@@ -143,6 +180,7 @@ class PriorityItemOut(BaseModel):
     assigned_agent_id: str | None
     location: str
     is_late: bool
+    support_count: int
 
 
 class PriorityQueueOut(BaseModel):
@@ -225,3 +263,64 @@ class RequestAnalysisOut(BaseModel):
     summary: str
     reason: str
     recommended_agent: RecommendedAgentOut | None
+
+
+class PublicRequestOut(BaseModel):
+    """Vue publique minimale et anonymisée (voir domain/citizen_request/support.py)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    title: str
+    category: RequestCategory
+    status: RequestStatus
+    location: str
+    created_at: datetime
+    support_count: int
+    supported_by_me: bool
+    is_mine: bool
+    supported_at: datetime | None = None
+
+
+class PublicRequestPageOut(BaseModel):
+    items: list[PublicRequestOut]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+
+
+class SimilarPublicOut(PublicRequestOut):
+    """Demande existante proche d'un brouillon : la soutenir évite un doublon."""
+
+    score: int
+    same_place: bool
+
+
+class SimilarRequestOut(BaseModel):
+    request: CitizenRequestOut
+    score: int
+    shared_keywords: list[str]
+    distance_km: float | None
+    same_place: bool
+
+
+class RequestGroupOut(BaseModel):
+    """Vue groupée d'une demande : principale, doublons rattachés, rapprochements possibles."""
+
+    principal: CitizenRequestOut | None
+    duplicates: list[CitizenRequestOut]
+    similar: list[SimilarRequestOut]
+
+
+class MessageOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    request_id: str
+    visibility: MessageVisibility
+    body: str
+    created_at: datetime
+    author_name: str
+    author_role: Role
+    from_staff: bool

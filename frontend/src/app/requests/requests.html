@@ -59,7 +59,17 @@
             class="w-full"
         />
     </div>
-    <div class="mb-4 flex justify-end">
+    <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex flex-wrap gap-5">
+            <div class="flex items-center gap-2">
+                <p-checkbox inputId="filter-similar" [binary]="true" [(ngModel)]="similarOnly" (ngModelChange)="applyFilters()" ariaLabelledBy="filter-similar-label" />
+                <label id="filter-similar-label" for="filter-similar">Avec doublons potentiels</label>
+            </div>
+            <div class="flex items-center gap-2">
+                <p-checkbox inputId="filter-awaiting" [binary]="true" [(ngModel)]="awaitingOnly" (ngModelChange)="applyFilters()" ariaLabelledBy="filter-awaiting-label" />
+                <label id="filter-awaiting-label" for="filter-awaiting">Réponse attendue</label>
+            </div>
+        </div>
         <p-button label="Réinitialiser les filtres" icon="pi pi-filter-slash" severity="secondary" [text]="true" (onClick)="clearFilters()" />
     </div>
 
@@ -95,6 +105,7 @@
                 <th style="min-width: 12rem">Localisation</th>
                 <th style="min-width: 10rem">Institut</th>
                 <th style="min-width: 10rem">Agent assigné</th>
+                <th style="min-width: 11rem">Suivi</th>
                 <th style="width: 13rem">Actions</th>
             </tr>
         </ng-template>
@@ -112,6 +123,22 @@
                 <td>{{ institutName(request.institut_id) }}</td>
                 <td>{{ agentName(request.assigned_agent_id) }}</td>
                 <td>
+                    <ul class="m-0 flex list-none flex-col gap-1 p-0 text-sm">
+                        @if (awaitingReply(request)) {
+                            <li><p-tag severity="warn" icon="pi pi-comment" value="Réponse attendue" /></li>
+                        }
+                        @if (request.similar_count) {
+                            <li><p-tag severity="info" icon="pi pi-clone" [value]="request.similar_count + ' similaire(s)'" /></li>
+                        }
+                        @if (request.duplicate_of_id) {
+                            <li>Doublon de #{{ request.duplicate_of_id.slice(0, 8) }}</li>
+                        }
+                        @if (request.support_count) {
+                            <li>{{ request.support_count }} soutien(s)</li>
+                        }
+                    </ul>
+                </td>
+                <td>
                     <div class="flex gap-1">
                         <p-button icon="pi pi-eye" [rounded]="true" [text]="true" [ariaLabel]="'Consulter la demande « ' + request.title + ' »'" (onClick)="openDetails(request)" />
                         <p-button icon="pi pi-sparkles" severity="help" [rounded]="true" [text]="true" [ariaLabel]="'Analyser avec l’IA la demande « ' + request.title + ' »'" pTooltip="Analyser la demande" tooltipPosition="top" (onClick)="analyze(request)" />
@@ -127,7 +154,7 @@
 
         <ng-template #emptymessage>
             <tr>
-                <td colspan="11" class="py-8 text-center text-muted-color">Aucune demande ne correspond aux critères.</td>
+                <td colspan="12" class="py-8 text-center text-muted-color">Aucune demande ne correspond aux critères.</td>
             </tr>
         </ng-template>
     </p-table>
@@ -292,7 +319,50 @@
             <div><dt class="text-sm text-muted-color">Citoyen</dt><dd class="mt-1">{{ userName(request.citizen_id) }}</dd></div>
             <div><dt class="text-sm text-muted-color">Agent assigné</dt><dd class="mt-1">{{ agentName(request.assigned_agent_id) }}</dd></div>
             <div class="sm:col-span-2"><dt class="text-sm text-muted-color">Localisation</dt><dd class="mt-1">{{ request.location }}</dd></div>
+            <div><dt class="text-sm text-muted-color">Soutiens d’habitants</dt><dd class="mt-1">{{ request.support_count }} (comptés dans le score)</dd></div>
+            <div><dt class="text-sm text-muted-color">Échanges</dt><dd class="mt-1">{{ awaitingReply(request) ? 'Réponse attendue du citoyen' : request.conversation_state === 'answered' ? 'Réponse envoyée' : 'Aucun échange' }}</dd></div>
         </dl>
+
+        <section class="mt-6" aria-labelledby="group-title">
+            <h3 id="group-title" class="mb-2 text-base font-semibold">Demandes similaires et doublons</h3>
+            @if (group(); as g) {
+                @if (g.principal; as principal) {
+                    <p class="m-0">Doublon de <button type="button" class="text-primary underline" (click)="openDetails(principal)">« {{ principal.title }} »</button> ({{ principal.status }}).</p>
+                }
+                @if (g.duplicates.length) {
+                    <p class="mt-2 mb-1 text-sm font-medium">Doublons rattachés ({{ g.duplicates.length }})</p>
+                    <ul class="m-0 pl-5">
+                        @for (dup of g.duplicates; track dup.id) {
+                            <li>« {{ dup.title }} » · {{ userName(dup.citizen_id) }} · {{ dup.created_at | date: 'dd/MM/yyyy' }}</li>
+                        }
+                    </ul>
+                }
+                @if (g.similar.length) {
+                    <p class="mt-2 mb-1 text-sm font-medium">{{ g.similar.length }} demande(s) similaire(s) ouverte(s)</p>
+                    <ul class="m-0 flex list-none flex-col gap-2 p-0">
+                        @for (item of g.similar; track item.request.id) {
+                            <li class="rounded-border border border-surface p-2">
+                                <button type="button" class="font-medium text-primary underline" (click)="openDetails(item.request)">« {{ item.request.title }} »</button>
+                                <span class="text-sm text-muted-color"> · {{ item.request.location }} · {{ item.request.created_at | date: 'dd/MM/yyyy' }} · {{ item.request.status }}
+                                    · mots communs : {{ item.shared_keywords.join(', ') || '—' }}
+                                    @if (item.distance_km !== null) { · à {{ item.distance_km * 1000 | number: '1.0-0' }} m }
+                                </span>
+                                @if (isOpen(request.status) && !request.duplicate_of_id) {
+                                    <div class="mt-1 flex flex-wrap gap-2">
+                                        <p-button size="small" [text]="true" icon="pi pi-clone" label="Marquer comme doublon de celle-ci" [ariaLabel]="'Marquer la demande actuelle comme doublon de « ' + item.request.title + ' »'" (onClick)="confirmDuplicate(request, item.request)" />
+                                        <p-button size="small" [text]="true" icon="pi pi-arrow-down-left" label="Rattacher à la demande actuelle" [ariaLabel]="'Marquer « ' + item.request.title + ' » comme doublon de la demande actuelle'" (onClick)="confirmDuplicate(item.request, request)" />
+                                    </div>
+                                }
+                            </li>
+                        }
+                    </ul>
+                } @else if (!g.principal && !g.duplicates.length) {
+                    <p class="m-0 text-muted-color">Aucune demande similaire détectée.</p>
+                }
+            } @else {
+                <p class="m-0 text-muted-color" role="status">Recherche des demandes similaires…</p>
+            }
+        </section>
 
         <h3 class="mt-6 mb-3 text-base font-semibold">Historique</h3>
         <ol class="m-0 list-none p-0" aria-label="Historique de la demande, du plus ancien au plus récent">
@@ -305,6 +375,10 @@
                 <li class="text-muted-color" role="status">Chargement de l'historique…</li>
             }
         </ol>
+
+        <div class="mt-6">
+            <app-request-thread [requestId]="request.id" [staff]="true" (posted)="onMessagePosted()" />
+        </div>
     }
     <ng-template #footer>
         @if (selectedRequest(); as request) {

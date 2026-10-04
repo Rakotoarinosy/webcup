@@ -15,7 +15,17 @@
                 <dt>Statut actuel</dt><dd><strong>{{ request.status }}</strong></dd>
                 <dt>Créée le</dt><dd>{{ request.created_at | date: 'dd/MM/yyyy à HH:mm' }}</dd>
                 <dt>Lieu</dt><dd>{{ request.location }}</dd>
+                <dt>Soutiens d’autres habitants</dt><dd>{{ request.support_count }}</dd>
             </dl>
+            @if (request.duplicate_of_id) {
+                <p class="rounded-border border border-surface p-3" role="note">
+                    Votre demande a été regroupée avec une demande similaire (#{{ request.duplicate_of_id.slice(0, 8) }}) qui traite le même problème.
+                    Vous la soutenez automatiquement et serez prévenu(e) de son évolution dans <a routerLink="/home/community" class="text-primary underline">Demandes du quartier</a>.
+                </p>
+            }
+            @if (request.conversation_state === 'answered') {
+                <p class="font-medium"><i class="pi pi-comment mr-1" aria-hidden="true"></i>La mairie vous a répondu : voir les échanges ci-dessous.</p>
+            }
             <section aria-labelledby="request-timeline-title" class="mt-8">
                 <h2 id="request-timeline-title" class="text-lg font-semibold">Étapes de traitement</h2>
                 @if (historyLoading()) {
@@ -35,6 +45,9 @@
                     <p>Aucune étape de traitement n’est encore enregistrée.</p>
                 }
             </section>
+            <div class="mt-8">
+                <app-request-thread [requestId]="request.id" [canWrite]="request.status !== 'Résolu' && request.status !== 'Rejeté'" />
+            </div>
         }
     </section>
 } @else {
@@ -148,6 +161,27 @@
                     <dt class="font-medium">Lieu</dt><dd class="m-0">{{ form.location }}</dd>
                 </dl>
                 <p class="mb-0 mt-3 text-sm text-muted-color">La mairie fixera la priorité et confiera votre demande à un agent du service compétent.</p>
+                @if (similar().length) {
+                    <section class="mt-5 rounded-xl border border-surface p-4" aria-labelledby="similar-title">
+                        <h4 id="similar-title" class="m-0 font-semibold">Ce problème a peut-être déjà été signalé</h4>
+                        <p class="mt-1 text-sm text-muted-color">Soutenez plutôt que créer un doublon : votre voix comptera dans la priorité et vous serez prévenu(e) de l’évolution.</p>
+                        <ul class="m-0 grid list-none gap-2 p-0">
+                            @for (item of similar(); track item.id) {
+                                <li class="flex flex-wrap items-center justify-between gap-2 border-b border-surface py-2">
+                                    <span><strong>{{ item.title }}</strong><span class="text-sm text-muted-color"> · {{ item.location }} · {{ item.status }} · {{ item.support_count }} soutien(s)</span></span>
+                                    @if (item.is_mine) {
+                                        <span class="text-sm">Votre demande</span>
+                                    } @else if (item.supported_by_me) {
+                                        <span class="text-sm font-medium">✓ Vous la soutenez</span>
+                                    } @else {
+                                        <p-button label="Soutenir plutôt que créer un doublon" size="small" [outlined]="true" [loading]="supportBusy() === item.id" [ariaLabel]="'Soutenir « ' + item.title + ' » plutôt que créer un doublon'" (onClick)="supportInstead(item)" />
+                                    }
+                                </li>
+                            }
+                        </ul>
+                        <p role="status" class="mb-0 mt-2 font-medium">{{ supportConfirmation() }}</p>
+                    </section>
+                }
             </section>
         }
 

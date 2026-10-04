@@ -41,13 +41,18 @@
                 <h2 id="requests-heading">Demandes reçues</h2>
                 <p>Les demandes en cours demandent une action de votre part.</p>
             </div>
-            <span class="action-count" aria-live="polite">{{ actionRequired().length }} en cours sur cette page</span>
+            <span class="action-count" aria-live="polite">{{ actionRequired().length }} en cours · {{ awaitingCount() }} réponse(s) attendue(s) sur cette page</span>
+        </div>
+        <div class="filter-bar">
+            <button type="button" class="secondary-button" [attr.aria-pressed]="awaitingOnly()" (click)="toggleAwaiting()">
+                {{ awaitingOnly() ? '✓ Réponse attendue uniquement' : 'Afficher seulement les réponses attendues' }}
+            </button>
         </div>
 
         @if (loading() && !items().length) {
             <p class="loading-message" role="status">Chargement de vos demandes…</p>
         } @else if (!loading() && !items().length) {
-            <p class="empty-message">Aucune demande ne vous est attribuée pour le moment.</p>
+            <p class="empty-message">{{ awaitingOnly() ? 'Aucune demande n’attend de réponse de votre part.' : 'Aucune demande ne vous est attribuée pour le moment.' }}</p>
         } @else {
             <div class="table-wrap">
                 <table class="app-data-table">
@@ -69,6 +74,20 @@
                                     <strong>{{ item.title }}</strong>
                                     <span class="description">{{ item.description }}</span>
                                     <span class="address">{{ item.location }}</span>
+                                    @if (awaitingReply(item)) {
+                                        <span class="awaiting-badge"><i class="pi pi-comment" aria-hidden="true"></i> Réponse attendue</span>
+                                    }
+                                    @if (item.support_count || item.similar_count) {
+                                        <span class="signals">{{ item.support_count }} soutien(s) d’habitants · {{ item.similar_count }} demande(s) similaire(s)</span>
+                                    }
+                                    <button type="button" class="link-button" [attr.aria-expanded]="threadFor() === item.id" [attr.aria-controls]="'thread-' + item.id" (click)="toggleThread(item)">
+                                        {{ threadFor() === item.id ? 'Masquer les échanges' : 'Répondre au citoyen' }}
+                                    </button>
+                                    @if (threadFor() === item.id) {
+                                        <div [id]="'thread-' + item.id" class="thread-panel">
+                                            <app-request-thread [requestId]="item.id" [staff]="true" (posted)="onPosted(item)" />
+                                        </div>
+                                    }
                                     <button type="button" class="link-button" [attr.aria-expanded]="timelineFor() === item.id" (click)="toggleTimeline(item)">
                                         {{ timelineFor() === item.id ? 'Masquer l’historique' : 'Voir l’historique' }}
                                     </button>

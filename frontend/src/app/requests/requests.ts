@@ -1,10 +1,11 @@
-import { DatePipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule, NgForm } from '@angular/forms';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
+import { CheckboxModule } from 'primeng/checkbox';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DialogModule } from 'primeng/dialog';
 import { IconFieldModule } from 'primeng/iconfield';
@@ -27,6 +28,7 @@ import { InstitutService } from '@/app/instituts/institut.service';
 import { User } from '@/app/users/user.model';
 import { apiErrorMessage, UserService } from '@/app/users/user.service';
 import {
+    awaitingReply,
     CitizenRequest,
     CitizenRequestQuery,
     EditRequestIn,
@@ -34,6 +36,7 @@ import {
     isOpen,
     RequestAnalysis,
     RequestEvent,
+    RequestGroup,
     REQUEST_CATEGORIES,
     REQUEST_PRIORITIES,
     REQUEST_STATUSES,
@@ -47,6 +50,7 @@ import {
 } from './request.model';
 import { LiveDataService } from '@/app/shared/live-data.service';
 import { CitizenRequestService } from './request.service';
+import { RequestThread } from './request-thread';
 
 /** Création pour le compte d'un citoyen : statut, priorité et institut sont décidés par le serveur. */
 interface SubmitForm {
@@ -86,8 +90,10 @@ const STATUS_ACTION_LABELS: Record<RequestStatus, string> = {
     selector: 'app-requests',
     imports: [
         DatePipe,
+        DecimalPipe,
         FormsModule,
         ButtonModule,
+        CheckboxModule,
         ConfirmDialogModule,
         DialogModule,
         IconFieldModule,
@@ -99,7 +105,8 @@ const STATUS_ACTION_LABELS: Record<RequestStatus, string> = {
         TextareaModule,
         ToastModule,
         ToolbarModule,
-        TooltipModule
+        TooltipModule,
+        RequestThread
     ],
     templateUrl: './requests.html',
     styleUrl: './requests.scss',
@@ -137,6 +144,7 @@ export class Requests implements OnInit {
     readonly prioritySeverity = requestPrioritySeverity;
     readonly eventLabel = eventLabel;
     readonly isOpen = isOpen;
+    readonly awaitingReply = awaitingReply;
 
     first = 0;
     pageSize = 10;
@@ -146,6 +154,10 @@ export class Requests implements OnInit {
     categoryFilter: RequestCategory | null = null;
     priorityFilter: RequestPriority | null = null;
     statusFilter: RequestStatus | null = null;
+    /** F75 : seulement les demandes ayant des doublons potentiels. */
+    similarOnly = false;
+    /** F84 : seulement les demandes où le citoyen attend une réponse. */
+    awaitingOnly = false;
 
     submitDialogVisible = false;
     submitForm: SubmitForm = { ...EMPTY_SUBMIT };
@@ -157,6 +169,8 @@ export class Requests implements OnInit {
     detailsDialogVisible = false;
     readonly selectedRequest = signal<CitizenRequest | null>(null);
     readonly timeline = signal<RequestEvent[]>([]);
+    /** F75 : vue groupée (principale, doublons rattachés, demandes similaires). */
+    readonly group = signal<RequestGroup | null>(null);
 
     assignDialogVisible = false;
     assignedRequest: CitizenRequest | null = null;
@@ -236,6 +250,8 @@ export class Requests implements OnInit {
         this.categoryFilter = null;
         this.priorityFilter = null;
         this.statusFilter = null;
+        this.similarOnly = false;
+        this.awaitingOnly = false;
         this.resetAndLoad();
     }
 
@@ -248,7 +264,9 @@ export class Requests implements OnInit {
             priority: this.priorityFilter ?? undefined,
             status: this.statusFilter ?? undefined,
             sort_by: this.sortBy,
-            sort_order: this.sortOrder
+            sort_order: this.sortOrder,
+            has_similar: this.similarOnly || undefined,
+            awaiting_reply: this.awaitingOnly || undefined
         });
     }
 
@@ -310,6 +328,29 @@ export class Requests implements OnInit {
             next: (events) => this.timeline.set(events),
             error: (error: unknown) => this.showError(error)
         });
+        this.group.set(null);
+        this.requestService.group(request.id).subscribe({
+            next: (group) => this.group.set(group),
+            error: (error: unknown) => this.showError(error)
+        });
+    }
+
+    /** F75 : regroupe `duplicate` sous `principal` ; l'auteur du doublon en est informé. */
+    confirmDuplicate(duplicate: CitizenRequest, principal: CitizenRequest): void {
+        this.confirmationService.confirm({
+            message: `Marquer « ${duplicate.title} » comme doublon de « ${principal.title} » ? Elle sera close et son auteur suivra la demande principale.`,
+            header: 'Regrouper les demandes',
+            icon: 'pi pi-clone',
+            acceptLabel: 'Regrouper',
+            rejectLabel: 'Annuler',
+            rejectButtonProps: { severity: 'secondary', outlined: true },
+            accept: () => this.run(this.requestService.markDuplicate(duplicate.id, principal.id), 'Doublon rattaché à la demande principale', () => this.openDetails(principal))
+        });
+    }
+
+    /** Le fil a changé : l'indicateur « réponse attendue » de la liste suit. */
+    onMessagePosted(): void {
+        this.loadRequests();
     }
 
     statusActions(request: CitizenRequest): { target: RequestStatus; label: string; danger: boolean }[] {

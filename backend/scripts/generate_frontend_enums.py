@@ -18,6 +18,9 @@ sys.path.insert(0, str(BACKEND))
 from src.domain.agent import AgentStatus  # noqa: E402
 from src.domain.audit import AuditAction, AuditTarget  # noqa: E402
 from src.domain.citizen_request import (  # noqa: E402
+    ConversationState,
+    MessageVisibility,
+    PublicRequestSort,
     RequestCategory,
     RequestEventType,
     RequestPriority,
@@ -44,6 +47,9 @@ ENUMS: tuple[type[StrEnum], ...] = (
     RequestEventType,
     RequestSortBy,
     SortOrder,
+    PublicRequestSort,
+    ConversationState,
+    MessageVisibility,
     AgentStatus,
     NotificationKind,
     ConcernTopic,

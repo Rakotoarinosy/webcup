@@ -11,6 +11,14 @@ import {
     DashboardStats,
     EditRequestIn,
     MapPoint,
+    MessageIn,
+    PublicRequest,
+    PublicRequestPage,
+    PublicRequestQuery,
+    RequestGroup,
+    RequestMessage,
+    SimilarDraftIn,
+    SimilarPublic,
     RequestAnalysis,
     RequestCategory,
     RequestEvent,
@@ -43,6 +51,12 @@ export class CitizenRequestService {
         }
         if (query.status) {
             params = params.set('status', query.status);
+        }
+        if (query.has_similar) {
+            params = params.set('has_similar', true);
+        }
+        if (query.awaiting_reply) {
+            params = params.set('awaiting_reply', true);
         }
 
         return this.http.get<CitizenRequestPage>(this.baseUrl, { params });
@@ -90,6 +104,52 @@ export class CitizenRequestService {
         }
 
         return this.http.get<MapPoint[]>(`${this.baseUrl}/map`, { params });
+    }
+
+    // ─── F52 : demandes publiques et soutiens ──────────────────────
+
+    publicList(query: PublicRequestQuery): Observable<PublicRequestPage> {
+        let params = new HttpParams().set('page', query.page).set('page_size', query.page_size);
+        if (query.search) params = params.set('search', query.search);
+        if (query.category) params = params.set('category', query.category);
+        if (query.sort) params = params.set('sort', query.sort);
+        return this.http.get<PublicRequestPage>(`${this.baseUrl}/public`, { params });
+    }
+
+    supported(): Observable<PublicRequest[]> {
+        return this.http.get<PublicRequest[]>(`${this.baseUrl}/supported`);
+    }
+
+    support(id: string): Observable<PublicRequest> {
+        return this.http.post<PublicRequest>(`${this.baseUrl}/${id}/support`, {});
+    }
+
+    unsupport(id: string): Observable<PublicRequest> {
+        return this.http.delete<PublicRequest>(`${this.baseUrl}/${id}/support`);
+    }
+
+    // ─── F75 : similarité et doublons ──────────────────────────────
+
+    similarCheck(draft: SimilarDraftIn): Observable<SimilarPublic[]> {
+        return this.http.post<SimilarPublic[]>(`${this.baseUrl}/similar-check`, draft);
+    }
+
+    group(id: string): Observable<RequestGroup> {
+        return this.http.get<RequestGroup>(`${this.baseUrl}/${id}/similar`);
+    }
+
+    markDuplicate(id: string, principalId: string): Observable<CitizenRequest> {
+        return this.http.post<CitizenRequest>(`${this.baseUrl}/${id}/duplicate`, { duplicate_of_id: principalId });
+    }
+
+    // ─── F84 : fil de messages ─────────────────────────────────────
+
+    messages(id: string): Observable<RequestMessage[]> {
+        return this.http.get<RequestMessage[]>(`${this.baseUrl}/${id}/messages`);
+    }
+
+    postMessage(id: string, payload: MessageIn): Observable<RequestMessage> {
+        return this.http.post<RequestMessage>(`${this.baseUrl}/${id}/messages`, payload);
     }
 
     dashboard(days = 7): Observable<DashboardStats> {

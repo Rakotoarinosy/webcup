@@ -4,7 +4,11 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
 
-from src.domain.citizen_request.exceptions import InvalidStatusTransitionError, RequestClosedError
+from src.domain.citizen_request.exceptions import (
+    InvalidDuplicateError,
+    InvalidStatusTransitionError,
+    RequestClosedError,
+)
 
 
 class RequestCategory(StrEnum):
@@ -55,12 +59,27 @@ def ensure_transition(current: RequestStatus, target: RequestStatus) -> None:
         raise InvalidStatusTransitionError(current.value, target.value)
 
 
+class ConversationState(StrEnum):
+    """Où en est le fil de messages d'une demande (voir messages.py)."""
+
+    NONE = "none"  # aucun échange public
+    AWAITING_STAFF = "awaiting_staff"  # le citoyen a écrit en dernier : réponse attendue des agents
+    ANSWERED = "answered"  # la mairie a répondu en dernier
+
+
 class RequestSortBy(StrEnum):
     CREATED_AT = "created_at"
     TITLE = "title"
     CATEGORY = "category"
     PRIORITY = "priority"
     STATUS = "status"
+
+
+class PublicRequestSort(StrEnum):
+    """Tri de la liste publique des demandes (F52)."""
+
+    RECENT = "recent"
+    MOST_SUPPORTED = "most_supported"
 
 
 class SortOrder(StrEnum):
@@ -92,6 +111,17 @@ class CitizenRequest:
     priority_score: int = 0
     # Institut destinataire, déduit de la catégorie (None : traitée par l'administration).
     institut_id: str | None = None
+    # Soutiens d'autres habitants (F52) : compteur dénormalisé, tenu par le use case de soutien.
+    support_count: int = 0
+    # Doublon rattaché à une demande principale (F75) : la demande est alors close.
+    duplicate_of_id: str | None = None
+    # Fil de messages (F84) : sert l'indicateur « réponse attendue ».
+    conversation_state: ConversationState = ConversationState.NONE
+    last_message_at: datetime | None = None
+
+    @property
+    def is_duplicate(self) -> bool:
+        return self.duplicate_of_id is not None
 
     @property
     def is_open(self) -> bool:
@@ -112,3 +142,16 @@ class CitizenRequest:
             raise RequestClosedError(self.id)
         self.assigned_agent_id = agent_id
         self.updated_at = now
+
+    def mark_duplicate_of(self, principal: "CitizenRequest", now: datetime) -> None:
+        """Regroupement logique : la demande est rattachée à la principale puis close (« Rejeté »).
+
+        Le rattachement reste visible (duplicate_of_id) : ce n'est pas un refus sur le fond."""
+        if principal.id == self.id:
+            raise InvalidDuplicateError("A request cannot be a duplicate of itself")
+        if principal.is_duplicate:
+            raise InvalidDuplicateError("The main request is itself marked as a duplicate")
+        if not self.is_open:
+            raise RequestClosedError(self.id)
+        self.duplicate_of_id = principal.id
+        self.change_status(RequestStatus.REJECTED, now)
