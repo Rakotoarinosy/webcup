@@ -24,6 +24,16 @@ export const appRoutes: Routes = [
                     { path: ':id', data: { breadcrumb: 'Détail' }, loadComponent: () => import('./app/requests/my-requests').then((m) => m.MyRequests) }
                 ]
             },
+            {
+                path: 'appointments',
+                canActivate: [roleGuard],
+                data: { breadcrumb: 'Rendez-vous', roles: ['citizen'] },
+                children: [
+                    { path: '', loadComponent: () => import('./app/appointments/book-appointment').then((m) => m.BookAppointment) },
+                    { path: 'mine', data: { breadcrumb: 'Mes rendez-vous' }, loadComponent: () => import('./app/appointments/my-appointments').then((m) => m.MyAppointments) }
+                ]
+            },
+            { path: 'appointment-planning', data: { breadcrumb: 'Planning des rendez-vous', roles: ['agent', 'manager', 'admin'] }, loadComponent: () => import('./app/appointments/appointment-planning').then((m) => m.AppointmentPlanning) },
             { path: 'users', data: { breadcrumb: 'Comptes citoyens', roles: ['agent', 'manager', 'admin'] }, loadComponent: () => import('./app/users/users').then((m) => m.Users) },
             { path: 'requests', data: { breadcrumb: 'Demandes citoyennes', roles: ['manager', 'admin'] }, loadComponent: () => import('./app/requests/requests').then((m) => m.Requests) },
             {

@@ -1,0 +1,256 @@
+<div class="mx-auto grid max-w-[72rem] gap-6">
+    <header class="card mb-0">
+        <p class="mb-1 font-semibold text-primary">Rendez-vous</p>
+        <h1 class="m-0 text-3xl font-bold">Planning des rendez-vous</h1>
+        <p class="mb-0 mt-3">
+            Proposez des créneaux aux habitants et suivez vos rendez-vous. Toutes les heures sont en
+            <strong>{{ policy()?.timezone_label ?? 'heure de la mairie' }}</strong>.
+        </p>
+    </header>
+
+    <div role="status" aria-live="polite">
+        @if (notice(); as message) {
+            <p class="m-0 rounded-xl border border-green-300 p-4">{{ message }}</p>
+        }
+    </div>
+    @if (error(); as message) {
+        <p role="alert" class="m-0 rounded-xl border border-red-300 p-4 text-red-700 dark:text-red-300">{{ message }}</p>
+    }
+
+    <section class="card mb-0" aria-labelledby="create-heading">
+        <h2 id="create-heading" class="mt-0 text-xl font-semibold">Proposer des créneaux</h2>
+        <form #slotForm="ngForm" (ngSubmit)="create(slotForm)" novalidate class="grid gap-4">
+            <fieldset class="m-0 flex flex-wrap gap-4 border-0 p-0">
+                <legend class="mb-2 font-semibold">Type</legend>
+                <div class="flex items-center gap-2">
+                    <input type="radio" id="mode-single" name="mode" value="single" [(ngModel)]="form.mode" />
+                    <label for="mode-single">Un créneau</label>
+                </div>
+                <div class="flex items-center gap-2">
+                    <input type="radio" id="mode-series" name="mode" value="series" [(ngModel)]="form.mode" />
+                    <label for="mode-series">Une série (plusieurs jours)</label>
+                </div>
+            </fieldset>
+
+            <div class="grid gap-4 md:grid-cols-2">
+                @if (isAdmin()) {
+                    <div class="grid gap-2">
+                        <label for="slot-institut" class="font-semibold">Service *</label>
+                        <select id="slot-institut" name="institut" #institutModel="ngModel" [(ngModel)]="form.institut_id" required class="p-inputtext w-full" aria-describedby="slot-institut-error" [attr.aria-invalid]="institutModel.invalid && (institutModel.touched || submitted)">
+                            <option value="" disabled>Choisissez un service</option>
+                            @for (item of instituts(); track item.id) {
+                                <option [value]="item.id">{{ item.name }}</option>
+                            }
+                        </select>
+                        <small id="slot-institut-error" class="text-red-700 dark:text-red-300">
+                            @if (institutModel.invalid && (institutModel.touched || submitted)) {
+                                Choisissez le service qui reçoit.
+                            }
+                        </small>
+                    </div>
+                }
+                @if (!isAgent()) {
+                    <div class="grid gap-2">
+                        <label for="slot-agent" class="font-semibold">Agent</label>
+                        <select id="slot-agent" name="agent" [(ngModel)]="form.agent_id" class="p-inputtext w-full" aria-describedby="slot-agent-help">
+                            <option value="">Un agent du service (non précisé)</option>
+                            @for (agent of agentChoices(); track agent.id) {
+                                <option [value]="agent.id">{{ agent.name }}</option>
+                            }
+                        </select>
+                        <small id="slot-agent-help" class="text-muted-color">Affiché à l’habitant. Un agent ne peut pas avoir deux créneaux qui se chevauchent.</small>
+                    </div>
+                }
+                <div class="grid gap-2">
+                    <label for="slot-modality" class="font-semibold">Modalité *</label>
+                    <select id="slot-modality" name="modality" [(ngModel)]="form.modality" required class="p-inputtext w-full" aria-describedby="slot-modality-help">
+                        @for (value of modalities; track value) {
+                            <option [value]="value">{{ modalityLabels[value] }}</option>
+                        }
+                    </select>
+                    <small id="slot-modality-help" class="text-muted-color">Un créneau reçoit une seule personne.</small>
+                </div>
+                <div class="grid gap-2">
+                    <label for="slot-location" class="font-semibold">{{ form.modality === 'in_person' ? 'Adresse *' : 'Lien ou consignes de connexion *' }}</label>
+                    <input id="slot-location" name="location" #locationModel="ngModel" [(ngModel)]="form.location" required minlength="3" maxlength="500" class="p-inputtext w-full" aria-describedby="slot-location-help slot-location-error" [attr.aria-invalid]="locationModel.invalid && (locationModel.touched || submitted)" />
+                    <small id="slot-location-help" class="text-muted-color">Sur place : adresse précise (sert à l’itinéraire). Visio : lien. Téléphone : « l’agent vous appelle ».</small>
+                    <small id="slot-location-error" class="text-red-700 dark:text-red-300">
+                        @if (locationModel.invalid && (locationModel.touched || submitted)) {
+                            Indiquez le lieu en au moins 3 caractères.
+                        }
+                    </small>
+                </div>
+            </div>
+
+            <div class="grid gap-2">
+                <label for="slot-preparation" class="font-semibold">Pièces à apporter, préparation</label>
+                <textarea id="slot-preparation" name="preparation" [(ngModel)]="form.preparation" maxlength="2000" rows="2" class="p-inputtext w-full" aria-describedby="slot-preparation-help"></textarea>
+                <small id="slot-preparation-help" class="text-muted-color">Affiché à l’habitant avant et après la réservation, et dans ses rappels.</small>
+            </div>
+
+            @if (form.mode === 'single') {
+                <div class="grid gap-4 md:grid-cols-3">
+                    <div class="grid gap-2">
+                        <label for="slot-day" class="font-semibold">Jour *</label>
+                        <input id="slot-day" name="day" type="date" [(ngModel)]="form.day" required class="p-inputtext w-full" aria-describedby="slot-tz-help" />
+                    </div>
+                    <div class="grid gap-2">
+                        <label for="slot-start" class="font-semibold">Heure de début *</label>
+                        <input id="slot-start" name="start" type="time" [(ngModel)]="form.start_time" required class="p-inputtext w-full" aria-describedby="slot-tz-help" />
+                    </div>
+                    <div class="grid gap-2">
+                        <label for="slot-duration" class="font-semibold">Durée (minutes) *</label>
+                        <input id="slot-duration" name="duration" type="number" min="5" max="480" step="5" [(ngModel)]="form.duration_minutes" required class="p-inputtext w-full" aria-describedby="slot-tz-help" />
+                    </div>
+                </div>
+            } @else {
+                <div class="grid gap-4 md:grid-cols-3">
+                    <div class="grid gap-2">
+                        <label for="series-first" class="font-semibold">Du *</label>
+                        <input id="series-first" name="first" type="date" [(ngModel)]="form.first_day" required class="p-inputtext w-full" aria-describedby="slot-tz-help" />
+                    </div>
+                    <div class="grid gap-2">
+                        <label for="series-last" class="font-semibold">Au *</label>
+                        <input id="series-last" name="last" type="date" [(ngModel)]="form.last_day" required class="p-inputtext w-full" aria-describedby="slot-tz-help" />
+                    </div>
+                    <div class="grid gap-2">
+                        <label for="series-duration" class="font-semibold">Durée d’un créneau (minutes) *</label>
+                        <input id="series-duration" name="duration" type="number" min="5" max="480" step="5" [(ngModel)]="form.duration_minutes" required class="p-inputtext w-full" aria-describedby="slot-tz-help" />
+                    </div>
+                    <div class="grid gap-2">
+                        <label for="series-start" class="font-semibold">De *</label>
+                        <input id="series-start" name="dayStart" type="time" [(ngModel)]="form.day_start" required class="p-inputtext w-full" aria-describedby="slot-tz-help" />
+                    </div>
+                    <div class="grid gap-2">
+                        <label for="series-end" class="font-semibold">À *</label>
+                        <input id="series-end" name="dayEnd" type="time" [(ngModel)]="form.day_end" required class="p-inputtext w-full" aria-describedby="slot-tz-help" />
+                    </div>
+                    <div class="grid gap-2">
+                        <label for="series-break" class="font-semibold">Pause entre deux créneaux (minutes)</label>
+                        <input id="series-break" name="break" type="number" min="0" max="240" step="5" [(ngModel)]="form.break_minutes" class="p-inputtext w-full" aria-describedby="slot-tz-help" />
+                    </div>
+                </div>
+                <fieldset class="m-0 border-0 p-0" aria-describedby="series-weekdays-error">
+                    <legend class="mb-2 font-semibold">Jours de la semaine *</legend>
+                    <div class="flex flex-wrap gap-4">
+                        @for (label of weekdays; track label; let i = $index) {
+                            <div class="flex items-center gap-2">
+                                <input type="checkbox" [id]="'weekday-' + i" [name]="'weekday-' + i" [(ngModel)]="form.weekdays[i]" />
+                                <label [for]="'weekday-' + i">{{ label }}</label>
+                            </div>
+                        }
+                    </div>
+                    <small id="series-weekdays-error" class="text-red-700 dark:text-red-300">
+                        @if (submitted && !form.weekdays.includes(true)) {
+                            Cochez au moins un jour.
+                        }
+                    </small>
+                </fieldset>
+            }
+            <small id="slot-tz-help" class="text-muted-color">Dates et heures en {{ policy()?.timezone_label ?? 'heure de la mairie' }}.</small>
+
+            @if (formError(); as message) {
+                <p role="alert" class="m-0 text-red-700 dark:text-red-300">{{ message }}</p>
+            }
+            <div>
+                <p-button type="submit" [label]="form.mode === 'single' ? 'Créer le créneau' : 'Créer la série'" icon="pi pi-plus" [loading]="saving()" />
+            </div>
+        </form>
+    </section>
+
+    <section class="card mb-0" aria-labelledby="planning-heading">
+        <div class="flex flex-wrap items-end justify-between gap-3">
+            <h2 id="planning-heading" class="m-0 text-xl font-semibold">Semaine du {{ weekStart() }} au {{ weekEnd() }}</h2>
+            <div class="flex flex-wrap items-end gap-2">
+                @if (isAdmin()) {
+                    <div class="grid gap-1">
+                        <label for="planning-institut" class="text-sm font-semibold">Service</label>
+                        <select id="planning-institut" class="p-inputtext" [value]="institutFilter()" (change)="filterInstitut($any($event.target).value)">
+                            <option value="">Tous les services</option>
+                            @for (item of instituts(); track item.id) {
+                                <option [value]="item.id">{{ item.name }}</option>
+                            }
+                        </select>
+                    </div>
+                }
+                <div class="grid gap-1">
+                    <label for="planning-week" class="text-sm font-semibold">Aller à la semaine du</label>
+                    <input id="planning-week" type="date" class="p-inputtext" [value]="weekStart()" (change)="pickWeek($any($event.target).value)" />
+                </div>
+                <p-button icon="pi pi-chevron-left" severity="secondary" [outlined]="true" ariaLabel="Semaine précédente" (onClick)="shiftWeek(-1)" />
+                <p-button icon="pi pi-chevron-right" severity="secondary" [outlined]="true" ariaLabel="Semaine suivante" (onClick)="shiftWeek(1)" />
+                <p-button icon="pi pi-refresh" severity="secondary" [text]="true" [loading]="loading()" ariaLabel="Actualiser le planning" (onClick)="load()" />
+            </div>
+        </div>
+
+        @for (group of days(); track group.day) {
+            <h3 class="mb-2 mt-5 text-lg font-semibold first-letter:uppercase">{{ group.label }}</h3>
+            <ul class="m-0 grid list-none gap-3 p-0">
+                @for (slot of group.slots; track slot.id) {
+                    <li class="rounded-lg border border-surface p-3">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <p class="m-0 font-semibold">
+                                {{ slot.time.start_time }} – {{ slot.time.end_time }}
+                                <span class="font-normal">· {{ slot.modality_label }} · {{ slot.agent_name || 'agent non précisé' }} · {{ slot.institut_name }}</span>
+                            </p>
+                            @if (slot.appointment; as appt) {
+                                <p-tag [value]="appt.status_label" [severity]="severity(appt.status)" />
+                            } @else {
+                                <p-tag value="Libre" severity="secondary" />
+                            }
+                        </div>
+                        <p class="m-0 text-muted-color">{{ slot.location }}</p>
+                        @if (slot.appointment; as appt) {
+                            <p class="mb-0 mt-2">
+                                <strong>{{ appt.citizen_name }}</strong> ({{ appt.reference }}) — {{ appt.reason }}
+                                @if (appt.contact_phone || appt.citizen_phone || appt.citizen_email) {
+                                    <br /><span class="text-sm">Contact : {{ appt.contact_phone || appt.citizen_phone || appt.citizen_email }}</span>
+                                }
+                            </p>
+                            <div class="mt-2 flex flex-wrap gap-2">
+                                @if (hasStarted(slot) && appt.status !== 'cancelled_by_city') {
+                                    <p-button label="Honoré" icon="pi pi-check" size="small" severity="success" [outlined]="appt.status !== 'honored'" [ariaLabel]="'Noter le rendez-vous ' + appt.reference + ' comme honoré'" (onClick)="attendance(slot, 'honored')" />
+                                    <p-button label="Absent" icon="pi pi-user-minus" size="small" severity="warn" [outlined]="appt.status !== 'no_show'" [ariaLabel]="'Noter l’habitant absent au rendez-vous ' + appt.reference" (onClick)="attendance(slot, 'no_show')" />
+                                }
+                                @if (appt.is_upcoming && cancelling() !== appt.id) {
+                                    <p-button label="Annuler" icon="pi pi-times" size="small" severity="danger" [text]="true" [ariaLabel]="'Annuler le rendez-vous ' + appt.reference" (onClick)="askCancel(slot)" />
+                                }
+                            </div>
+                            @if (cancelling() === appt.id) {
+                                <div class="mt-2 grid gap-2 rounded-lg border border-red-300 p-3">
+                                    <label [for]="'city-cancel-' + appt.id" class="font-semibold">Motif communiqué à l’habitant *</label>
+                                    <input
+                                        [id]="'city-cancel-' + appt.id"
+                                        name="cityCancelReason"
+                                        [(ngModel)]="cancelReason"
+                                        maxlength="1000"
+                                        class="p-inputtext w-full"
+                                        [attr.aria-describedby]="'city-cancel-error-' + appt.id"
+                                        [attr.aria-invalid]="cancelSubmitted && cancelReason.trim().length < 5"
+                                    />
+                                    <small [id]="'city-cancel-error-' + appt.id" class="text-red-700 dark:text-red-300">
+                                        @if (cancelSubmitted && cancelReason.trim().length < 5) {
+                                            Indiquez un motif d’au moins 5 caractères.
+                                        }
+                                    </small>
+                                    <div class="flex gap-2">
+                                        <p-button label="Confirmer l’annulation" severity="danger" size="small" (onClick)="confirmCancel(slot)" />
+                                        <p-button label="Retour" severity="secondary" size="small" [text]="true" (onClick)="cancelling.set(null)" />
+                                    </div>
+                                </div>
+                            }
+                        } @else if (!hasStarted(slot)) {
+                            <div class="mt-2">
+                                <p-button label="Retirer ce créneau" icon="pi pi-trash" size="small" severity="secondary" [text]="true" [ariaLabel]="'Retirer le créneau de ' + slot.time.start_time + ' le ' + slot.time.day_label" (onClick)="close(slot)" />
+                            </div>
+                        }
+                    </li>
+                }
+            </ul>
+        } @empty {
+            @if (!loading()) {
+                <p class="mb-0 mt-3 text-muted-color">Aucun créneau cette semaine.</p>
+            }
+        }
+    </section>
+</div>

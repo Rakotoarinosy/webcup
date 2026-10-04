@@ -14,6 +14,8 @@ class NotificationKind(StrEnum):
     ASSIGNED = "assigned"
     RESOLVED = "resolved"
     LATE = "late"
+    APPOINTMENT_REMINDER = "appointment_reminder"
+    APPOINTMENT_CANCELLED = "appointment_cancelled"
 
 
 @dataclass(frozen=True, slots=True)
@@ -23,6 +25,7 @@ class Notification:
     kind: NotificationKind
     title: str
     message: str
+    # Id de la demande ; pour un rendez-vous, id du rendez-vous.
     request_id: str
     created_at: datetime
     is_read: bool = False

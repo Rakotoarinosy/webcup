@@ -1,4 +1,5 @@
-"""Tâches de démarrage : premier administrateur, synchronisation de l'API Terra Nova.
+"""Tâches de démarrage : premier administrateur, synchronisation de l'API Terra Nova,
+rappels de rendez-vous.
 
 Premier administrateur : créé au démarrage si aucun admin actif n'existe.
 
@@ -12,12 +13,18 @@ from datetime import UTC, datetime, timedelta
 
 from src.domain.realtime import RealtimeEvent
 from src.domain.user import Role
+from src.features.appointment.reminders import run_reminder_cycle
+from src.features.appointment.router import get_appointment_policy
 from src.features.realtime.router import get_realtime_broker
 from src.features.terra_request.use_cases import refresh_terra_if_stale
 from src.features.user.schemas import CreateUserIn
 from src.features.user.use_cases import create_user
 from src.infrastructure.config import get_settings
+from src.infrastructure.external.appointment_messenger import SenderAppointmentMessenger
 from src.infrastructure.external.terra_nova_feed import HttpTerraFeed
+from src.infrastructure.persistence.appointment_repository import (
+    SqlAlchemyAppointmentRepository,
+)
 from src.infrastructure.persistence.database import SessionLocal
 from src.infrastructure.persistence.terra_request_repository import (
     SqlAlchemyTerraRequestRepository,
@@ -91,5 +98,51 @@ def start_terra_sync() -> threading.Event | None:
     stop = threading.Event()
     threading.Thread(
         target=run_terra_sync_loop, args=(stop,), name="terra-nova-sync", daemon=True
+    ).start()
+    return stop
+
+
+def run_appointment_reminder_loop(stop: threading.Event) -> None:
+    """Envoie les rappels de rendez-vous dus (F40), à intervalle fixe, jusqu'à l'arrêt.
+
+    Chaque rappel est mémorisé par canal avant l'envoi : un redémarrage, un échec ou plusieurs
+    workers ne provoquent jamais de doublon ; un envoi échoué est retenté au tour suivant.
+    """
+    settings = get_settings()
+    interval = settings.appointment_reminder_interval_seconds
+    messenger = SenderAppointmentMessenger.from_settings(settings)
+    policy = get_appointment_policy()
+    logger.info("appointment reminder loop started", extra={"interval_seconds": interval})
+
+    while not stop.is_set():
+        try:
+            with SessionLocal() as db:
+                report = run_reminder_cycle(
+                    SqlAlchemyAppointmentRepository(db),
+                    SqlAlchemyUserRepository(db),
+                    messenger,
+                    policy,
+                    datetime.now(UTC),
+                )
+                if report.scheduled:
+                    get_realtime_broker().publish_from_thread(
+                        RealtimeEvent(type="data.changed", occurred_at=datetime.now(UTC))
+                    )
+        except Exception:
+            # Ne tue jamais la boucle (ex. migrations pas encore appliquées, SMTP en panne).
+            logger.exception("appointment reminders failed")
+        stop.wait(interval)
+
+
+def start_appointment_reminders() -> threading.Event | None:
+    """Démarre la boucle des rappels dans un thread démon (None si désactivée)."""
+    if not get_settings().appointment_reminders_background:
+        return None
+    stop = threading.Event()
+    threading.Thread(
+        target=run_appointment_reminder_loop,
+        args=(stop,),
+        name="appointment-reminders",
+        daemon=True,
     ).start()
     return stop

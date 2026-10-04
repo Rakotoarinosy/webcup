@@ -29,7 +29,11 @@ export class AppMenu {
             );
         }
         if (this.auth.hasRole('citizen')) {
-            items.push({ label: 'Mes demandes', icon: 'pi pi-fw pi-list', routerLink: ['/home/my-requests'], badge: this.notificationBadge() });
+            items.push(
+                { label: 'Mes demandes', icon: 'pi pi-fw pi-list', routerLink: ['/home/my-requests'], badge: this.notificationBadge() },
+                { label: 'Prendre rendez-vous', icon: 'pi pi-fw pi-calendar-plus', routerLink: ['/home/appointments'], routerLinkActiveOptions: { exact: true } },
+                { label: 'Mes rendez-vous', icon: 'pi pi-fw pi-calendar', routerLink: ['/home/appointments/mine'] }
+            );
         }
         if (this.auth.hasRole('manager', 'admin')) {
             items.push({ label: 'Demandes citoyennes', icon: 'pi pi-fw pi-inbox', routerLink: ['/home/requests'], badge: this.notificationBadge() });
@@ -53,6 +57,9 @@ export class AppMenu {
             );
         } else if (this.auth.hasRole('manager')) {
             items.push({ label: 'Comptes citoyens', icon: 'pi pi-fw pi-users', routerLink: ['/home/users'] });
+        }
+        if (this.auth.hasRole('agent', 'manager', 'admin')) {
+            items.push({ label: 'Rendez-vous', icon: 'pi pi-fw pi-calendar', routerLink: ['/home/appointment-planning'] });
         }
         if (this.auth.hasRole('agent', 'manager', 'admin')) {
             items.push({ label: 'Journal', icon: 'pi pi-fw pi-history', routerLink: ['/home/journal'] });

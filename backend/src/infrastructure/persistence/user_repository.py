@@ -11,6 +11,8 @@ from src.domain.user.entities import Role, User
 from src.domain.user.exceptions import ForbiddenError, UserConflictError, UserNotFoundError
 from src.domain.user.repository import UserRepository
 from src.infrastructure.persistence.models import (
+    AppointmentModel,
+    AppointmentNoticeModel,
     CitizenRequestEventModel,
     CitizenRequestModel,
     DataConcernModel,
@@ -77,10 +79,22 @@ class SqlAlchemyUserRepository(UserRepository):
         # Nettoyage explicite : SQLite n'applique pas ON DELETE CASCADE par défaut.
         for table in (RefreshTokenModel, VerificationCodeModel):
             self.db.execute(delete(table).where(table.user_id == user_id))
+        self._delete_appointments(user_id)
         model = self.db.get(UserModel, user_id)
         if model:
             self.db.delete(model)
         self.db.commit()
+
+    def _delete_appointments(self, user_id: str) -> None:
+        """Rendez-vous : données personnelles, effacées avec le compte (les créneaux à venir
+        redeviennent libres pour les autres habitants)."""
+        appointment_ids = select(AppointmentModel.id).where(AppointmentModel.citizen_id == user_id)
+        self.db.execute(
+            delete(AppointmentNoticeModel).where(
+                AppointmentNoticeModel.appointment_id.in_(appointment_ids)
+            )
+        )
+        self.db.execute(delete(AppointmentModel).where(AppointmentModel.citizen_id == user_id))
 
     def delete_personal_account(self, user_id: str, archive: User) -> None:
         try:
@@ -108,6 +122,7 @@ class SqlAlchemyUserRepository(UserRepository):
                     self.db.execute(
                         update(table).where(column == user_id).values({column: archive.id})
                     )
+            self._delete_appointments(user_id)
             self.db.execute(
                 update(CitizenRequestEventModel)
                 .where(CitizenRequestEventModel.actor_id == user_id)

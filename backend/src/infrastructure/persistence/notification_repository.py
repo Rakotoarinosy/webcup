@@ -18,6 +18,7 @@ from src.domain.notification import Notification, NotificationKind
 from src.domain.user import Role
 from src.infrastructure.persistence.citizen_request_repository import as_utc, scope_conditions
 from src.infrastructure.persistence.models import (
+    AppointmentNoticeModel,
     CitizenRequestEventModel,
     CitizenRequestModel,
     NotificationReadModel,
@@ -65,11 +66,12 @@ class SqlAlchemyNotificationRepository:
         self, actor: Actor, *, unread_only: bool, limit: int
     ) -> tuple[list[Notification], int]:
         scope = scope_for(actor)
-        if scope.is_empty:
-            return [], 0
-
         now = datetime.now(UTC)
-        items = self._event_notifications(actor, now) + self._late_notifications(actor, now)
+        items = self._appointment_notifications(actor.user_id, now)
+        if not scope.is_empty:
+            items += self._event_notifications(actor, now) + self._late_notifications(actor, now)
+        if not items:
+            return [], 0
         items.sort(key=lambda item: item.created_at, reverse=True)
         items = items[:MAX_ITEMS]
 
@@ -183,6 +185,35 @@ class SqlAlchemyNotificationRepository:
             )
 
         return notifications
+
+    def _appointment_notifications(self, user_id: str, now: datetime) -> list[Notification]:
+        """Rappels et annulations de rendez-vous (F40), mémorisés dans appointment_notices."""
+        stmt = (
+            select(AppointmentNoticeModel)
+            .where(
+                AppointmentNoticeModel.user_id == user_id,
+                AppointmentNoticeModel.channel == "in_app",
+                AppointmentNoticeModel.status == "sent",
+                AppointmentNoticeModel.created_at >= now - EVENT_WINDOW,
+            )
+            .order_by(AppointmentNoticeModel.created_at.desc())
+            .limit(MAX_ITEMS)
+        )
+        return [
+            Notification(
+                key=f"appt:{row.id}",
+                kind=(
+                    NotificationKind.APPOINTMENT_REMINDER
+                    if row.kind == "reminder"
+                    else NotificationKind.APPOINTMENT_CANCELLED
+                ),
+                title=row.title,
+                message=row.message.split("\n", 1)[0],
+                request_id=row.appointment_id,
+                created_at=as_utc(row.created_at),
+            )
+            for row in self._db.scalars(stmt)
+        ]
 
     def _read_keys(self, user_id: str, keys: list[str]) -> set[str]:
         if not keys:

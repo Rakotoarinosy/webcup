@@ -8,8 +8,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from scalar_fastapi import get_scalar_api_reference
 from starlette.responses import HTMLResponse
 
-from src.bootstrap import ensure_bootstrap_admin, start_terra_sync
+from src.bootstrap import ensure_bootstrap_admin, start_appointment_reminders, start_terra_sync
 from src.features.agent.router import router as agent_router
+from src.features.appointment.router import router as appointment_router
 from src.features.audit.router import router as audit_router
 from src.features.auth.router import router as auth_router
 from src.features.citizen_request.router import dashboard_router, request_router
@@ -45,6 +46,7 @@ FEATURE_ROUTERS: list[APIRouter] = [
     data_concern_router,
     audit_router,
     terra_request_router,
+    appointment_router,
     realtime_router,
 ]
 
@@ -53,9 +55,11 @@ FEATURE_ROUTERS: list[APIRouter] = [
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     ensure_bootstrap_admin()
     terra_sync_stop = start_terra_sync()
+    reminders_stop = start_appointment_reminders()
     yield
-    if terra_sync_stop is not None:
-        terra_sync_stop.set()
+    for stop in (terra_sync_stop, reminders_stop):
+        if stop is not None:
+            stop.set()
 
 
 def create_app() -> FastAPI:

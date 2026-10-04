@@ -1,0 +1,108 @@
+<div class="mx-auto grid max-w-[56rem] gap-6">
+    <header class="card mb-0 flex flex-wrap items-center justify-between gap-3">
+        <div>
+            <p class="mb-1 font-semibold text-primary">Rendez-vous</p>
+            <h1 class="m-0 text-3xl font-bold">Mes rendez-vous</h1>
+        </div>
+        <div class="flex gap-2">
+            <a routerLink="/home/appointments" class="p-button no-underline"><i class="pi pi-plus mr-2" aria-hidden="true"></i>Prendre rendez-vous</a>
+            <p-button icon="pi pi-refresh" severity="secondary" [text]="true" [loading]="loading()" ariaLabel="Actualiser mes rendez-vous" (onClick)="load()" />
+        </div>
+    </header>
+
+    <div role="status" aria-live="polite">
+        @if (notice(); as message) {
+            <p class="m-0 rounded-xl border border-green-300 p-4">{{ message }}</p>
+        }
+    </div>
+    @if (error(); as message) {
+        <p role="alert" class="m-0 rounded-xl border border-red-300 p-4 text-red-700 dark:text-red-300">{{ message }}</p>
+    }
+
+    <section class="card mb-0" aria-labelledby="upcoming-heading">
+        <h2 id="upcoming-heading" class="mt-0 text-xl font-semibold">À venir ({{ upcoming().length }})</h2>
+        @for (item of upcoming(); track item.id) {
+            <ng-container *ngTemplateOutlet="card; context: { $implicit: item }" />
+        } @empty {
+            @if (!loading()) {
+                <p class="mb-0 text-muted-color">Aucun rendez-vous à venir.</p>
+            }
+        }
+    </section>
+
+    <section class="card mb-0" aria-labelledby="past-heading">
+        <h2 id="past-heading" class="mt-0 text-xl font-semibold">Passés et annulés ({{ past().length }})</h2>
+        @for (item of past(); track item.id) {
+            <ng-container *ngTemplateOutlet="card; context: { $implicit: item }" />
+        } @empty {
+            @if (!loading()) {
+                <p class="mb-0 text-muted-color">Aucun rendez-vous passé.</p>
+            }
+        }
+    </section>
+</div>
+
+<ng-template #card let-item>
+    <article class="mt-4 rounded-lg border border-surface p-4" [attr.aria-labelledby]="'appt-' + item.id">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <h3 [id]="'appt-' + item.id" class="m-0 text-lg font-semibold">
+                <span class="first-letter:uppercase">{{ item.slot.time.day_label }}</span> à {{ item.slot.time.start_time }}
+                <span class="font-normal">· {{ item.reference }}</span>
+            </h3>
+            <p-tag [value]="item.status_label" [severity]="severity(item.status)" />
+        </div>
+        <dl class="mb-0 mt-3 grid gap-x-6 gap-y-1 sm:grid-cols-[max-content_1fr]">
+            <dt class="font-semibold">Horaire</dt>
+            <dd class="m-0">de {{ item.slot.time.start_time }} à {{ item.slot.time.end_time }} ({{ item.slot.time.timezone }}, {{ item.slot.time.utc_offset }}) · {{ duration(item.slot.time.duration_minutes) }}</dd>
+            <dt class="font-semibold">Avec</dt>
+            <dd class="m-0">{{ item.slot.agent_name || 'Un agent' }} — {{ item.slot.institut_name }}</dd>
+            <dt class="font-semibold">{{ item.slot.modality_label }}</dt>
+            <dd class="m-0">{{ item.slot.location }}</dd>
+            <dt class="font-semibold">Motif</dt>
+            <dd class="m-0">{{ item.reason }}</dd>
+            @if (item.slot.preparation && item.is_upcoming) {
+                <dt class="font-semibold">À apporter</dt>
+                <dd class="m-0 whitespace-pre-line">{{ item.slot.preparation }}</dd>
+            }
+            @if (item.is_upcoming) {
+                <dt class="font-semibold">Rappels</dt>
+                <dd class="m-0">{{ item.reminder_labels.length ? item.reminder_labels.join(', ') : 'aucun' }}</dd>
+            }
+            @if (item.status === 'cancelled_by_city') {
+                <dt class="font-semibold">Motif de l’annulation</dt>
+                <dd class="m-0">{{ item.cancel_reason || 'non précisé' }}</dd>
+            }
+        </dl>
+
+        @if (item.is_upcoming) {
+            <p class="mb-0 mt-2 text-muted-color">{{ item.slot.instructions }}</p>
+            <div class="mt-3 flex flex-wrap gap-2">
+                <p-button label="Ajouter à mon agenda" icon="pi pi-calendar-plus" severity="secondary" [outlined]="true" [ariaLabel]="'Ajouter le rendez-vous ' + item.reference + ' à mon agenda'" (onClick)="downloadCalendar(item)" />
+                @if (item.slot.directions_url) {
+                    <a [href]="item.slot.directions_url" target="_blank" rel="noopener" class="p-button p-button-secondary p-button-outlined no-underline">
+                        <i class="pi pi-directions mr-2" aria-hidden="true"></i>Itinéraire<span class="sr-only"> (nouvel onglet)</span>
+                    </a>
+                }
+                @if (item.can_cancel && confirming() !== item.id) {
+                    <p-button label="Annuler" icon="pi pi-times" severity="danger" [text]="true" [ariaLabel]="'Annuler le rendez-vous ' + item.reference" (onClick)="askCancel(item)" />
+                }
+            </div>
+            @if (!item.can_cancel) {
+                <p class="mb-0 mt-2 text-sm text-muted-color">
+                    L’annulation en ligne était possible jusqu’au {{ deadline(item) }}. Contactez directement le service.
+                </p>
+            }
+            @if (confirming() === item.id) {
+                <div class="mt-3 grid gap-2 rounded-lg border border-red-300 p-3">
+                    <label [for]="'cancel-reason-' + item.id" class="font-semibold">Motif de l’annulation (facultatif)</label>
+                    <input [id]="'cancel-reason-' + item.id" name="cancelReason" [(ngModel)]="cancelReason" maxlength="1000" class="p-inputtext w-full" [attr.aria-describedby]="'cancel-help-' + item.id" />
+                    <small [id]="'cancel-help-' + item.id" class="text-muted-color">Le créneau sera libéré pour un autre habitant.</small>
+                    <div class="flex gap-2">
+                        <p-button label="Confirmer l’annulation" severity="danger" [loading]="cancelling()" (onClick)="cancel(item)" />
+                        <p-button label="Garder le rendez-vous" severity="secondary" [text]="true" (onClick)="confirming.set(null)" />
+                    </div>
+                </div>
+            }
+        }
+    </article>
+</ng-template>

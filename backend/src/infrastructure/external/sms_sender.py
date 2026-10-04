@@ -29,17 +29,21 @@ class HttpSmsSender(SmsSender):
         self._timeout = timeout
 
     def send_verification_code(self, to: str, code: str, ttl_minutes: int) -> None:
+        self.send_text(to, _text(code, ttl_minutes))
+
+    def send_text(self, to: str, content: str) -> None:
+        """Envoi générique (rappels de rendez-vous…). Lève SmsDeliveryUnavailableError."""
         try:
             response = httpx.post(
                 self._url,
                 headers={"x-api-key": self._api_key},
-                json={"content": _text(code, ttl_minutes), "from": self._from, "to": to},
+                json={"content": content, "from": self._from, "to": to},
                 timeout=self._timeout,
             )
             response.raise_for_status()
         except httpx.HTTPError as exc:
-            # Ni le numéro ni le code ne sont journalisés.
-            logger.error("verification sms failed: %s", type(exc).__name__)
+            # Ni le numéro ni le contenu ne sont journalisés.
+            logger.error("sms failed: %s", type(exc).__name__)
             raise SmsDeliveryUnavailableError() from exc
 
 
@@ -56,3 +60,9 @@ class ConsoleSmsSender(SmsSender):
             )
             raise SmsDeliveryUnavailableError()
         logger.warning("DEV ONLY - verification code for %s: %s", to, code)
+
+    def send_text(self, to: str, content: str) -> None:
+        if not self._allow:
+            logger.error("SMS gateway not configured: sms cannot be sent")
+            raise SmsDeliveryUnavailableError()
+        logger.warning("DEV ONLY - sms to %s: %s", to, content)

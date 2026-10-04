@@ -101,6 +101,16 @@ class Settings(BaseSettings):
     # Boucle de synchronisation en tâche de fond (désactivable, ex. plusieurs workers).
     terra_nova_background_sync: bool = True
 
+    # ─── Rendez-vous (F39, F40) ───
+    # Annulation en ligne par l'habitant jusqu'à N heures avant le rendez-vous.
+    appointment_cancellation_notice_hours: int = 2
+    # Réservation possible jusqu'à N jours à l'avance.
+    appointment_booking_horizon_days: int = 60
+    # Envoi des rappels en tâche de fond (désactivable, ex. plusieurs workers : un seul suffit,
+    # mais l'envoi reste sans doublon grâce à la mémorisation des rappels).
+    appointment_reminders_background: bool = True
+    appointment_reminder_interval_seconds: int = 60
+
     @field_validator("database_url", mode="before")
     @classmethod
     def use_installed_postgres_driver(cls, value: str) -> str:

@@ -27,7 +27,7 @@ export type SortOrder = (typeof SORT_ORDER_VALUES)[number];
 export const AGENT_STATUS_VALUES = ['available', 'in_intervention', 'unavailable', 'offline'] as const;
 export type AgentStatus = (typeof AGENT_STATUS_VALUES)[number];
 
-export const NOTIFICATION_KIND_VALUES = ['created', 'status_changed', 'rejected', 'assigned', 'resolved', 'late'] as const;
+export const NOTIFICATION_KIND_VALUES = ['created', 'status_changed', 'rejected', 'assigned', 'resolved', 'late', 'appointment_reminder', 'appointment_cancelled'] as const;
 export type NotificationKind = (typeof NOTIFICATION_KIND_VALUES)[number];
 
 export const CONCERN_TOPIC_VALUES = ['Collecte', 'Utilisation', 'Partage', 'Conservation', 'Accès, rectification ou suppression', 'Autre'] as const;
@@ -36,10 +36,10 @@ export type ConcernTopic = (typeof CONCERN_TOPIC_VALUES)[number];
 export const CONCERN_STATUS_VALUES = ['Reçu', "En cours d'examen", 'Répondu'] as const;
 export type ConcernStatus = (typeof CONCERN_STATUS_VALUES)[number];
 
-export const AUDIT_ACTION_VALUES = ['account_created', 'account_updated', 'account_role_changed', 'account_password_reset', 'account_deactivated', 'account_reactivated', 'account_deleted', 'institut_created', 'institut_updated', 'institut_manager_changed', 'agent_created', 'agent_moved', 'agent_activated', 'agent_deactivated', 'agent_status_changed', 'data_concern_reviewed', 'data_concern_answered'] as const;
+export const AUDIT_ACTION_VALUES = ['account_created', 'account_updated', 'account_role_changed', 'account_password_reset', 'account_deactivated', 'account_reactivated', 'account_deleted', 'institut_created', 'institut_updated', 'institut_manager_changed', 'agent_created', 'agent_moved', 'agent_activated', 'agent_deactivated', 'agent_status_changed', 'data_concern_reviewed', 'data_concern_answered', 'appointment_slots_created', 'appointment_slot_closed', 'appointment_cancelled', 'appointment_attendance_recorded'] as const;
 export type AuditAction = (typeof AUDIT_ACTION_VALUES)[number];
 
-export const AUDIT_TARGET_VALUES = ['account', 'institut', 'agent', 'data_concern'] as const;
+export const AUDIT_TARGET_VALUES = ['account', 'institut', 'agent', 'data_concern', 'appointment_slot', 'appointment'] as const;
 export type AuditTarget = (typeof AUDIT_TARGET_VALUES)[number];
 
 export const THEME_VALUES = ['light', 'dark', 'system'] as const;
@@ -62,3 +62,12 @@ export type PipelineStatus = (typeof PIPELINE_STATUS_VALUES)[number];
 
 export const TERRA_NOTIFICATION_KIND_VALUES = ['new_request', 'new_wave'] as const;
 export type TerraNotificationKind = (typeof TERRA_NOTIFICATION_KIND_VALUES)[number];
+
+export const APPOINTMENT_MODALITY_VALUES = ['in_person', 'phone', 'video'] as const;
+export type AppointmentModality = (typeof APPOINTMENT_MODALITY_VALUES)[number];
+
+export const APPOINTMENT_STATUS_VALUES = ['confirmed', 'cancelled_by_citizen', 'cancelled_by_city', 'honored', 'no_show'] as const;
+export type AppointmentStatus = (typeof APPOINTMENT_STATUS_VALUES)[number];
+
+export const REMINDER_DELAY_VALUES = ['2d', '24h', '3h', '1h'] as const;
+export type ReminderDelay = (typeof REMINDER_DELAY_VALUES)[number];

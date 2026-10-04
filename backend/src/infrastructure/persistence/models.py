@@ -20,6 +20,7 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    UniqueConstraint,
     false,
     true,
 )
@@ -433,3 +434,90 @@ class TerraRequestReadModel(Base):
     )
     key: Mapped[str] = mapped_column(String(80), primary_key=True)
     read_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+# ─── rendez-vous (F39, F40) ──────────────────────────────────────────
+
+
+class AppointmentSlotModel(Base):
+    """Créneau proposé par un institut (éventuellement au nom d'un agent), pour une personne."""
+
+    __tablename__ = "appointment_slots"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    institut_id: Mapped[str] = mapped_column(String(36), ForeignKey("instituts.id"), index=True)
+    agent_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("agents.id"), nullable=True, index=True
+    )
+    starts_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    ends_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    modality: Mapped[str] = mapped_column(String(20))
+    location: Mapped[str] = mapped_column(String(500))
+    preparation: Mapped[str] = mapped_column(Text, default="", server_default="")
+    is_open: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true())
+    # Pas de clé étrangère : la trace survit à la suppression du compte qui a créé le créneau.
+    created_by: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    __table_args__ = (CheckConstraint("ends_at > starts_at", name="ck_appointment_slots_order"),)
+
+
+class AppointmentModel(Base):
+    """Réservation d'un créneau par un habitant."""
+
+    __tablename__ = "appointments"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    reference: Mapped[str] = mapped_column(String(32), unique=True, index=True)
+    citizen_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), index=True)
+    slot_id: Mapped[str] = mapped_column(String(36), ForeignKey("appointment_slots.id"), index=True)
+    # = slot_id tant que le rendez-vous occupe le créneau, NULL une fois annulé.
+    # L'unicité interdit la double réservation, même entre deux requêtes simultanées
+    # (plusieurs NULL restent permis sur SQLite comme sur PostgreSQL).
+    active_slot_id: Mapped[str | None] = mapped_column(
+        String(36), nullable=True, unique=True, index=True
+    )
+    reason: Mapped[str] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(30), index=True)
+    reminders: Mapped[list[str]] = mapped_column(JSON, default=list)
+    contact_phone: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    cancel_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    attendance_recorded_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class AppointmentNoticeModel(Base):
+    """Rappels et annulations envoyés à l'habitant, un enregistrement par canal.
+
+    La contrainte d'unicité rend l'envoi idempotent : un même rappel n'est jamais envoyé
+    deux fois sur le même canal, même avec plusieurs workers.
+    """
+
+    __tablename__ = "appointment_notices"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    appointment_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("appointments.id", ondelete="CASCADE"), index=True
+    )
+    user_id: Mapped[str] = mapped_column(String(36), index=True)
+    kind: Mapped[str] = mapped_column(String(30))
+    channel: Mapped[str] = mapped_column(String(10))
+    delay: Mapped[str] = mapped_column(String(10))
+    title: Mapped[str] = mapped_column(String(255))
+    message: Mapped[str] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(10), index=True)
+    attempts: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    last_attempt_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_error: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    __table_args__ = (
+        UniqueConstraint(
+            "appointment_id", "kind", "delay", "channel", name="uq_appointment_notices_once"
+        ),
+    )

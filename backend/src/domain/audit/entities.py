@@ -31,6 +31,10 @@ class AuditAction(StrEnum):
     AGENT_STATUS_CHANGED = "agent_status_changed"
     DATA_CONCERN_REVIEWED = "data_concern_reviewed"
     DATA_CONCERN_ANSWERED = "data_concern_answered"
+    APPOINTMENT_SLOTS_CREATED = "appointment_slots_created"
+    APPOINTMENT_SLOT_CLOSED = "appointment_slot_closed"
+    APPOINTMENT_CANCELLED = "appointment_cancelled"
+    APPOINTMENT_ATTENDANCE_RECORDED = "appointment_attendance_recorded"
 
 
 class AuditTarget(StrEnum):
@@ -38,6 +42,8 @@ class AuditTarget(StrEnum):
     INSTITUT = "institut"
     AGENT = "agent"
     DATA_CONCERN = "data_concern"
+    APPOINTMENT_SLOT = "appointment_slot"
+    APPOINTMENT = "appointment"
 
 
 @dataclass(frozen=True)

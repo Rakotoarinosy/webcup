@@ -1,0 +1,246 @@
+<div class="mx-auto grid max-w-[56rem] gap-6">
+    <header class="card mb-0">
+        <p class="mb-1 font-semibold text-primary">Rendez-vous</p>
+        <h1 class="m-0 text-3xl font-bold">Prendre rendez-vous avec un agent</h1>
+        <p class="mb-0 mt-3">
+            Choisissez un service, un jour puis un créneau. Tous les horaires sont donnés en
+            <strong>{{ policy()?.timezone_label ?? 'heure de la mairie' }}</strong>. Vous vérifiez tout avant de confirmer.
+        </p>
+        <p class="mb-0 mt-2"><a routerLink="/home/appointments/mine" class="font-semibold text-primary underline">Voir mes rendez-vous</a></p>
+    </header>
+
+    @if (step() !== 'done') {
+        <nav aria-label="Étapes de la prise de rendez-vous">
+            <ol class="m-0 flex list-none flex-wrap gap-2 p-0">
+                @for (item of steps; track item.key; let i = $index) {
+                    <li
+                        class="rounded-full border px-3 py-1 text-sm"
+                        [class.border-primary]="i === stepIndex()"
+                        [class.font-bold]="i === stepIndex()"
+                        [attr.aria-current]="i === stepIndex() ? 'step' : null"
+                    >
+                        <span>{{ i + 1 }}. {{ item.label }}</span>
+                        @if (i < stepIndex()) {
+                            <span> <i class="pi pi-check" aria-hidden="true"></i><span class="sr-only"> (fait)</span></span>
+                        } @else if (i === stepIndex()) {
+                            <span class="sr-only"> (étape en cours)</span>
+                        }
+                    </li>
+                }
+            </ol>
+        </nav>
+    }
+
+    @if (error(); as message) {
+        <p role="alert" class="m-0 rounded-xl border border-red-300 p-4 text-red-700 dark:text-red-300">{{ message }}</p>
+    }
+
+    <section class="card mb-0" aria-labelledby="step-heading">
+        @switch (step()) {
+            @case ('service') {
+                <h2 id="step-heading" #stepHeading tabindex="-1" class="mt-0 text-xl font-semibold">1. Quel service souhaitez-vous rencontrer ?</h2>
+                <p aria-live="polite" class="text-muted-color">{{ loading() ? 'Chargement des services…' : '' }}</p>
+                <ul class="m-0 grid list-none gap-3 p-0">
+                    @for (item of services(); track item.institut_id) {
+                        <li>
+                            <button
+                                type="button"
+                                class="w-full rounded-xl border border-surface p-4 text-left hover:border-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-60"
+                                [disabled]="item.available_slots === 0"
+                                (click)="chooseService(item)"
+                            >
+                                <span class="block text-lg font-semibold">{{ item.name }}</span>
+                                @if (item.description) {
+                                    <span class="block text-muted-color">{{ item.description }}</span>
+                                }
+                                @if (item.next_available; as next) {
+                                    <span class="mt-1 block">{{ item.available_slots }} créneau(x) libre(s) · prochain : {{ next.day_label }} à {{ next.start_time }} ({{ next.utc_offset }})</span>
+                                } @else {
+                                    <span class="mt-1 block">Aucun créneau libre pour le moment.</span>
+                                }
+                            </button>
+                        </li>
+                    } @empty {
+                        @if (!loading()) {
+                            <li class="text-muted-color">Aucun service ne propose de rendez-vous pour le moment.</li>
+                        }
+                    }
+                </ul>
+            }
+            @case ('day') {
+                <h2 id="step-heading" #stepHeading tabindex="-1" class="mt-0 text-xl font-semibold">2. Quel jour ? <span class="font-normal">— {{ service()?.name }}</span></h2>
+                <ul class="m-0 grid list-none gap-2 p-0 sm:grid-cols-2">
+                    @for (item of days(); track item.day) {
+                        <li>
+                            <button type="button" class="w-full rounded-xl border border-surface p-3 text-left hover:border-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary" (click)="chooseDay(item)">
+                                <span class="block font-semibold first-letter:uppercase">{{ item.day_label }}</span>
+                                <span class="block text-muted-color">{{ item.available_slots }} créneau(x) libre(s)</span>
+                            </button>
+                        </li>
+                    } @empty {
+                        <li class="text-muted-color">Plus aucun jour disponible pour ce service.</li>
+                    }
+                </ul>
+            }
+            @case ('slot') {
+                <h2 id="step-heading" #stepHeading tabindex="-1" class="mt-0 text-xl font-semibold">
+                    3. Quel créneau le <span class="first-letter:uppercase">{{ day()?.day_label }}</span> ?
+                </h2>
+                <p class="mt-0 text-muted-color">Heures en {{ policy()?.timezone_label ?? 'heure de la mairie' }}.</p>
+                <ul class="m-0 grid list-none gap-3 p-0">
+                    @for (item of slots(); track item.id) {
+                        <li>
+                            <button
+                                type="button"
+                                class="w-full rounded-xl border border-surface p-4 text-left hover:border-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+                                [attr.aria-label]="'Choisir le créneau du ' + item.time.label + ', ' + item.modality_label + ', ' + item.location"
+                                (click)="chooseSlot(item)"
+                            >
+                                <span class="block text-lg font-semibold">{{ item.time.start_time }} – {{ item.time.end_time }} <span class="font-normal">({{ item.time.utc_offset }}, {{ duration(item.time.duration_minutes) }})</span></span>
+                                <span class="block"><i [class]="icons[item.modality]" aria-hidden="true"></i> {{ item.modality_label }} · {{ item.location }}</span>
+                                <span class="block text-muted-color">Avec {{ item.agent_name || 'un agent' }} — {{ item.institut_name }}</span>
+                            </button>
+                        </li>
+                    } @empty {
+                        <li class="text-muted-color">Plus aucun créneau libre ce jour-là. Choisissez un autre jour.</li>
+                    }
+                </ul>
+            }
+            @case ('recap') {
+                @if (slot(); as chosen) {
+                    <h2 id="step-heading" #stepHeading tabindex="-1" class="mt-0 text-xl font-semibold">4. Vérifiez puis confirmez</h2>
+                    <dl class="m-0 grid gap-x-6 gap-y-2 rounded-xl bg-emphasis p-4 sm:grid-cols-[max-content_1fr]">
+                        <dt class="font-semibold">Date</dt>
+                        <dd class="m-0 first-letter:uppercase">{{ chosen.time.day_label }}</dd>
+                        <dt class="font-semibold">Heure</dt>
+                        <dd class="m-0">de {{ chosen.time.start_time }} à {{ chosen.time.end_time }} — {{ policy()?.timezone_label ?? chosen.time.timezone + ', ' + chosen.time.utc_offset }}</dd>
+                        <dt class="font-semibold">Durée</dt>
+                        <dd class="m-0">{{ duration(chosen.time.duration_minutes) }}</dd>
+                        <dt class="font-semibold">Service</dt>
+                        <dd class="m-0">{{ chosen.institut_name }}</dd>
+                        <dt class="font-semibold">Agent</dt>
+                        <dd class="m-0">{{ chosen.agent_name || 'Un agent du service' }}</dd>
+                        <dt class="font-semibold">Modalité</dt>
+                        <dd class="m-0">{{ chosen.modality_label }}</dd>
+                        <dt class="font-semibold">{{ chosen.modality === 'in_person' ? 'Adresse' : 'Accès' }}</dt>
+                        <dd class="m-0">{{ chosen.location }}</dd>
+                        @if (chosen.preparation) {
+                            <dt class="font-semibold">À apporter</dt>
+                            <dd class="m-0 whitespace-pre-line">{{ chosen.preparation }}</dd>
+                        }
+                    </dl>
+
+                    <form #bookForm="ngForm" (ngSubmit)="confirm(bookForm)" novalidate class="mt-4 grid gap-4">
+                        <p class="m-0 text-muted-color">Les champs marqués d’un astérisque (*) sont obligatoires.</p>
+                        <div class="grid gap-2">
+                            <label for="appt-reason" class="font-semibold">Motif du rendez-vous *</label>
+                            <textarea
+                                id="appt-reason"
+                                name="reason"
+                                #reasonModel="ngModel"
+                                [(ngModel)]="form.reason"
+                                required
+                                minlength="5"
+                                maxlength="1000"
+                                rows="3"
+                                class="p-inputtext w-full"
+                                aria-describedby="appt-reason-help appt-reason-error"
+                                [attr.aria-invalid]="reasonModel.invalid && (reasonModel.touched || submitted)"
+                            ></textarea>
+                            <small id="appt-reason-help" class="text-muted-color">En quelques mots, pour que l’agent prépare votre dossier. 5 caractères minimum.</small>
+                            <small id="appt-reason-error" class="text-red-700 dark:text-red-300">
+                                @if (reasonModel.invalid && (reasonModel.touched || submitted)) {
+                                    Indiquez le motif en au moins 5 caractères.
+                                }
+                            </small>
+                        </div>
+
+                        @if (chosen.modality === 'phone') {
+                            <div class="grid gap-2">
+                                <label for="appt-phone" class="font-semibold">Numéro où l’agent vous appelle</label>
+                                <input
+                                    id="appt-phone"
+                                    name="contactPhone"
+                                    type="tel"
+                                    autocomplete="tel"
+                                    [(ngModel)]="form.contactPhone"
+                                    class="p-inputtext w-full"
+                                    aria-describedby="appt-phone-help"
+                                />
+                                <small id="appt-phone-help" class="text-muted-color">Format international, ex. +261 34 12 345 67. Laissez vide pour utiliser le numéro de votre compte.</small>
+                            </div>
+                        }
+
+                        <fieldset class="m-0 grid gap-2 border-0 p-0" aria-describedby="appt-reminders-help">
+                            <legend class="mb-2 font-semibold">Rappels</legend>
+                            @for (option of policy()?.reminder_options ?? []; track option.value) {
+                                <div class="flex items-center gap-2">
+                                    <input
+                                        type="checkbox"
+                                        [id]="'reminder-' + option.value"
+                                        [checked]="form.reminders.includes(option.value)"
+                                        (change)="toggleReminder(option.value, $any($event.target).checked)"
+                                    />
+                                    <label [for]="'reminder-' + option.value">{{ option.label }}</label>
+                                </div>
+                            }
+                            <small id="appt-reminders-help" class="text-muted-color">Par notification dans l’application, et par email ou SMS selon les coordonnées confirmées de votre compte.</small>
+                        </fieldset>
+
+                        <p class="m-0">
+                            Annulation en ligne possible jusqu’à {{ policy()?.cancellation_notice_hours ?? 2 }} heure(s) avant le rendez-vous.
+                        </p>
+                        <div class="flex flex-wrap gap-2">
+                            <p-button type="submit" label="Confirmer le rendez-vous" icon="pi pi-check" [loading]="sending()" />
+                            <p-button type="button" label="Changer de créneau" icon="pi pi-arrow-left" severity="secondary" [outlined]="true" (onClick)="back()" />
+                        </div>
+                    </form>
+                }
+            }
+            @case ('done') {
+                @if (booked(); as appointment) {
+                    <div role="status">
+                        <h2 id="step-heading" #stepHeading tabindex="-1" class="mt-0 text-xl font-semibold">
+                            <i class="pi pi-check-circle text-green-600" aria-hidden="true"></i> Rendez-vous confirmé
+                        </h2>
+                        <p class="mt-0">
+                            Référence <strong>{{ appointment.reference }}</strong> — <span class="first-letter:uppercase">{{ appointment.slot.time.label }}</span>, {{ appointment.slot.time.timezone }}.
+                        </p>
+                    </div>
+                    <dl class="m-0 grid gap-x-6 gap-y-2 rounded-xl bg-emphasis p-4 sm:grid-cols-[max-content_1fr]">
+                        <dt class="font-semibold">Avec</dt>
+                        <dd class="m-0">{{ appointment.slot.agent_name || 'Un agent' }} — {{ appointment.slot.institut_name }}</dd>
+                        <dt class="font-semibold">{{ appointment.slot.modality_label }}</dt>
+                        <dd class="m-0">{{ appointment.slot.location }}</dd>
+                        <dt class="font-semibold">Rappels</dt>
+                        <dd class="m-0">{{ appointment.reminder_labels.length ? appointment.reminder_labels.join(', ') : 'aucun' }}</dd>
+                    </dl>
+                    <h3 class="text-lg font-semibold">Pour préparer votre rendez-vous</h3>
+                    <ul class="mt-0 grid gap-2 pl-5">
+                        @if (appointment.slot.preparation) {
+                            <li><strong>À apporter :</strong> <span class="whitespace-pre-line">{{ appointment.slot.preparation }}</span></li>
+                        }
+                        <li>{{ appointment.slot.instructions }}</li>
+                        <li>Motif indiqué : {{ appointment.reason }}</li>
+                    </ul>
+                    <div class="flex flex-wrap gap-2">
+                        <p-button label="Ajouter à mon agenda (.ics)" icon="pi pi-calendar-plus" (onClick)="downloadCalendar(appointment)" />
+                        @if (appointment.slot.directions_url; as directions) {
+                            <a [href]="directions" target="_blank" rel="noopener" class="p-button p-button-outlined no-underline">
+                                <i class="pi pi-directions mr-2" aria-hidden="true"></i>Itinéraire<span class="sr-only"> (nouvel onglet)</span>
+                            </a>
+                        }
+                        <a routerLink="/home/appointments/mine" class="p-button p-button-secondary p-button-text no-underline">Mes rendez-vous</a>
+                        <p-button label="Prendre un autre rendez-vous" severity="secondary" [text]="true" (onClick)="restart()" />
+                    </div>
+                }
+            }
+        }
+
+        @if (step() === 'day' || step() === 'slot') {
+            <div class="mt-4">
+                <p-button type="button" label="Retour" icon="pi pi-arrow-left" severity="secondary" [outlined]="true" (onClick)="back()" />
+            </div>
+        }
+    </section>
+</div>

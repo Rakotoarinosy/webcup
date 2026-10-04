@@ -57,12 +57,17 @@ class SmtpEmailSender(EmailSender):
 
     def send_verification_code(self, to: str, name: str, code: str, ttl_minutes: int) -> None:
         text, html = _render(name, code, ttl_minutes)
+        self.send_message(to, f"{code} est votre code de vérification {APP_NAME}", text, html)
+
+    def send_message(self, to: str, subject: str, text: str, html: str | None = None) -> None:
+        """Envoi générique (rappels de rendez-vous…). Lève EmailDeliveryUnavailableError."""
         message = EmailMessage()
-        message["Subject"] = f"{code} est votre code de vérification {APP_NAME}"
+        message["Subject"] = subject
         message["From"] = self._sender
         message["To"] = to
         message.set_content(text)
-        message.add_alternative(html, subtype="html")
+        if html is not None:
+            message.add_alternative(html, subtype="html")
 
         context = ssl.create_default_context()
         try:
@@ -76,7 +81,7 @@ class SmtpEmailSender(EmailSender):
                     smtp.starttls(context=context)
                     self._deliver(smtp, message)
         except (smtplib.SMTPException, OSError) as exc:
-            logger.exception("verification email failed", extra={"smtp_host": self._host})
+            logger.exception("email delivery failed", extra={"smtp_host": self._host})
             raise EmailDeliveryUnavailableError() from exc
 
     def _deliver(self, smtp: smtplib.SMTP, message: EmailMessage) -> None:
@@ -96,3 +101,24 @@ class ConsoleEmailSender(EmailSender):
             logger.error("SMTP_HOST is not configured: verification emails cannot be sent")
             raise EmailDeliveryUnavailableError()
         logger.warning("DEV ONLY - verification code for %s: %s", to, code)
+
+    def send_message(self, to: str, subject: str, text: str, html: str | None = None) -> None:
+        if not self._allow:
+            logger.error("SMTP_HOST is not configured: emails cannot be sent")
+            raise EmailDeliveryUnavailableError()
+        logger.warning("DEV ONLY - email to %s: %s", to, subject)
+
+
+def render_notice_html(name: str, title: str, text: str) -> str:
+    """Email simple et lisible : le texte du message, paragraphe par paragraphe."""
+    paragraphs = "".join(
+        f'<p style="margin:0 0 8px">{escape(line)}</p>' if line else "<br>"
+        for line in text.split("\n")
+    )
+    return f"""\
+<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:24px;color:#1f2937">
+  <h2 style="margin:0 0 16px">{APP_NAME}</h2>
+  <p>Bonjour {escape(name)},</p>
+  <h3 style="margin:16px 0">{escape(title)}</h3>
+  {paragraphs}
+</div>"""
