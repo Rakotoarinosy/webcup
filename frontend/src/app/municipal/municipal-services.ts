@@ -10,6 +10,7 @@ import { AuthService } from '../auth/auth.service';
 import { LocatedService, MunicipalService, directionsUrl, distanceKm, formatDistance, isLocated } from './municipal-content.model';
 import { MunicipalContentService } from './municipal-content.service';
 import { ServicesMap } from './services-map';
+import { ExplainSimply } from '../shared/plain-language/explain-simply';
 
 interface Position {
     latitude: number;
@@ -22,7 +23,7 @@ interface LocationForm {
     longitude: number | null;
 }
 
-@Component({ selector: 'app-municipal-services', imports: [CardModule, FormsModule, ServicesMap], templateUrl: './municipal-services.html', styleUrl: './municipal-services.scss' })
+@Component({ selector: 'app-municipal-services', imports: [CardModule, ExplainSimply, FormsModule, ServicesMap], templateUrl: './municipal-services.html', styleUrl: './municipal-services.scss' })
 export class MunicipalServices implements OnInit {
     private readonly live = inject(LiveDataService);
     private readonly destroyRef = inject(DestroyRef);

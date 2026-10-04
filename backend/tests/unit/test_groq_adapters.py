@@ -118,3 +118,39 @@ def test_groq_assistant_returns_the_validated_structured_reply(
     assert result.steps == ("Ouvrez Demandes",)
     assert client.url == groq_assistant.GROQ_CHAT_COMPLETIONS_URL
     assert client.payload["response_format"] == {"type": "json_object"}
+
+
+def test_groq_text_simplifier_sends_the_passage_and_parses_the_explanation(
+    monkeypatch,  # type: ignore[no-untyped-def]
+) -> None:
+    client = _FakeClient(
+        _FakeResponse(
+            {
+                "choices": [
+                    {
+                        "message": {
+                            "content": (
+                                '{"summary":"Déposez votre dossier au service social.",'
+                                '"key_points":["Préparez votre dossier."],'
+                                '"terms":[{"term":"CCAS","definition":"Le service social."}]}'
+                            )
+                        }
+                    }
+                ]
+            }
+        )
+    )
+    monkeypatch.setattr(groq_assistant.httpx, "Client", lambda **_: client)
+
+    explanation = groq_assistant.GroqTextSimplifier("key", "model").simplify(
+        "Le dossier est à déposer au CCAS."
+    )
+
+    assert client.url == groq_analyzer.GROQ_CHAT_COMPLETIONS_URL
+    assert client.payload["response_format"] == {"type": "json_object"}
+    messages = client.payload["messages"]
+    assert isinstance(messages, list)
+    assert "Le dossier est à déposer au CCAS." in messages[-1]["content"]
+    assert explanation.summary == "Déposez votre dossier au service social."
+    assert explanation.key_points == ("Préparez votre dossier.",)
+    assert explanation.terms[0].term == "CCAS"

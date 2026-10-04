@@ -3,7 +3,12 @@
 from typing import Protocol
 
 from src.domain.municipal_content.entities import MunicipalService
-from src.domain.virtual_assistant.entities import AssistantMessage, AssistantQuery, AssistantReply
+from src.domain.virtual_assistant.entities import (
+    AssistantMessage,
+    AssistantQuery,
+    AssistantReply,
+    PlainExplanation,
+)
 
 
 class AssistantServiceCatalog(Protocol):
@@ -20,3 +25,7 @@ class AssistantConversationRepository(Protocol):
     def add(self, message: AssistantMessage) -> AssistantMessage: ...
 
     def clear(self, user_id: str) -> None: ...
+
+
+class TextSimplifier(Protocol):
+    def simplify(self, passage: str) -> PlainExplanation: ...

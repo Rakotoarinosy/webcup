@@ -38,6 +38,7 @@
                         ><span [id]="'service-' + service.id"><i [class]="'pi ' + service.icon" aria-hidden="true"></i> {{ service.name }}</span></ng-template
                     >
                     <p>{{ service.description }}</p>
+                    <app-explain-simply class="mb-3 block" [text]="service.description" [subject]="service.name" />
                     <dl>
                         <dt>Adresse</dt>
                         <dd>

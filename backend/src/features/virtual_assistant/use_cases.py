@@ -11,7 +11,13 @@ from src.domain.virtual_assistant import (
     AssistantResponsePreference,
     AssistantServiceCatalog,
     AssistantServiceRecommendation,
+    GlossaryTerm,
+    PlainExplanation,
+    TextSimplifier,
 )
+
+MAX_KEY_POINTS = 5
+MAX_TERMS = 6
 
 
 def answer_user(

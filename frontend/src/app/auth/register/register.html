@@ -1,38 +1,44 @@
-<app-floating-configurator [float]="false" class="auth-display-settings" />
 <main class="grid min-h-dvh bg-white font-sans text-emerald-950 dark:bg-emerald-950 dark:text-emerald-50 lg:grid-cols-[minmax(26rem,57.3%)_1fr]">
+    
+    <!-- SECTION GAUCHE -->
     <section
         class="relative isolate hidden overflow-hidden bg-[radial-gradient(circle_at_90%_8%,#17845b_0,transparent_31%),linear-gradient(145deg,#062c21_0%,#07533a_59%,#03271d_100%)] px-[clamp(2rem,7vw,8.5rem)] py-[clamp(2rem,4vw,4.8rem)] text-white lg:flex lg:flex-col"
         aria-label="Terra Nova"
     >
-        <a class="inline-flex w-fit items-center gap-3 text-[1.4rem] font-bold tracking-[-.04em]" routerLink="/" aria-label="Terra Nova, accueil"
-            ><span class="grid size-8 place-items-center rounded-[.62rem] bg-emerald-500 text-sm font-black leading-none -skew-y-6" aria-hidden="true">TN</span><span>Terra Nova</span></a
-        >
+        <a class="inline-flex w-fit items-center gap-3 text-[1.4rem] font-bold tracking-[-.04em]" routerLink="/" aria-label="Terra Nova, accueil">
+            <span class="grid size-8 place-items-center rounded-[.62rem] bg-emerald-500 text-sm font-black leading-none -skew-y-6" aria-hidden="true">TN</span>
+            <span>Terra Nova</span>
+        </a>
         <div class="mt-[clamp(5rem,13vh,10rem)] max-w-xl">
             <h1 class="m-0 !text-[clamp(2.7rem,4.5vw,5rem)] !text-white font-bold leading-[.99] tracking-[-.065em]">Une gestion publique<br /><span class="!text-emerald-300">plus proche.</span></h1>
             <p class="mt-7 max-w-lg text-[1.06rem] leading-7 text-emerald-50/85">Créez votre espace Terra Nova et donnez à chaque demande la suite qu’elle mérite.</p>
         </div>
         <ul class="mt-auto grid list-none gap-5 pb-8 pt-16">
             <li class="flex items-center gap-4">
-                <i aria-hidden="true" class="pi pi-users grid size-11 place-items-center rounded-full border border-emerald-200/40 text-emerald-100"></i
-                ><span class="grid gap-0.5"><strong class="text-[.94rem]">Des citoyens mieux accompagnés</strong><small class="text-[.81rem] text-emerald-100/75">Un suivi clair, au bon moment.</small></span>
+                <span aria-hidden="true" class="grid size-11 shrink-0 place-items-center rounded-full border border-emerald-200/40 text-emerald-100"><i class="pi pi-users block text-base leading-none"></i></span>
+                <span class="grid gap-0.5"><strong class="text-[.94rem]">Des citoyens mieux accompagnés</strong><small class="text-[.81rem] text-emerald-100/75">Un suivi clair, au bon moment.</small></span>
             </li>
             <li class="flex items-center gap-4">
-                <i aria-hidden="true" class="pi pi-shield grid size-11 place-items-center rounded-full border border-emerald-200/40 text-emerald-100"></i
-                ><span class="grid gap-0.5"><strong class="text-[.94rem]">Vos données protégées</strong><small class="text-[.81rem] text-emerald-100/75">Une plateforme conçue pour le service public.</small></span>
+                <span aria-hidden="true" class="grid size-11 shrink-0 place-items-center rounded-full border border-emerald-200/40 text-emerald-100"><i class="pi pi-shield block text-base leading-none"></i></span>
+                <span class="grid gap-0.5"><strong class="text-[.94rem]">Vos données protégées</strong><small class="text-[.81rem] text-emerald-100/75">Une plateforme conçue pour le service public.</small></span>
             </li>
         </ul>
     </section>
+
+    <!-- SECTION DROITE -->
     <section class="grid place-items-center bg-white px-5 py-8 dark:bg-emerald-950 sm:px-8" aria-labelledby="register-title">
-        <div
-            class="w-full max-w-[27.5rem] rounded-2xl border border-transparent p-0 sm:max-lg:border-emerald-100 sm:max-lg:bg-white sm:max-lg:p-[clamp(1.6rem,6vw,3rem)] sm:max-lg:shadow-[0_18px_60px_rgba(19,74,50,.08)] dark:sm:max-lg:border-emerald-900 dark:sm:max-lg:bg-emerald-900/40"
-        >
-            <a class="mb-8 inline-flex w-fit items-center gap-3 text-[1.4rem] font-bold tracking-[-.04em] lg:hidden" routerLink="/"
-                ><span class="grid size-8 place-items-center rounded-[.62rem] bg-emerald-500 text-sm font-black leading-none text-white -skew-y-6" aria-hidden="true">TN</span><span>Terra Nova</span></a
-            >
+        <div class="w-full max-w-[27.5rem] rounded-2xl border border-transparent p-0 sm:max-lg:border-emerald-100 sm:max-lg:bg-white sm:max-lg:p-[clamp(1.6rem,6vw,3rem)] sm:max-lg:shadow-[0_18px_60px_rgba(19,74,50,.08)] dark:sm:max-lg:border-emerald-900 dark:sm:max-lg:bg-emerald-900/40">
+            
+            <a class="mb-8 inline-flex w-fit items-center gap-3 text-[1.4rem] font-bold tracking-[-.04em] lg:hidden" routerLink="/">
+                <span class="grid size-8 place-items-center rounded-[.62rem] bg-emerald-500 text-sm font-black leading-none text-white -skew-y-6" aria-hidden="true">TN</span>
+                <span>Terra Nova</span>
+            </a>
+            
             <header class="mb-6">
-                <h1 id="register-title" class="mb-2 text-[2rem] font-bold leading-tight tracking-[-.045em]">Créer votre compte</h1>
+                <h1 id="register-title" class="mb-2 text-[2rem] font-bold leading-tight tracking-[-.045em] text-emerald-950 dark:text-white">Créer votre compte</h1>
                 <p class="m-0 leading-6 text-emerald-950/60 dark:text-emerald-50/65">Quelques informations suffisent pour commencer. Un code de confirmation sera envoyé {{ method() === 'phone' ? 'par SMS à votre numéro de téléphone' : 'à votre adresse email' }}.</p>
             </header>
+            
             @if (errorMessage()) {
                 <p-message severity="error" [text]="errorMessage()!" icon="pi pi-exclamation-circle" styleClass="mb-4 block" role="alert" />
             }
@@ -46,13 +52,16 @@
                     </ul>
                 </div>
             }
+
             <form [formGroup]="registerForm" (ngSubmit)="submit()" novalidate class="space-y-2" aria-labelledby="register-title" [attr.aria-busy]="loading()">
                 <p class="mb-3 mt-0 text-sm text-emerald-950/60 dark:text-emerald-50/65">Tous les champs sont obligatoires.</p>
+                
+                <!-- CHAMP NOM COMPLET -->
                 <div>
-                    <label for="name" class="mb-2 inline-block text-sm font-semibold">Nom complet</label
-                    ><span class="relative block"
-                        ><i class="pi pi-user absolute left-4 top-1/2 z-10 -translate-y-1/2 text-emerald-950/45 dark:text-emerald-50/50" aria-hidden="true"></i
-                        ><input
+                    <label for="name" class="mb-2 inline-block text-sm font-semibold">Nom complet</label>
+                    <span class="relative block">
+                        <i class="pi pi-user absolute left-4 top-1/2 z-10 -translate-y-1/2 text-emerald-950/45 dark:text-emerald-50/50" aria-hidden="true"></i>
+                        <input
                             pInputText
                             #nameInput
                             id="name"
@@ -63,24 +72,30 @@
                             maxlength="255"
                             aria-describedby="name-error"
                             [attr.aria-invalid]="registerForm.controls.name.invalid && registerForm.controls.name.touched"
-                            class="w-full rounded-xl border-emerald-200 py-3 !pl-11 text-[.95rem] shadow-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/15 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-50"
+                            class="w-full bg-white rounded-xl border-emerald-200 py-3 !pl-11 text-[.95rem] shadow-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/15 dark:border-emerald-900 dark:bg-neutral-950 dark:text-emerald-50 dark:focus:border-emerald-500 dark:focus:ring-emerald-500/20"
                             formControlName="name"
-                            [invalid]="registerForm.controls.name.invalid && registerForm.controls.name.touched" /></span
-                    ><small id="name-error" class="field-error block min-h-4 pt-1 text-xs text-red-600 dark:text-red-300">
+                            [invalid]="registerForm.controls.name.invalid && registerForm.controls.name.touched" 
+                        />
+                    </span>
+                    <small id="name-error" class="field-error block min-h-4 pt-1 text-xs text-red-600 dark:text-red-400">
                         @if (registerForm.controls.name.invalid && registerForm.controls.name.touched) {
                             Saisissez un nom de 1 à 255 caractères.
                         }
                     </small>
                 </div>
-                <div role="group" aria-label="Méthode de confirmation" class="grid grid-cols-2 gap-1 rounded-xl bg-emerald-50 p-1 dark:bg-emerald-900/60">
+                
+                <!-- SELECTEUR EMAIL/TELEPHONE -->
+                <div role="group" aria-label="Méthode de confirmation" class="grid grid-cols-2 gap-1 rounded-xl bg-emerald-50 p-1 dark:bg-neutral-950/50 dark:border dark:border-emerald-900/50">
                     <button type="button" [class]="tabClass('email')" [attr.aria-pressed]="method() === 'email'" (click)="setMethod('email')"><i class="pi pi-envelope mr-2" aria-hidden="true"></i>Email</button>
                     <button type="button" [class]="tabClass('phone')" [attr.aria-pressed]="method() === 'phone'" (click)="setMethod('phone')"><i class="pi pi-phone mr-2" aria-hidden="true"></i>Téléphone</button>
                 </div>
+                
+                <!-- CHAMP CONTACT -->
                 <div>
-                    <label for="contact" class="mb-2 inline-block text-sm font-semibold">{{ method() === 'phone' ? 'Numéro de téléphone' : 'Adresse email' }}</label
-                    ><span class="relative block"
-                        ><i [class]="method() === 'phone' ? 'pi pi-phone' : 'pi pi-envelope'" class="absolute left-4 top-1/2 z-10 -translate-y-1/2 text-emerald-950/45 dark:text-emerald-50/50" aria-hidden="true"></i
-                        ><input
+                    <label for="contact" class="mb-2 inline-block text-sm font-semibold">{{ method() === 'phone' ? 'Numéro de téléphone' : 'Adresse email' }}</label>
+                    <span class="relative block">
+                        <i [class]="method() === 'phone' ? 'pi pi-phone' : 'pi pi-envelope'" class="absolute left-4 top-1/2 z-10 -translate-y-1/2 text-emerald-950/45 dark:text-emerald-50/50" aria-hidden="true"></i>
+                        <input
                             pInputText
                             #contactInput
                             id="contact"
@@ -92,21 +107,26 @@
                             required
                             aria-describedby="contact-help contact-error"
                             [attr.aria-invalid]="registerForm.controls.contact.invalid && registerForm.controls.contact.touched"
-                            class="w-full rounded-xl border-emerald-200 py-3 !pl-11 text-[.95rem] shadow-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/15 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-50"
+                            class="w-full bg-white rounded-xl border-emerald-200 py-3 !pl-11 text-[.95rem] shadow-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/15 dark:border-emerald-900 dark:bg-neutral-950 dark:text-emerald-50 dark:focus:border-emerald-500 dark:focus:ring-emerald-500/20"
                             formControlName="contact"
-                            [invalid]="registerForm.controls.contact.invalid && registerForm.controls.contact.touched" /></span
-                    >@if (method() === 'phone') {
+                            [invalid]="registerForm.controls.contact.invalid && registerForm.controls.contact.touched" 
+                        />
+                    </span>
+                    @if (method() === 'phone') {
                         <small id="contact-help" class="block pt-1 text-xs text-emerald-950/60 dark:text-emerald-50/65">Format local (034 12 345 67) ou international (+261 34 12 345 67).</small>
-                    }<small id="contact-error" class="field-error block min-h-4 pt-1 text-xs text-red-600 dark:text-red-300">
+                    }
+                    <small id="contact-error" class="field-error block min-h-4 pt-1 text-xs text-red-600 dark:text-red-400">
                         @if (registerForm.controls.contact.invalid && registerForm.controls.contact.touched) {
                             {{ contactError() }}
                         }
                     </small>
                 </div>
+                
+                <!-- CHAMP MOT DE PASSE -->
                 <div>
-                    <label for="password" class="mb-2 inline-block text-sm font-semibold">Mot de passe</label
-                    ><span class="relative block"
-                        ><input
+                    <label for="password" class="mb-2 inline-block text-sm font-semibold">Mot de passe</label>
+                    <span class="relative block">
+                        <input
                             pInputText
                             id="password"
                             [type]="showPassword() ? 'text' : 'password'"
@@ -115,29 +135,34 @@
                             required
                             aria-describedby="password-help password-error"
                             [attr.aria-invalid]="registerForm.controls.password.invalid && registerForm.controls.password.touched"
-                            class="w-full rounded-xl border-emerald-200 py-3 !pr-12 text-[.95rem] shadow-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/15 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-50"
+                            class="w-full bg-white rounded-xl border-emerald-200 py-3 !pr-12 text-[.95rem] shadow-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/15 dark:border-emerald-900 dark:bg-neutral-950 dark:text-emerald-50 dark:focus:border-emerald-500 dark:focus:ring-emerald-500/20"
                             formControlName="password"
-                            [invalid]="registerForm.controls.password.invalid && registerForm.controls.password.touched" /><button
+                            [invalid]="registerForm.controls.password.invalid && registerForm.controls.password.touched" 
+                        />
+                        <button
                             type="button"
-                            class="absolute right-1.5 top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-lg text-emerald-950/60 hover:bg-emerald-50 dark:text-emerald-50/70 dark:hover:bg-emerald-900"
+                            class="absolute right-1.5 top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-lg text-emerald-950/60 hover:bg-emerald-50 dark:text-emerald-50/70 dark:hover:bg-neutral-900"
                             aria-label="Afficher le mot de passe"
                             aria-controls="password"
                             [attr.aria-pressed]="showPassword()"
                             (click)="showPassword.set(!showPassword())"
                         >
-                            <i [class]="showPassword() ? 'pi pi-eye-slash' : 'pi pi-eye'" aria-hidden="true"></i></button
-                    ></span>
+                            <i [class]="showPassword() ? 'pi pi-eye-slash' : 'pi pi-eye'" aria-hidden="true"></i>
+                        </button>
+                    </span>
                     <small id="password-help" class="block pt-1 text-xs text-emerald-950/60 dark:text-emerald-50/65">10 à 128 caractères, avec au moins une majuscule, une minuscule et un chiffre.</small>
-                    <small id="password-error" class="field-error block min-h-4 pt-1 text-xs text-red-600 dark:text-red-300">
+                    <small id="password-error" class="field-error block min-h-4 pt-1 text-xs text-red-600 dark:text-red-400">
                         @if (registerForm.controls.password.invalid && registerForm.controls.password.touched) {
                             {{ passwordError() }}
                         }
                     </small>
                 </div>
+                
+                <!-- CHAMP CONFIRMATION MOT DE PASSE -->
                 <div>
-                    <label for="confirmPassword" class="mb-2 inline-block text-sm font-semibold">Confirmer le mot de passe</label
-                    ><span class="relative block"
-                        ><input
+                    <label for="confirmPassword" class="mb-2 inline-block text-sm font-semibold">Confirmer le mot de passe</label>
+                    <span class="relative block">
+                        <input
                             pInputText
                             id="confirmPassword"
                             [type]="showConfirm() ? 'text' : 'password'"
@@ -146,38 +171,50 @@
                             required
                             aria-describedby="confirmPassword-error"
                             [attr.aria-invalid]="confirmInvalid()"
-                            class="w-full rounded-xl border-emerald-200 py-3 !pr-12 text-[.95rem] shadow-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/15 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-50"
+                            class="w-full bg-white rounded-xl border-emerald-200 py-3 !pr-12 text-[.95rem] shadow-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/15 dark:border-emerald-900 dark:bg-neutral-950 dark:text-emerald-50 dark:focus:border-emerald-500 dark:focus:ring-emerald-500/20"
                             formControlName="confirmPassword"
-                            [invalid]="confirmInvalid()" /><button
+                            [invalid]="confirmInvalid()" 
+                        />
+                        <button
                             type="button"
-                            class="absolute right-1.5 top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-lg text-emerald-950/60 hover:bg-emerald-50 dark:text-emerald-50/70 dark:hover:bg-emerald-900"
+                            class="absolute right-1.5 top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-lg text-emerald-950/60 hover:bg-emerald-50 dark:text-emerald-50/70 dark:hover:bg-neutral-900"
                             aria-label="Afficher la confirmation du mot de passe"
                             aria-controls="confirmPassword"
                             [attr.aria-pressed]="showConfirm()"
                             (click)="showConfirm.set(!showConfirm())"
                         >
-                            <i [class]="showConfirm() ? 'pi pi-eye-slash' : 'pi pi-eye'" aria-hidden="true"></i></button
-                    ></span>
-                    <small id="confirmPassword-error" class="field-error block min-h-4 pt-1 text-xs text-red-600 dark:text-red-300">
+                            <i [class]="showConfirm() ? 'pi pi-eye-slash' : 'pi pi-eye'" aria-hidden="true"></i>
+                        </button>
+                    </span>
+                    <small id="confirmPassword-error" class="field-error block min-h-4 pt-1 text-xs text-red-600 dark:text-red-400">
                         @if (confirmInvalid()) {
                             {{ confirmError() }}
                         }
                     </small>
                 </div>
+                
+                <!-- BOUTON SUBMIT (Couleurs forcées pour correspondre au design clair du bouton) -->
                 <p-button
                     type="submit"
                     label="Créer mon compte"
                     icon="pi pi-arrow-right"
                     iconPos="right"
-                    styleClass="mt-2 w-full rounded-xl border-0 bg-emerald-600 py-3 font-bold shadow-[0_10px_22px_rgba(22,163,106,.22)] hover:bg-emerald-700"
+                    styleClass="mt-2 w-full rounded-xl border-0 !bg-emerald-600 !text-white py-3 font-bold hover:!bg-emerald-700 dark:!bg-emerald-400 dark:!text-emerald-950 dark:hover:!bg-emerald-500 transition-colors"
                     [loading]="loading()"
                 />
             </form>
-                <div class="my-5 flex items-center gap-3 text-xs text-emerald-950/50 dark:text-emerald-50/55" aria-hidden="true">
-                    <span class="h-px flex-1 bg-emerald-200 dark:bg-emerald-800"></span>ou<span class="h-px flex-1 bg-emerald-200 dark:bg-emerald-800"></span>
-                </div>
-                <app-google-button (failed)="errorMessage.set($event)" />
-            <div class="mt-6 flex justify-center gap-1.5 text-sm text-emerald-950/60 dark:text-emerald-50/65"><span>Vous avez déjà un compte ?</span><a routerLink="/auth/login" class="font-bold text-emerald-600 hover:underline">Se connecter</a></div>
+            
+            <div class="my-5 flex items-center gap-3 text-xs text-emerald-950/50 dark:text-emerald-50/30" aria-hidden="true">
+                <span class="h-px flex-1 bg-emerald-200 dark:bg-emerald-900"></span>ou<span class="h-px flex-1 bg-emerald-200 dark:bg-emerald-900"></span>
+            </div>
+            
+            <app-google-button (failed)="errorMessage.set($event)" />
+            
+            <div class="mt-6 flex justify-center gap-1.5 text-sm text-emerald-950/60 dark:text-emerald-50/65">
+                <span>Vous avez déjà un compte ?</span>
+                <!-- LIEN (Couleur modifiée en dark mode pour rester lisible) -->
+                <a routerLink="/auth/login" class="font-bold text-emerald-600 hover:underline dark:text-emerald-400">Se connecter</a>
+            </div>
         </div>
     </section>
 </main>

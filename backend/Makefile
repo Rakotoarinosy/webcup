@@ -10,7 +10,7 @@ endif
 COMPOSE := docker compose
 PORT ?= 8000
 
-.PHONY: help install dev test lint format migrate seed revision enums requirements docker-up docker-down clean
+.PHONY: help install dev test lint format migrate revision enums requirements docker-up docker-down clean
 
 help: ## Liste les commandes
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "} {printf "  make %-14s %s\n", $$1, $$2}'
@@ -36,9 +36,6 @@ format: ## Corrige et formate le code : ruff --fix + black
 
 migrate: ## Applique les migrations (alembic upgrade head)
 	$(RUN) alembic upgrade head
-
-seed: ## Remplit la base locale avec des données fictives (rejouable)
-	$(RUN) python -m src.infrastructure.persistence.seed
 
 revision: ## Génère une migration : make revision m="add products table"
 	@test -n "$(m)" || (echo 'Usage : make revision m="description"' && exit 1)

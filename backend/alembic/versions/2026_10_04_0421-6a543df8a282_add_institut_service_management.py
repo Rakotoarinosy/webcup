@@ -39,7 +39,7 @@ def upgrade() -> None:
     # Rattache le catalogue de référence déjà livré aux instituts créés précédemment.
     op.execute(sa.text("""
         UPDATE municipal_services
-        SET institut_id = '10000000-0000-0000-0000-000000000011'
+        SET institut_id = (SELECT id FROM instituts WHERE name = 'Accueil et démarches administratives')
         WHERE id IN (
             '10000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000005',
             '10000000-0000-0000-0000-000000000006', '10000000-0000-0000-0000-000000000007',
@@ -51,7 +51,7 @@ def upgrade() -> None:
     """))
     op.execute(sa.text("""
         UPDATE municipal_services
-        SET institut_id = '10000000-0000-0000-0000-000000000017', request_category = 'Sécurité'
+        SET institut_id = (SELECT id FROM instituts WHERE name = 'Sécurité civile et tranquillité publique'), request_category = 'Sécurité'
         WHERE id = '10000000-0000-0000-0000-000000000010'
     """))
     # ### end Alembic commands ###

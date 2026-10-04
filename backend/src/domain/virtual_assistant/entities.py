@@ -78,3 +78,20 @@ class AssistantMessage:
     content: str
     created_at: datetime
     reply: AssistantReply | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class GlossaryTerm:
+    """Mot administratif du passage, expliqué avec des mots de tous les jours."""
+
+    term: str
+    definition: str
+
+
+@dataclass(frozen=True, slots=True)
+class PlainExplanation:
+    """Explication simple d'un passage : elle complète le texte officiel sans le remplacer."""
+
+    summary: str
+    key_points: tuple[str, ...] = ()
+    terms: tuple[GlossaryTerm, ...] = ()

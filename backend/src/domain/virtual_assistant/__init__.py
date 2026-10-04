@@ -10,11 +10,14 @@ from src.domain.virtual_assistant.entities import (
     AssistantServiceRecommendation,
     AssistantTurn,
     AssistantTurnRole,
+    GlossaryTerm,
+    PlainExplanation,
 )
 from src.domain.virtual_assistant.repository import (
     AssistantConversationRepository,
     AssistantResponder,
     AssistantServiceCatalog,
+    TextSimplifier,
 )
 
 __all__ = [
@@ -30,4 +33,7 @@ __all__ = [
     "AssistantServiceRecommendation",
     "AssistantTurn",
     "AssistantTurnRole",
+    "GlossaryTerm",
+    "PlainExplanation",
+    "TextSimplifier",
 ]
