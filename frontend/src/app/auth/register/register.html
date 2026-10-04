@@ -30,15 +30,15 @@
                 ><span class="grid size-8 place-items-center rounded-[.62rem] bg-emerald-500 text-sm font-black leading-none text-white -skew-y-6" aria-hidden="true">TN</span><span>Terra Nova</span></a
             >
             <header class="mb-6">
-                <h1 id="register-title" class="mb-2 text-[2rem] font-bold leading-tight tracking-[-.045em]">Créer votre compte</h1>
-                <p class="m-0 leading-6 text-emerald-950/60 dark:text-emerald-50/65">Quelques informations suffisent pour commencer. Un code de confirmation sera envoyé {{ method() === 'phone' ? 'par SMS à votre numéro de téléphone' : 'à votre adresse email' }}.</p>
+                <h1 id="register-title" class="mb-2 text-[2rem] font-bold leading-tight tracking-[-.045em]">{{ 'auth.register.title' | t }}</h1>
+                <p class="m-0 leading-6 text-emerald-950/60 dark:text-emerald-50/65">{{ (method() === 'phone' ? 'auth.register.subtitlePhone' : 'auth.register.subtitleEmail') | t }}</p>
             </header>
             @if (errorMessage()) {
                 <p-message severity="error" [text]="errorMessage()!" icon="pi pi-exclamation-circle" styleClass="mb-4 block" role="alert" />
             }
             @if (submitAttempted() && formErrors().length) {
                 <div #errorSummary id="register-error-summary" role="alert" tabindex="-1" class="mb-4 rounded-xl border border-red-300 bg-red-50 p-4 text-sm text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-100">
-                    <p class="m-0 font-semibold">{{ formErrors().length > 1 ? 'Le formulaire contient ' + formErrors().length + ' erreurs :' : 'Le formulaire contient une erreur :' }}</p>
+                    <p class="m-0 font-semibold">{{ formErrors().length > 1 ? ('common.error.summaryMany' | t: { count: formErrors().length }) : ('common.error.summaryOne' | t) }}</p>
                     <ul class="mb-0 mt-2 list-disc pl-5">
                         @for (error of formErrors(); track error.field) {
                             <li><a class="underline" [href]="'#' + error.field" (click)="focusField($event, error.field)">{{ error.message }}</a></li>
@@ -47,9 +47,9 @@
                 </div>
             }
             <form [formGroup]="registerForm" (ngSubmit)="submit()" novalidate class="space-y-2" aria-labelledby="register-title" [attr.aria-busy]="loading()">
-                <p class="mb-3 mt-0 text-sm text-emerald-950/60 dark:text-emerald-50/65">Tous les champs sont obligatoires.</p>
+                <p class="mb-3 mt-0 text-sm text-emerald-950/60 dark:text-emerald-50/65">{{ 'common.allFieldsRequired' | t }}</p>
                 <div>
-                    <label for="name" class="mb-2 inline-block text-sm font-semibold">Nom complet</label
+                    <label for="name" class="mb-2 inline-block text-sm font-semibold">{{ 'auth.field.name' | t }}</label
                     ><span class="relative block"
                         ><i class="pi pi-user absolute left-4 top-1/2 z-10 -translate-y-1/2 text-emerald-950/45 dark:text-emerald-50/50" aria-hidden="true"></i
                         ><input
@@ -58,7 +58,7 @@
                             id="name"
                             type="text"
                             autocomplete="name"
-                            placeholder="Votre nom"
+                            [attr.placeholder]="'auth.field.namePlaceholder' | t"
                             required
                             maxlength="255"
                             aria-describedby="name-error"
@@ -68,16 +68,19 @@
                             [invalid]="registerForm.controls.name.invalid && registerForm.controls.name.touched" /></span
                     ><small id="name-error" class="field-error block min-h-4 pt-1 text-xs text-red-600 dark:text-red-300">
                         @if (registerForm.controls.name.invalid && registerForm.controls.name.touched) {
-                            Saisissez un nom de 1 à 255 caractères.
+                            {{ 'auth.error.nameInvalid' | t }}
                         }
                     </small>
                 </div>
-                <div role="group" aria-label="Méthode de confirmation" class="grid grid-cols-2 gap-1 rounded-xl bg-emerald-50 p-1 dark:bg-emerald-900/60">
-                    <button type="button" [class]="tabClass('email')" [attr.aria-pressed]="method() === 'email'" (click)="setMethod('email')"><i class="pi pi-envelope mr-2" aria-hidden="true"></i>Email</button>
-                    <button type="button" [class]="tabClass('phone')" [attr.aria-pressed]="method() === 'phone'" (click)="setMethod('phone')"><i class="pi pi-phone mr-2" aria-hidden="true"></i>Téléphone</button>
+                <div role="group" [attr.aria-label]="'auth.method.confirm' | t" class="grid grid-cols-2 gap-1 rounded-xl bg-emerald-50 p-1 dark:bg-emerald-900/60">
+                    <button type="button" [class]="tabClass('email')" [attr.aria-pressed]="method() === 'email'" (click)="setMethod('email')"><i class="pi pi-envelope mr-2" aria-hidden="true"></i>{{ 'auth.method.email' | t }}</button>
+                    <button type="button" [class]="tabClass('phone')" [attr.aria-pressed]="method() === 'phone'" (click)="setMethod('phone')"><i class="pi pi-phone mr-2" aria-hidden="true"></i>{{ 'auth.method.phone' | t }}</button>
                 </div>
+                @if (method() === 'email') {
+                    <p class="m-0 text-xs text-emerald-950/60 dark:text-emerald-50/65">{{ 'auth.register.noEmail' | t }}</p>
+                }
                 <div>
-                    <label for="contact" class="mb-2 inline-block text-sm font-semibold">{{ method() === 'phone' ? 'Numéro de téléphone' : 'Adresse email' }}</label
+                    <label for="contact" class="mb-2 inline-block text-sm font-semibold">{{ (method() === 'phone' ? 'auth.field.phone' : 'auth.field.email') | t }}</label
                     ><span class="relative block"
                         ><i [class]="method() === 'phone' ? 'pi pi-phone' : 'pi pi-envelope'" class="absolute left-4 top-1/2 z-10 -translate-y-1/2 text-emerald-950/45 dark:text-emerald-50/50" aria-hidden="true"></i
                         ><input
@@ -96,7 +99,7 @@
                             formControlName="contact"
                             [invalid]="registerForm.controls.contact.invalid && registerForm.controls.contact.touched" /></span
                     >@if (method() === 'phone') {
-                        <small id="contact-help" class="block pt-1 text-xs text-emerald-950/60 dark:text-emerald-50/65">Format local (034 12 345 67) ou international (+261 34 12 345 67).</small>
+                        <small id="contact-help" class="block pt-1 text-xs text-emerald-950/60 dark:text-emerald-50/65">{{ 'auth.phoneHelp' | t }}</small>
                     }<small id="contact-error" class="field-error block min-h-4 pt-1 text-xs text-red-600 dark:text-red-300">
                         @if (registerForm.controls.contact.invalid && registerForm.controls.contact.touched) {
                             {{ contactError() }}
@@ -104,14 +107,14 @@
                     </small>
                 </div>
                 <div>
-                    <label for="password" class="mb-2 inline-block text-sm font-semibold">Mot de passe</label
+                    <label for="password" class="mb-2 inline-block text-sm font-semibold">{{ 'auth.field.password' | t }}</label
                     ><span class="relative block"
                         ><input
                             pInputText
                             id="password"
                             [type]="showPassword() ? 'text' : 'password'"
                             autocomplete="new-password"
-                            placeholder="10 caractères minimum"
+                            [attr.placeholder]="'auth.field.newPasswordPlaceholder' | t"
                             required
                             aria-describedby="password-help password-error"
                             [attr.aria-invalid]="registerForm.controls.password.invalid && registerForm.controls.password.touched"
@@ -120,14 +123,14 @@
                             [invalid]="registerForm.controls.password.invalid && registerForm.controls.password.touched" /><button
                             type="button"
                             class="absolute right-1.5 top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-lg text-emerald-950/60 hover:bg-emerald-50 dark:text-emerald-50/70 dark:hover:bg-emerald-900"
-                            aria-label="Afficher le mot de passe"
+                            [attr.aria-label]="'auth.showPassword' | t"
                             aria-controls="password"
                             [attr.aria-pressed]="showPassword()"
                             (click)="showPassword.set(!showPassword())"
                         >
                             <i [class]="showPassword() ? 'pi pi-eye-slash' : 'pi pi-eye'" aria-hidden="true"></i></button
                     ></span>
-                    <small id="password-help" class="block pt-1 text-xs text-emerald-950/60 dark:text-emerald-50/65">10 à 128 caractères, avec au moins une majuscule, une minuscule et un chiffre.</small>
+                    <small id="password-help" class="block pt-1 text-xs text-emerald-950/60 dark:text-emerald-50/65">{{ 'auth.passwordHelp' | t }}</small>
                     <small id="password-error" class="field-error block min-h-4 pt-1 text-xs text-red-600 dark:text-red-300">
                         @if (registerForm.controls.password.invalid && registerForm.controls.password.touched) {
                             {{ passwordError() }}
@@ -135,14 +138,14 @@
                     </small>
                 </div>
                 <div>
-                    <label for="confirmPassword" class="mb-2 inline-block text-sm font-semibold">Confirmer le mot de passe</label
+                    <label for="confirmPassword" class="mb-2 inline-block text-sm font-semibold">{{ 'auth.field.confirmPassword' | t }}</label
                     ><span class="relative block"
                         ><input
                             pInputText
                             id="confirmPassword"
                             [type]="showConfirm() ? 'text' : 'password'"
                             autocomplete="new-password"
-                            placeholder="Répétez votre mot de passe"
+                            [attr.placeholder]="'auth.field.confirmPlaceholder' | t"
                             required
                             aria-describedby="confirmPassword-error"
                             [attr.aria-invalid]="confirmInvalid()"
@@ -151,7 +154,7 @@
                             [invalid]="confirmInvalid()" /><button
                             type="button"
                             class="absolute right-1.5 top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-lg text-emerald-950/60 hover:bg-emerald-50 dark:text-emerald-50/70 dark:hover:bg-emerald-900"
-                            aria-label="Afficher la confirmation du mot de passe"
+                            [attr.aria-label]="'auth.showConfirm' | t"
                             aria-controls="confirmPassword"
                             [attr.aria-pressed]="showConfirm()"
                             (click)="showConfirm.set(!showConfirm())"
@@ -166,7 +169,7 @@
                 </div>
                 <p-button
                     type="submit"
-                    label="Créer mon compte"
+                    [label]="'auth.register.submit' | t"
                     icon="pi pi-arrow-right"
                     iconPos="right"
                     styleClass="mt-2 w-full rounded-xl border-0 bg-emerald-600 py-3 font-bold shadow-[0_10px_22px_rgba(22,163,106,.22)] hover:bg-emerald-700"
@@ -174,10 +177,11 @@
                 />
             </form>
                 <div class="my-5 flex items-center gap-3 text-xs text-emerald-950/50 dark:text-emerald-50/55" aria-hidden="true">
-                    <span class="h-px flex-1 bg-emerald-200 dark:bg-emerald-800"></span>ou<span class="h-px flex-1 bg-emerald-200 dark:bg-emerald-800"></span>
+                    <span class="h-px flex-1 bg-emerald-200 dark:bg-emerald-800"></span>{{ 'common.or' | t }}<span class="h-px flex-1 bg-emerald-200 dark:bg-emerald-800"></span>
                 </div>
                 <app-google-button (failed)="errorMessage.set($event)" />
-            <div class="mt-6 flex justify-center gap-1.5 text-sm text-emerald-950/60 dark:text-emerald-50/65"><span>Vous avez déjà un compte ?</span><a routerLink="/auth/login" class="font-bold text-emerald-600 hover:underline">Se connecter</a></div>
+            <div class="mt-6 flex justify-center gap-1.5 text-sm text-emerald-950/60 dark:text-emerald-50/65"><span>{{ 'auth.register.hasAccount' | t }}</span><a routerLink="/auth/login" class="font-bold text-emerald-600 hover:underline">{{ 'auth.login.submit' | t }}</a></div>
+            <p class="mb-0 mt-5 rounded-xl bg-emerald-50 p-3 text-sm leading-6 text-emerald-950/80 dark:bg-emerald-900/50 dark:text-emerald-50/80" data-testid="assisted-access"><i class="pi pi-info-circle mr-1" aria-hidden="true"></i>{{ 'auth.assisted' | t }}</p>
         </div>
     </section>
 </main>

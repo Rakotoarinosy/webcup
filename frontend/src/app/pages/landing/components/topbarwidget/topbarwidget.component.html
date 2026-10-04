@@ -1,11 +1,11 @@
-<a routerLink="/" class="flex items-center gap-2.5 text-2xl font-bold tracking-tight text-emerald-950 dark:text-white" aria-label="Terra Nova, accueil">
+<a routerLink="/" class="flex items-center gap-2.5 text-2xl font-bold tracking-tight text-emerald-950 dark:text-white" [attr.aria-label]="'topbar.home' | t">
     <span class="grid size-8 place-items-center rounded-xl bg-emerald-600 text-sm font-black text-white" aria-hidden="true">TN</span><span>Terra Nova</span>
 </a>
 
 @if (auth.user(); as user) {
     <a routerLink="/home/account" class="ml-auto mr-3 grid max-w-36 gap-0.5 text-sm font-semibold text-emerald-700 dark:text-emerald-100 lg:hidden">
         <strong class="truncate">{{ user.name }}</strong>
-        <small>Connecté · {{ auth.roleLabel() }}</small>
+        <small>{{ 'topbar.connected' | t: { role: ('role.' + user.role | t) } }}</small>
     </a>
 }
 
@@ -22,33 +22,33 @@
     enterFromClass="hidden"
     leaveToClass="hidden"
     [hideOnOutsideClick]="true"
-    aria-label="Ouvrir le menu"
+    [ariaLabel]="'landing.openMenu' | t"
 ></button>
 
 <div
     class="absolute left-0 top-full z-20 hidden w-full rounded-xl border border-emerald-100 bg-white px-6 py-5 shadow-xl dark:border-emerald-800 dark:bg-emerald-900 lg:static lg:flex lg:w-auto lg:items-center lg:gap-7 lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none"
 >
-    <nav class="grid gap-1 lg:flex lg:items-center lg:gap-8" aria-label="Navigation principale">
+    <nav class="grid gap-1 lg:flex lg:items-center lg:gap-8" [attr.aria-label]="'landing.mainNav' | t">
         @for (item of navItems; track item.fragment) {
             <a
                 (click)="router.navigate(['/'], { fragment: item.fragment })"
                 pRipple
                 class="cursor-pointer rounded-lg px-3 py-2 text-sm font-semibold text-emerald-950/70 transition hover:bg-emerald-50 hover:text-emerald-700 dark:text-emerald-50/75 dark:hover:bg-emerald-800/60 dark:hover:text-emerald-100"
-                >{{ item.label }}</a
+                >{{ item.label | t }}</a
             >
         }
-        <a routerLink="/municipal/contact" class="rounded-lg px-3 py-2 text-sm font-semibold text-emerald-950 hover:text-emerald-700 dark:text-emerald-50">Contacter la mairie</a>
+        <a routerLink="/municipal/contact" class="rounded-lg px-3 py-2 text-sm font-semibold text-emerald-950 hover:text-emerald-700 dark:text-emerald-50">{{ 'menu.contact' | t }}</a>
     </nav>
     <div class="mt-4 flex flex-wrap items-center gap-3 border-t border-emerald-100 pt-4 lg:mt-0 lg:flex-nowrap lg:border-0 lg:pt-0">
         @if (auth.user(); as user) {
             <span class="text-sm text-emerald-950 dark:text-emerald-50" data-testid="session-identity"
-                >Connecté : <strong>{{ user.name }}</strong> · {{ auth.roleLabel() }}</span
+                >Connecté : <strong>{{ user.name }}</strong> · {{ 'role.' + user.role | t }}</span
             >
-            <a [routerLink]="auth.homeUrl()" class="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white">Mon espace</a>
-            <button type="button" (click)="auth.logout()" class="rounded-lg px-3 py-2 text-sm font-semibold text-emerald-950 dark:text-emerald-50">Déconnexion</button>
+            <a [routerLink]="auth.homeUrl()" class="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white">{{ 'menu.space' | t }}</a>
+            <button type="button" (click)="auth.logout()" class="rounded-lg px-3 py-2 text-sm font-semibold text-emerald-950 dark:text-emerald-50">{{ 'topbar.logout' | t }}</button>
         } @else {
-            <a routerLink="/auth/login" class="rounded-lg px-3 py-2 text-sm font-semibold text-emerald-950 hover:text-emerald-600 dark:text-emerald-50">Se connecter</a>
-            <a routerLink="/auth/register" class="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-700">Créer un compte <i class="pi pi-arrow-right ml-1 text-xs"></i></a>
+            <a routerLink="/auth/login" class="rounded-lg px-3 py-2 text-sm font-semibold text-emerald-950 hover:text-emerald-600 dark:text-emerald-50">{{ 'landing.login' | t }}</a>
+            <a routerLink="/auth/register" class="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-700">{{ 'landing.createAccount' | t }} <i class="pi pi-arrow-right ml-1 text-xs" aria-hidden="true"></i></a>
         }
         <app-floating-configurator [float]="false" />
     </div>

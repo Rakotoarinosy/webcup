@@ -5,10 +5,10 @@
             ><span class="grid size-8 place-items-center rounded-[.62rem] bg-emerald-500 text-sm font-black leading-none text-white -skew-y-6" aria-hidden="true">TN</span><span>Terra Nova</span></a
         >
         <header class="mb-6">
-            <h1 id="verify-title" class="mb-2 text-[2rem] font-bold leading-tight tracking-[-.045em]">{{ challenge()?.channel === 'sms' ? 'Vérifiez votre téléphone' : 'Vérifiez votre email' }}</h1>
+            <h1 id="verify-title" class="mb-2 text-[2rem] font-bold leading-tight tracking-[-.045em]">{{ (challenge()?.channel === 'sms' ? 'auth.verify.titlePhone' : 'auth.verify.titleEmail') | t }}</h1>
             <p class="m-0 leading-6 text-emerald-950/60 dark:text-emerald-50/65">
-                Nous avons envoyé un code à 6 chiffres à <strong class="break-words">{{ challenge()?.destination ?? challenge()?.email }}</strong
-                >. Il expire dans {{ expiresInMinutes() }} minutes.
+                {{ 'auth.verify.sentTo' | t }} <strong class="break-words">{{ challenge()?.destination ?? challenge()?.email }}</strong
+                >. {{ 'auth.verify.expires' | t: { minutes: expiresInMinutes() } }}
             </p>
         </header>
 
@@ -20,10 +20,11 @@
         }
 
         <form (ngSubmit)="submit()" novalidate class="space-y-4">
-            <p-inputotp style="flex-wrap: wrap" [formControl]="code" [length]="6" [integerOnly]="true" size="large" [autofocus]="true" />
+            <p id="verify-code-label" class="m-0 text-sm font-semibold">{{ 'auth.verify.codeLabel' | t }}</p>
+            <div role="group" aria-labelledby="verify-code-label"><p-inputotp style="flex-wrap: wrap" [formControl]="code" [length]="6" [integerOnly]="true" size="large" [autofocus]="true" /></div>
             <p-button
                 type="submit"
-                label="Valider"
+                [label]="'auth.verify.submit' | t"
                 icon="pi pi-arrow-right"
                 iconPos="right"
                 styleClass="w-full rounded-xl border-0 bg-emerald-600 py-3 font-bold hover:bg-emerald-700"
@@ -34,11 +35,11 @@
 
         <div class="mt-6 flex flex-wrap items-center justify-between gap-3 text-sm text-emerald-950/60 dark:text-emerald-50/65">
             @if (secondsBeforeResend() > 0) {
-                <span aria-live="polite">Renvoyer le code dans {{ secondsBeforeResend() }} s</span>
+                <span aria-live="polite">{{ 'auth.verify.resendIn' | t: { seconds: secondsBeforeResend() } }}</span>
             } @else {
-                <button type="button" class="font-bold text-emerald-600 hover:underline disabled:opacity-60" [disabled]="resending() || loading()" (click)="resend()">Renvoyer le code</button>
+                <button type="button" class="font-bold text-emerald-600 hover:underline disabled:opacity-60" [disabled]="resending() || loading()" (click)="resend()">{{ 'auth.verify.resend' | t }}</button>
             }
-            <a routerLink="/auth/login" class="font-bold text-emerald-600 hover:underline">Retour à la connexion</a>
+            <a routerLink="/auth/login" class="font-bold text-emerald-600 hover:underline">{{ 'auth.verify.backToLogin' | t }}</a>
         </div>
     </section>
 </main>

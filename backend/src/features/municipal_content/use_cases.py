@@ -1,15 +1,25 @@
 import uuid
 from datetime import UTC, datetime
 
+from src.domain.audit import AuditAction, AuditTarget
+from src.domain.i18n import DEFAULT_LANGUAGE, Language
 from src.domain.municipal_content import (
     ContactMessage,
+    ContentTranslation,
+    ContentTranslationNotFoundError,
+    EmptyTranslationError,
     MunicipalContentRepository,
     MunicipalPublication,
     MunicipalPublicationComment,
     MunicipalPublicationNotFoundError,
     MunicipalService,
     MunicipalServiceNotFoundError,
+    ReferenceLanguageTranslationError,
+    TranslatableContent,
+    clean_translation_fields,
+    localize,
 )
+from src.features.audit.recording import AuditTrail, record
 from src.features.municipal_content.schemas import (
     CreateContactMessageIn,
     CreateMunicipalPublicationIn,
@@ -19,18 +29,51 @@ from src.features.municipal_content.schemas import (
 )
 
 
-def list_municipal_services(repo: MunicipalContentRepository) -> list[MunicipalService]:
-    return repo.list_services()
+def localize_services(
+    services: list[MunicipalService], language: Language, repo: MunicipalContentRepository
+) -> list[MunicipalService]:
+    """Version de chaque service dans `language`, avec repli sur le français (F27)."""
+    translations = (
+        {}
+        if language is DEFAULT_LANGUAGE
+        else repo.translations_for(
+            TranslatableContent.SERVICE, [service.id for service in services], language
+        )
+    )
+    return [localize(service, language, translations.get(service.id)) for service in services]
 
 
-def list_featured_municipal_services(repo: MunicipalContentRepository) -> list[MunicipalService]:
-    return repo.list_featured_services()
+def localize_publications(
+    publications: list[MunicipalPublication],
+    language: Language,
+    repo: MunicipalContentRepository,
+) -> list[MunicipalPublication]:
+    translations = (
+        {}
+        if language is DEFAULT_LANGUAGE
+        else repo.translations_for(
+            TranslatableContent.PUBLICATION, [item.id for item in publications], language
+        )
+    )
+    return [localize(item, language, translations.get(item.id)) for item in publications]
+
+
+def list_municipal_services(
+    repo: MunicipalContentRepository, language: Language = DEFAULT_LANGUAGE
+) -> list[MunicipalService]:
+    return localize_services(repo.list_services(), language, repo)
+
+
+def list_featured_municipal_services(
+    repo: MunicipalContentRepository, language: Language = DEFAULT_LANGUAGE
+) -> list[MunicipalService]:
+    return localize_services(repo.list_featured_services(), language, repo)
 
 
 def list_popular_municipal_services(
-    limit: int, repo: MunicipalContentRepository
+    limit: int, repo: MunicipalContentRepository, language: Language = DEFAULT_LANGUAGE
 ) -> list[MunicipalService]:
-    return repo.list_popular_services(limit)
+    return localize_services(repo.list_popular_services(limit), language, repo)
 
 
 def start_municipal_service(service_id: str, repo: MunicipalContentRepository) -> MunicipalService:
@@ -66,18 +109,23 @@ def update_municipal_service_location(
 
 
 def list_municipal_publications(
-    category: str | None, limit: int, repo: MunicipalContentRepository
+    category: str | None,
+    limit: int,
+    repo: MunicipalContentRepository,
+    language: Language = DEFAULT_LANGUAGE,
 ) -> list[MunicipalPublication]:
-    return repo.list_publications(category, limit)
+    return localize_publications(repo.list_publications(category, limit), language, repo)
 
 
 def get_municipal_publication(
-    publication_id: str, repo: MunicipalContentRepository
+    publication_id: str,
+    repo: MunicipalContentRepository,
+    language: Language = DEFAULT_LANGUAGE,
 ) -> MunicipalPublication:
     publication = repo.get_publication(publication_id)
     if publication is None:
         raise MunicipalPublicationNotFoundError(publication_id)
-    return publication
+    return localize_publications([publication], language, repo)[0]
 
 
 def list_publications_for_management(
@@ -185,3 +233,88 @@ def send_contact_message(
         created_at=now,
     )
     return repo.add_contact_message(message)
+
+
+# ─── traductions des contenus (F27) ───
+
+
+def _content_label(
+    content_type: TranslatableContent, content_id: str, repo: MunicipalContentRepository
+) -> str:
+    """Titre français du contenu ; lève NotFound s'il n'existe pas."""
+    if content_type is TranslatableContent.SERVICE:
+        service = repo.get_service(content_id)
+        if service is None:
+            raise MunicipalServiceNotFoundError(content_id)
+        return service.name
+    publication = repo.get_publication_for_management(content_id)
+    if publication is None:
+        raise MunicipalPublicationNotFoundError(content_id)
+    return publication.title
+
+
+_AUDIT_TARGETS = {
+    TranslatableContent.SERVICE: AuditTarget.MUNICIPAL_SERVICE,
+    TranslatableContent.PUBLICATION: AuditTarget.MUNICIPAL_PUBLICATION,
+}
+
+
+def list_content_translations(
+    content_type: TranslatableContent, content_id: str, repo: MunicipalContentRepository
+) -> list[ContentTranslation]:
+    _content_label(content_type, content_id, repo)
+    return repo.list_translations(content_type, content_id)
+
+
+def save_content_translation(
+    content_type: TranslatableContent,
+    content_id: str,
+    language: Language,
+    fields: dict[str, str | None],
+    repo: MunicipalContentRepository,
+    trail: AuditTrail | None = None,
+) -> ContentTranslation:
+    if language is DEFAULT_LANGUAGE:
+        raise ReferenceLanguageTranslationError()
+    label = _content_label(content_type, content_id, repo)
+    cleaned = clean_translation_fields(content_type, fields)
+    if not cleaned:
+        raise EmptyTranslationError()
+    saved = repo.save_translation(
+        ContentTranslation(
+            content_type=content_type,
+            content_id=content_id,
+            language=language,
+            fields=cleaned,
+            updated_at=datetime.now(UTC),
+        )
+    )
+    record(
+        trail,
+        AuditAction.CONTENT_TRANSLATION_SAVED,
+        _AUDIT_TARGETS[content_type],
+        content_id,
+        label,
+        details={"language": language.value, "fields": sorted(cleaned)},
+    )
+    return saved
+
+
+def delete_content_translation(
+    content_type: TranslatableContent,
+    content_id: str,
+    language: Language,
+    repo: MunicipalContentRepository,
+    trail: AuditTrail | None = None,
+) -> None:
+    label = _content_label(content_type, content_id, repo)
+    if not repo.delete_translation(content_type, content_id, language):
+        raise ContentTranslationNotFoundError(content_id, language)
+    record(
+        trail,
+        AuditAction.CONTENT_TRANSLATION_DELETED,
+        _AUDIT_TARGETS[content_type],
+        content_id,
+        label,
+        details={"language": language.value},
+    )

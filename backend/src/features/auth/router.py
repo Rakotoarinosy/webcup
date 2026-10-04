@@ -443,3 +443,4 @@ def delete_account_endpoint(
     _clear_refresh_cookie(response, settings)
     _clear_trusted_device_cookie(response, settings)
     response.headers["Cache-Control"] = "no-store"
+

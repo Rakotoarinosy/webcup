@@ -1,4 +1,3 @@
-import { DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, DestroyRef, Injector, OnInit, afterNextRender, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -10,6 +9,10 @@ import { StepperModule } from 'primeng/stepper';
 import { finalize } from 'rxjs';
 
 import { AuthService } from '@/app/auth/auth.service';
+import { I18nService } from '@/app/i18n/i18n.service';
+import { I18N_PIPES } from '@/app/i18n/t.pipe';
+import { OnboardingHintComponent } from '@/app/onboarding/onboarding-hint';
+import { OnboardingService } from '@/app/onboarding/onboarding.service';
 import {
     CitizenRequest,
     CitizenRequestPage,
@@ -48,7 +51,7 @@ export const CATEGORY_HINTS: Record<RequestCategory, string> = {
 
 @Component({
     selector: 'app-my-requests',
-    imports: [DatePipe, FormsModule, RouterLink, ButtonModule, DialogModule, StepperModule],
+    imports: [FormsModule, RouterLink, ButtonModule, DialogModule, StepperModule, I18N_PIPES, OnboardingHintComponent],
     templateUrl: './my-requests.html'
 })
 export class MyRequests implements OnInit {
@@ -57,6 +60,8 @@ export class MyRequests implements OnInit {
     private readonly route = inject(ActivatedRoute);
     private readonly destroyRef = inject(DestroyRef);
     private readonly injector = inject(Injector);
+    private readonly i18n = inject(I18nService);
+    private readonly onboarding = inject(OnboardingService);
 
     protected readonly requests = signal<CitizenRequest[]>([]);
     protected readonly total = signal(0);
@@ -94,6 +99,13 @@ export class MyRequests implements OnInit {
                 this.selectedRequest.set(null);
                 this.load();
             }
+        });
+        // Lien direct « faire une demande » (premiers pas, orientation) : ?new=1&category=Eau
+        this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+            if (params.get('new') !== '1' || this.detailMode()) return;
+            this.openCreateDialog();
+            const category = params.get('category');
+            if (category && (this.categories as string[]).includes(category)) this.chooseCategory(category as RequestCategory);
         });
     }
 
@@ -177,13 +189,13 @@ export class MyRequests implements OnInit {
 
     protected nextCreationStep(): void {
         if (this.creationStep() === 1 && !this.form.category) {
-            this.createError.set('Choisissez le type de problème : il détermine le service qui traitera votre demande.');
+            this.createError.set(this.i18n.t('requests.new.chooseType'));
             this.focusAfterRender('input[name="request-type"]');
             return;
         }
         if (this.creationStep() === 2 && !this.isDescriptionStepValid()) {
             this.descriptionAttempted.set(true);
-            this.createError.set('Renseignez le titre, la description et le lieu de la demande.');
+            this.createError.set(this.i18n.t('requests.new.fillAll'));
             this.focusAfterRender('[aria-invalid="true"]');
             return;
         }
@@ -232,6 +244,8 @@ export class MyRequests implements OnInit {
                 next: () => {
                     this.createDialogVisible.set(false);
                     this.load(1);
+                    // « Faire ma première démarche » est cochée côté serveur dès la première demande.
+                    this.onboarding.refresh();
                 },
                 error: (error: unknown) => this.createError.set(apiErrorMessage(error))
             });
@@ -249,7 +263,7 @@ export class MyRequests implements OnInit {
             .subscribe({
                 next: (request) => this.selectedRequest.set(request),
                 error: (error: unknown) => {
-                    this.error.set(error instanceof HttpErrorResponse && error.status === 404 ? 'Cette demande est introuvable.' : apiErrorMessage(error));
+                    this.error.set(error instanceof HttpErrorResponse && error.status === 404 ? this.i18n.t('requests.notFound') : apiErrorMessage(error));
                 }
             });
         this.requestsApi

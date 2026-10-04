@@ -2,7 +2,8 @@ import { MunicipalNavigation } from './municipal-navigation.service';
 import { LiveDataService } from '@/app/shared/live-data.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize, forkJoin } from 'rxjs';
-import { DatePipe } from '@angular/common';
+import { I18nService } from '@/app/i18n/i18n.service';
+import { I18N_PIPES } from '@/app/i18n/t.pipe';
 import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { RouterLink } from '@angular/router';
@@ -14,7 +15,7 @@ import { MunicipalPublication, MunicipalService } from './municipal-content.mode
 
 @Component({
     selector: 'app-municipal-home',
-    imports: [DatePipe, RouterLink, ButtonModule, CardModule],
+    imports: [RouterLink, ButtonModule, CardModule, I18N_PIPES],
     templateUrl: './municipal-home.html',
     styleUrl: './municipal-home.scss'
 })
@@ -23,6 +24,7 @@ export class MunicipalHome implements OnInit {
     private readonly destroyRef = inject(DestroyRef);
     private readonly content = inject(MunicipalContentService);
     private readonly router = inject(Router);
+    private readonly i18n = inject(I18nService);
     readonly navigation = inject(MunicipalNavigation);
     readonly openingService = signal<string | null>(null);
     readonly loading = signal(false);
@@ -55,7 +57,7 @@ export class MunicipalHome implements OnInit {
                     this.popularServices.set(popular.slice(0, 6));
                     this.publications.set(publications.slice(0, 2));
                 },
-                error: () => this.loadError.set('Impossible de charger les informations municipales. Réessayez.')
+                error: () => this.loadError.set(this.i18n.t('municipal.loadError'))
             });
     }
 
@@ -71,7 +73,7 @@ export class MunicipalHome implements OnInit {
             )
             .subscribe({
                 next: () => void this.router.navigate([this.navigation.path('contact')], { queryParams: { service: service.id } }),
-                error: () => this.startError.set('Impossible d’ouvrir cette démarche. Réessayez dans quelques instants.')
+                error: () => this.startError.set(this.i18n.t('municipal.startError'))
             });
     }
 }

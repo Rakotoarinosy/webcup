@@ -1,10 +1,10 @@
 <header class="layout-topbar">
     <!-- Menu toggle & logo -->
     <div class="layout-topbar-logo-container">
-        <button type="button" class="layout-menu-button layout-topbar-action" aria-label="Menu principal" [attr.aria-expanded]="menuExpanded()" (click)="layoutService.onMenuToggle()">
+        <button type="button" class="layout-menu-button layout-topbar-action" [attr.aria-label]="'topbar.mainMenu' | t" [attr.aria-expanded]="menuExpanded()" (click)="layoutService.onMenuToggle()">
             <i class="pi pi-bars" aria-hidden="true"></i>
         </button>
-        <a class="layout-topbar-logo" routerLink="/" aria-label="Terra Nova, accueil">
+        <a class="layout-topbar-logo" routerLink="/" [attr.aria-label]="'topbar.home' | t">
             <span class="grid size-9 place-items-center rounded-xl bg-primary text-sm font-bold text-white" aria-hidden="true">TN</span>
             <span>Terra Nova</span>
         </a>
@@ -14,14 +14,14 @@
     <div class="layout-topbar-actions">
         <div class="topbar-search" (focusout)="onSearchFocusOut()">
             <i class="pi pi-search topbar-search-icon" aria-hidden="true"></i>
-            <label class="sr-only" for="global-search">Rechercher une page ou un service</label>
+            <label class="sr-only" for="global-search">{{ 'topbar.searchLabel' | t }}</label>
             <input
                 #globalSearch
                 id="global-search"
                 type="search"
                 role="combobox"
                 autocomplete="off"
-                placeholder="Rechercher"
+                [attr.placeholder]="'topbar.search' | t"
                 [value]="searchQuery()"
                 [attr.aria-expanded]="searchOpen() && searchSuggestions().length > 0"
                 aria-autocomplete="list"
@@ -47,13 +47,14 @@
         @if (user(); as profile) {
             <a routerLink="/home/account" class="mr-3 grid max-w-40 gap-0.5 text-sm" data-testid="session-identity">
                 <strong class="truncate">{{ profile.name }}</strong>
-                <span class="text-xs text-muted-color">Connecté · {{ roleLabel() }}</span>
+                <span class="text-xs text-muted-color">{{ 'topbar.connected' | t: { role: ('role.' + profile.role | t) } }}</span>
             </a>
         }
+        <app-language-switcher class="mr-2 hidden sm:inline-flex" [compact]="true" />
         <!-- Theme settings -->
         <div class="layout-config-menu">
             <div #configMenu class="relative">
-                <button type="button" aria-label="Affichage et taille du texte" class="layout-topbar-action layout-topbar-action-highlight" [attr.aria-expanded]="configVisible()" (click)="toggleConfigurator($event)">
+                <button type="button" [attr.aria-label]="'topbar.display' | t" class="layout-topbar-action layout-topbar-action-highlight" [attr.aria-expanded]="configVisible()" (click)="toggleConfigurator($event)">
                     <i class="pi pi-palette" aria-hidden="true"></i>
                 </button>
                 <app-configurator [visible]="configVisible()" />
@@ -61,7 +62,7 @@
         </div>
 
         <!-- Mobile menu toggle -->
-        <button type="button" class="layout-topbar-menu-button layout-topbar-action" aria-label="Plus d’actions" pStyleClass="@next" enterFromClass="hidden" enterActiveClass="animate-scalein" leaveToClass="hidden" leaveActiveClass="animate-fadeout" [hideOnOutsideClick]="true">
+        <button type="button" class="layout-topbar-menu-button layout-topbar-action" [attr.aria-label]="'topbar.moreActions' | t" pStyleClass="@next" enterFromClass="hidden" enterActiveClass="animate-scalein" leaveToClass="hidden" leaveActiveClass="animate-fadeout" [hideOnOutsideClick]="true">
             <i class="pi pi-ellipsis-v" aria-hidden="true"></i>
         </button>
 
@@ -70,9 +71,9 @@
             <div class="layout-topbar-menu-content">
                 <app-notifications />
 
-                <button type="button" class="layout-topbar-action" [attr.aria-label]="'Compte : ' + (user()?.name ?? '')" aria-haspopup="menu" (click)="toggleAccount($event)">
+                <button type="button" class="layout-topbar-action" [attr.aria-label]="('topbar.account' | t) + ' : ' + (user()?.name ?? '')" aria-haspopup="menu" (click)="toggleAccount($event)">
                     <i class="pi pi-user" aria-hidden="true"></i>
-                    <span>{{ user()?.name ?? 'Compte' }}</span>
+                    <span>{{ user()?.name ?? ('topbar.account' | t) }}</span>
                 </button>
                 <p-menu #menu [model]="items()" [popup]="true" appendTo="body" styleClass="topbar-account-menu" (onShow)="alignAccountMenu()" (onHide)="overlays.close('account')" />
             </div>

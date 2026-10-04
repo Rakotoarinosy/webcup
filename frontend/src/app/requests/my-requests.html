@@ -1,23 +1,23 @@
 @if (detailMode()) {
     <section class="card" aria-labelledby="request-detail-title">
         <a routerLink="/home/my-requests" class="mb-4 inline-flex items-center gap-2 text-primary focus-visible:outline-2 focus-visible:outline-offset-2">
-            <i class="pi pi-arrow-left" aria-hidden="true"></i> Retour à mes demandes
+            <i class="pi pi-arrow-left" aria-hidden="true"></i> {{ 'requests.back' | t }}
         </a>
         @if (loading()) {
-            <p role="status">Chargement de la demande…</p>
+            <p role="status">{{ 'requests.loadingOne' | t }}</p>
         } @else if (error(); as message) {
             <p role="alert" class="text-red-600">{{ message }}</p>
         } @else if (selectedRequest(); as request) {
             <h1 id="request-detail-title">{{ request.title }}</h1>
             <p>{{ request.description }}</p>
             <dl>
-                <dt>Référence</dt><dd>#{{ request.id.slice(0, 8) }}</dd>
-                <dt>Statut actuel</dt><dd><strong>{{ request.status }}</strong></dd>
-                <dt>Créée le</dt><dd>{{ request.created_at | date: 'dd/MM/yyyy à HH:mm' }}</dd>
-                <dt>Lieu</dt><dd>{{ request.location }}</dd>
+                <dt>{{ 'requests.reference' | t }}</dt><dd>#{{ request.id.slice(0, 8) }}</dd>
+                <dt>{{ 'requests.currentStatus' | t }}</dt><dd><strong>{{ request.status | tv: 'status' }}</strong></dd>
+                <dt>{{ 'requests.createdAt' | t }}</dt><dd>{{ request.created_at | ldate: 'medium' }}</dd>
+                <dt>{{ 'requests.location' | t }}</dt><dd>{{ request.location }}</dd>
             </dl>
             <section aria-labelledby="request-timeline-title" class="mt-8">
-                <h2 id="request-timeline-title" class="text-lg font-semibold">Étapes de traitement</h2>
+                <h2 id="request-timeline-title" class="text-lg font-semibold">{{ 'requests.steps' | t }}</h2>
                 @if (historyLoading()) {
                     <p role="status">Chargement des étapes…</p>
                 } @else if (historyError(); as message) {
@@ -27,7 +27,7 @@
                         @for (step of statusHistory(); track step.id) {
                             <li class="border-l-2 border-primary pl-4">
                                 <h3 class="m-0 font-semibold">{{ eventLabel(step) }}</h3>
-                                <time class="text-sm text-muted-color" [attr.datetime]="step.created_at">{{ step.created_at | date: 'dd/MM/yyyy à HH:mm' }}</time>
+                                <time class="text-sm text-muted-color" [attr.datetime]="step.created_at">{{ step.created_at | ldate: 'medium' }}</time>
                             </li>
                         }
                     </ol>
@@ -38,54 +38,55 @@
         }
     </section>
 } @else {
+    <app-onboarding-hint hint="my_requests" />
     <section class="card" aria-labelledby="history-title">
         <div>
             <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-                <div><h1 id="history-title" class="m-0 text-lg font-semibold">Toutes mes demandes</h1><p class="mb-0 mt-1 text-sm text-muted-color">Recherchez, filtrez et consultez vos signalements.</p></div>
-                <p-button label="Ajouter une demande" icon="pi pi-plus" (onClick)="openCreateDialog()" />
+                <div><h1 id="history-title" class="m-0 text-lg font-semibold">{{ 'requests.title' | t }}</h1><p class="mb-0 mt-1 text-sm text-muted-color">{{ 'requests.subtitle' | t }}</p></div>
+                <p-button [label]="'requests.add' | t" icon="pi pi-plus" (onClick)="openCreateDialog()" />
             </div>
             <div class="mb-4 grid gap-3 md:grid-cols-3">
                 <label class="md:col-span-1">
-                    <span class="mb-1 block font-medium">Rechercher</span>
-                    <input id="request-search" type="search" class="w-full rounded border border-surface bg-transparent p-2" placeholder="Mot-clé, description, lieu…" [ngModel]="searchTerm()" (ngModelChange)="searchChanged($event)" />
+                    <span class="mb-1 block font-medium">{{ 'requests.search' | t }}</span>
+                    <input id="request-search" type="search" class="w-full rounded border border-surface bg-transparent p-2" [attr.placeholder]="'requests.searchPlaceholder' | t" [ngModel]="searchTerm()" (ngModelChange)="searchChanged($event)" />
                 </label>
                 <label>
-                    <span class="mb-1 block font-medium">Type</span>
+                    <span class="mb-1 block font-medium">{{ 'requests.type' | t }}</span>
                     <select class="w-full rounded border border-surface bg-transparent p-2" [ngModel]="categoryFilter()" (ngModelChange)="categoryChanged($event)">
-                        <option [ngValue]="null">Tous les types</option>
-                        @for (category of categories; track category) { <option [ngValue]="category">{{ category }}</option> }
+                        <option [ngValue]="null">{{ 'requests.allTypes' | t }}</option>
+                        @for (category of categories; track category) { <option [ngValue]="category">{{ category | tv: 'category' }}</option> }
                     </select>
                 </label>
                 <label>
-                    <span class="mb-1 block font-medium">Statut</span>
+                    <span class="mb-1 block font-medium">{{ 'requests.status' | t }}</span>
                     <select class="w-full rounded border border-surface bg-transparent p-2" [ngModel]="statusFilter()" (ngModelChange)="filterChanged($event)">
-                        <option [ngValue]="null">Tous les statuts</option>
-                        @for (status of statuses; track status) { <option [ngValue]="status">{{ status }}</option> }
+                        <option [ngValue]="null">{{ 'requests.allStatuses' | t }}</option>
+                        @for (status of statuses; track status) { <option [ngValue]="status">{{ status | tv: 'status' }}</option> }
                     </select>
                 </label>
             </div>
             @if (loading()) {
-                <p role="status">Chargement de vos demandes…</p>
+                <p role="status">{{ 'requests.loading' | t }}</p>
             } @else if (error(); as message) {
                 <p role="alert" class="text-red-600">{{ message }}</p>
             } @else if (requests().length) {
                 <div class="overflow-x-auto">
                     <table class="app-data-table">
-                        <caption class="sr-only">Vos demandes, triées par date de création décroissante</caption>
-                        <thead><tr class="border-b border-surface"><th scope="col" class="p-3">Date</th><th scope="col" class="p-3">Type</th><th scope="col" class="p-3">Description</th><th scope="col" class="p-3">Statut</th></tr></thead>
+                        <caption class="sr-only">{{ 'requests.caption' | t }}</caption>
+                        <thead><tr class="border-b border-surface"><th scope="col" class="p-3">{{ 'requests.date' | t }}</th><th scope="col" class="p-3">{{ 'requests.type' | t }}</th><th scope="col" class="p-3">{{ 'requests.description' | t }}</th><th scope="col" class="p-3">{{ 'requests.status' | t }}</th></tr></thead>
                         <tbody>
                             @for (request of requests(); track request.id) {
                                 <tr class="border-b border-surface">
-                                    <td class="whitespace-nowrap p-3">{{ request.created_at | date: 'dd/MM/yyyy HH:mm' }}</td>
-                                    <td class="p-3">{{ request.category }}</td>
+                                    <td class="whitespace-nowrap p-3">{{ request.created_at | ldate: 'short' }}</td>
+                                    <td class="p-3">{{ request.category | tv: 'category' }}</td>
                                     <th scope="row" class="max-w-md p-3 text-left font-normal"><a class="font-medium text-primary underline" [routerLink]="['/home/my-requests', request.id]">{{ request.title }}</a><p class="mb-0 mt-1 line-clamp-2 text-sm text-muted-color">{{ request.description }}</p></th>
-                                    <td class="whitespace-nowrap p-3">{{ request.status }}</td>
+                                    <td class="whitespace-nowrap p-3">{{ request.status | tv: 'status' }}</td>
                                 </tr>
                             }
                         </tbody>
                     </table>
                 </div>
-                <nav class="app-table-pagination" aria-label="Pagination de mes demandes">
+                <nav class="app-table-pagination" [attr.aria-label]="'requests.pagination' | t">
                     <button type="button" class="app-pagination-button" aria-label="Première page" [disabled]="page() <= 1 || loading()" (click)="goToPage(1)"><i class="pi pi-angle-double-left" aria-hidden="true"></i></button>
                     <button type="button" class="app-pagination-button" aria-label="Page précédente" [disabled]="page() <= 1 || loading()" (click)="pageBy(-1)"><i class="pi pi-angle-left" aria-hidden="true"></i></button>
                     @for (pageNumber of pageNumbers(); track pageNumber) {
@@ -93,22 +94,23 @@
                     }
                     <button type="button" class="app-pagination-button" aria-label="Page suivante" [disabled]="page() >= pages() || loading()" (click)="pageBy(1)"><i class="pi pi-angle-right" aria-hidden="true"></i></button>
                     <button type="button" class="app-pagination-button" aria-label="Dernière page" [disabled]="page() >= pages() || loading()" (click)="goToPage(pages())"><i class="pi pi-angle-double-right" aria-hidden="true"></i></button>
-                    <span class="sr-only" aria-live="polite">Page {{ page() }} sur {{ pages() }} · {{ total() }} demande(s)</span>
+                    <span class="sr-only" aria-live="polite">{{ 'requests.pageStatus' | t: { page: page(), pages: pages(), total: total() } }}</span>
                 </nav>
             } @else {
-                <p>Vous n'avez pas encore envoyé de demande.</p>
+                <p>{{ 'requests.empty' | t }}</p>
             }
         </div>
     </section>
 
-    <p-dialog [visible]="createDialogVisible()" (visibleChange)="createDialogVisible.set($event)" header="Nouvelle demande" [modal]="true" [draggable]="false" [style]="{ width: 'min(46rem, 96vw)' }" (onHide)="closeCreateDialog()">
-        <p class="mt-0 text-muted-color">Décrivez votre besoin en trois étapes. Vous pourrez vérifier toutes les informations avant l’envoi.</p>
-        <p class="sr-only" role="status">Étape {{ creationStep() }} sur 3</p>
+    <p-dialog [visible]="createDialogVisible()" (visibleChange)="createDialogVisible.set($event)" [header]="'requests.new.title' | t" [modal]="true" [draggable]="false" [style]="{ width: 'min(46rem, 96vw)' }" (onHide)="closeCreateDialog()">
+        <app-onboarding-hint hint="new_request" />
+        <p class="mt-0 text-muted-color">{{ 'requests.new.intro' | t }}</p>
+        <p class="sr-only" role="status">{{ 'requests.new.stepStatus' | t: { step: creationStep() } }}</p>
         <p-stepper [value]="creationStep()" [linear]="true" aria-label="Étapes de création de la demande">
             <p-step-list>
-                <p-step [value]="1">Type</p-step>
-                <p-step [value]="2">Description</p-step>
-                <p-step [value]="3">Validation</p-step>
+                <p-step [value]="1">{{ 'requests.new.stepType' | t }}</p-step>
+                <p-step [value]="2">{{ 'requests.new.stepDescription' | t }}</p-step>
+                <p-step [value]="3">{{ 'requests.new.stepReview' | t }}</p-step>
             </p-step-list>
         </p-stepper>
 
@@ -116,46 +118,46 @@
 
         @if (creationStep() === 1) {
             <section class="mt-5" aria-labelledby="choose-type-title">
-                <h3 id="choose-type-title" class="m-0 text-lg font-semibold" tabindex="-1">Quel est le problème ?</h3>
-                <p class="mt-2 text-sm text-muted-color">Votre demande sera transmise automatiquement au service compétent.</p>
+                <h3 id="choose-type-title" class="m-0 text-lg font-semibold" tabindex="-1">{{ 'requests.new.whatProblem' | t }}</h3>
+                <p class="mt-2 text-sm text-muted-color">{{ 'requests.new.routing' | t }}</p>
                 <div class="grid gap-3 sm:grid-cols-2" role="radiogroup" aria-labelledby="choose-type-title" aria-required="true" [attr.aria-invalid]="!!createError() && !form.category" [attr.aria-describedby]="createError() ? 'create-error' : null">
                     @for (category of categories; track category) {
                         <label class="cursor-pointer rounded-xl border p-4 transition-colors has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-primary" [class.border-primary]="form.category === category" [class.bg-highlight]="form.category === category">
                             <input type="radio" name="request-type" class="sr-only" [value]="category" [ngModel]="form.category" (ngModelChange)="chooseCategory($event)" />
-                            <span class="block font-semibold">{{ category }}</span>
-                            <span class="mt-1 block text-sm text-muted-color">{{ categoryHints[category] }}</span>
+                            <span class="block font-semibold">{{ category | tv: 'category' }}</span>
+                            <span class="mt-1 block text-sm text-muted-color">{{ category | tv: 'categoryHint' }}</span>
                         </label>
                     }
                 </div>
             </section>
         } @else if (creationStep() === 2) {
             <section class="mt-5" aria-labelledby="description-step-title">
-                <h3 id="description-step-title" class="m-0 text-lg font-semibold" tabindex="-1">Décrivez votre demande</h3>
-                <p class="mb-0 mt-2 text-sm text-muted-color">Tous les champs sont obligatoires.</p>
+                <h3 id="description-step-title" class="m-0 text-lg font-semibold" tabindex="-1">{{ 'requests.new.describe' | t }}</h3>
+                <p class="mb-0 mt-2 text-sm text-muted-color">{{ 'common.allFieldsRequired' | t }}</p>
                 <div class="mt-4 grid gap-4 md:grid-cols-2">
-                    <label class="md:col-span-2"><span class="mb-1 block font-medium">Titre</span><input id="request-title" name="request-title" class="w-full rounded border border-surface bg-transparent p-3" [(ngModel)]="form.title" required maxlength="255" [attr.aria-invalid]="descriptionInvalid('title')" [attr.aria-describedby]="descriptionInvalid('title') ? 'create-error' : null" /></label>
-                    <label class="md:col-span-2"><span class="mb-1 block font-medium">Description</span><textarea id="request-description" name="request-description" class="w-full rounded border border-surface bg-transparent p-3" [(ngModel)]="form.description" required maxlength="10000" rows="5" [attr.aria-invalid]="descriptionInvalid('description')" [attr.aria-describedby]="descriptionInvalid('description') ? 'create-error' : null"></textarea></label>
-                    <label class="md:col-span-2"><span class="mb-1 block font-medium">Lieu</span><input id="request-location" name="request-location" class="w-full rounded border border-surface bg-transparent p-3" [(ngModel)]="form.location" required maxlength="500" autocomplete="street-address" [attr.aria-invalid]="descriptionInvalid('location')" [attr.aria-describedby]="descriptionInvalid('location') ? 'create-error' : null" /></label>
+                    <label class="md:col-span-2"><span class="mb-1 block font-medium">{{ 'requests.new.titleField' | t }}</span><input id="request-title" name="request-title" class="w-full rounded border border-surface bg-transparent p-3" [(ngModel)]="form.title" required maxlength="255" [attr.aria-invalid]="descriptionInvalid('title')" [attr.aria-describedby]="descriptionInvalid('title') ? 'create-error' : null" /></label>
+                    <label class="md:col-span-2"><span class="mb-1 block font-medium">{{ 'requests.description' | t }}</span><textarea id="request-description" name="request-description" class="w-full rounded border border-surface bg-transparent p-3" [(ngModel)]="form.description" required maxlength="10000" rows="5" [attr.aria-invalid]="descriptionInvalid('description')" [attr.aria-describedby]="descriptionInvalid('description') ? 'create-error' : null"></textarea></label>
+                    <label class="md:col-span-2"><span class="mb-1 block font-medium">{{ 'requests.location' | t }}</span><input id="request-location" name="request-location" class="w-full rounded border border-surface bg-transparent p-3" [(ngModel)]="form.location" required maxlength="500" autocomplete="street-address" [attr.aria-invalid]="descriptionInvalid('location')" [attr.aria-describedby]="descriptionInvalid('location') ? 'create-error' : null" /></label>
                 </div>
             </section>
         } @else {
             <section class="mt-5" aria-labelledby="review-step-title">
-                <h3 id="review-step-title" class="m-0 text-lg font-semibold" tabindex="-1">Vérifiez votre demande</h3>
+                <h3 id="review-step-title" class="m-0 text-lg font-semibold" tabindex="-1">{{ 'requests.new.review' | t }}</h3>
                 <dl class="mt-4 grid gap-x-6 gap-y-3 rounded-xl bg-emphasis p-4 sm:grid-cols-[9rem_1fr]">
-                    <dt class="font-medium">Titre</dt><dd class="m-0">{{ form.title }}</dd>
-                    <dt class="font-medium">Type</dt><dd class="m-0">{{ form.category }}</dd>
-                    <dt class="font-medium">Description</dt><dd class="m-0 whitespace-pre-wrap">{{ form.description }}</dd>
-                    <dt class="font-medium">Lieu</dt><dd class="m-0">{{ form.location }}</dd>
+                    <dt class="font-medium">{{ 'requests.new.titleField' | t }}</dt><dd class="m-0">{{ form.title }}</dd>
+                    <dt class="font-medium">{{ 'requests.type' | t }}</dt><dd class="m-0">{{ form.category | tv: 'category' }}</dd>
+                    <dt class="font-medium">{{ 'requests.description' | t }}</dt><dd class="m-0 whitespace-pre-wrap">{{ form.description }}</dd>
+                    <dt class="font-medium">{{ 'requests.location' | t }}</dt><dd class="m-0">{{ form.location }}</dd>
                 </dl>
-                <p class="mb-0 mt-3 text-sm text-muted-color">La mairie fixera la priorité et confiera votre demande à un agent du service compétent.</p>
+                <p class="mb-0 mt-3 text-sm text-muted-color">{{ 'requests.new.reviewNote' | t }}</p>
             </section>
         }
 
         <div class="mt-7 flex flex-wrap justify-between gap-3">
-            <p-button label="Annuler" severity="secondary" [text]="true" [disabled]="submitting()" (onClick)="closeCreateDialog()" />
+            <p-button [label]="'common.cancel' | t" severity="secondary" [text]="true" [disabled]="submitting()" (onClick)="closeCreateDialog()" />
             <div class="flex gap-2">
-                @if (creationStep() > 1) { <p-button label="Retour" severity="secondary" [outlined]="true" [disabled]="submitting()" (onClick)="previousCreationStep()" /> }
-                @if (creationStep() < 3) { <p-button label="Suivant" icon="pi pi-arrow-right" iconPos="right" (onClick)="nextCreationStep()" /> } @else { <p-button label="Valider la demande" icon="pi pi-check" [loading]="submitting()" (onClick)="submitCreation()" /> }
+                @if (creationStep() > 1) { <p-button [label]="'common.back' | t" severity="secondary" [outlined]="true" [disabled]="submitting()" (onClick)="previousCreationStep()" /> }
+                @if (creationStep() < 3) { <p-button [label]="'common.next' | t" icon="pi pi-arrow-right" iconPos="right" (onClick)="nextCreationStep()" /> } @else { <p-button [label]="'requests.new.submit' | t" icon="pi pi-check" [loading]="submitting()" (onClick)="submitCreation()" /> }
             </div>
         </div>
     </p-dialog>

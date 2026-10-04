@@ -3,11 +3,13 @@ import { Component, ElementRef, HostListener, input, signal, viewChild } from '@
 import { ButtonModule } from 'primeng/button';
 import { StyleClassModule } from 'primeng/styleclass';
 
+import { LanguageSwitcher } from '@/app/i18n/language-switcher';
+import { TranslatePipe } from '@/app/i18n/t.pipe';
 import { AppConfigurator } from '../configurator/app.configurator';
 
 @Component({
     selector: 'app-floating-configurator',
-    imports: [CommonModule, ButtonModule, StyleClassModule, AppConfigurator],
+    imports: [CommonModule, ButtonModule, StyleClassModule, AppConfigurator, LanguageSwitcher, TranslatePipe],
     templateUrl: './app.floatingconfigurator.html',
     styleUrl: './app.floatingconfigurator.scss'
 })
