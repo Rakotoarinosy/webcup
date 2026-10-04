@@ -1,3 +1,5 @@
+import { TermHelp } from '@/app/glossary/term-help';
+import { requestStatusTerm } from '@/app/glossary/glossary';
 import { DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, DestroyRef, Injector, OnInit, afterNextRender, inject, signal } from '@angular/core';
@@ -48,10 +50,11 @@ export const CATEGORY_HINTS: Record<RequestCategory, string> = {
 
 @Component({
     selector: 'app-my-requests',
-    imports: [DatePipe, FormsModule, RouterLink, ButtonModule, DialogModule, StepperModule],
+    imports: [DatePipe, FormsModule, RouterLink, ButtonModule, DialogModule, StepperModule, TermHelp],
     templateUrl: './my-requests.html'
 })
 export class MyRequests implements OnInit {
+    readonly requestStatusTerm = requestStatusTerm;
     private readonly requestsApi = inject(CitizenRequestService);
     private readonly auth = inject(AuthService);
     private readonly route = inject(ActivatedRoute);

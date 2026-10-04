@@ -1,11 +1,11 @@
-import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterModule } from '@angular/router';
 import { finalize, forkJoin } from 'rxjs';
 import { AuthService } from '@/app/auth/auth.service';
 import { MunicipalContentService } from '@/app/municipal/municipal-content.service';
-import { MunicipalService, MunicipalPublication } from '@/app/municipal/municipal-content.model';
+import { MunicipalService, MunicipalPublication, canStart } from '@/app/municipal/municipal-content.model';
 import { LiveDataService } from '@/app/shared/live-data.service';
 import { TopbarWidget } from './components/topbarwidget/topbarwidget.component';
 
@@ -17,6 +17,8 @@ export class Landing implements OnInit {
     private readonly destroyRef = inject(DestroyRef);
     readonly services = signal<MunicipalService[]>([]);
     readonly publications = signal<MunicipalPublication[]>([]);
+    /** Seuls les services où l'on peut commencer une démarche sont comptés comme disponibles. */
+    readonly availableCount = computed(() => this.services().filter(canStart).length);
     readonly loading = signal(false);
     readonly error = signal<string | null>(null);
     readonly updatedAt = signal<Date | null>(null);

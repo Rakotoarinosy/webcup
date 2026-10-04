@@ -6,6 +6,32 @@
         <p role="alert">{{ message }} <button type="button" (click)="load()">Réessayer</button></p>
     }
 
+    <nav class="quick-access" aria-label="Accès rapides">
+        <a class="quick-link emergency" [routerLink]="navigation.path('urgences')"><i class="pi pi-heart-fill" aria-hidden="true"></i> Urgences et santé</a>
+        <a class="quick-link" [routerLink]="navigation.path('transports')"><i class="pi pi-car" aria-hidden="true"></i> Transports</a>
+        <a class="quick-link" [routerLink]="navigation.path('lexique')"><i class="pi pi-book" aria-hidden="true"></i> Lexique</a>
+    </nav>
+
+    <section aria-labelledby="service-state-title" class="service-state">
+        <div class="section-heading">
+            <div>
+                <p class="eyebrow">Avant de vous déplacer</p>
+                <h2 id="service-state-title">État des services</h2>
+            </div>
+            <a [routerLink]="navigation.path('services')">Voir tous les services</a>
+        </div>
+        @for (service of interruptions(); track service.id) {
+            <article class="interruption" [attr.aria-labelledby]="'interruption-' + service.id">
+                <h3 [id]="'interruption-' + service.id">{{ service.name }}</h3>
+                <app-service-status [service]="service" [services]="allServices()" [detailed]="true" />
+            </article>
+        } @empty {
+            @if (!loading() && !loadError()) {
+                <p class="all-good"><i class="pi pi-check-circle" aria-hidden="true"></i> Tous les services fonctionnent normalement.</p>
+            }
+        }
+    </section>
+
     <section>
         <div class="section-heading">
             <div>
@@ -19,9 +45,10 @@
         }
         <div class="cards">
             @for (service of popularServices(); track service.id) {
-                <button type="button" class="card-link" [attr.aria-label]="'Contacter le service ' + service.name" [disabled]="openingService() !== null" (click)="startService(service)">
+                <button type="button" class="card-link" [attr.aria-label]="'Contacter le service ' + service.name + (service.status === 'available' ? '' : ' (état : interrompu ou perturbé, voir avant de commencer)')" [disabled]="openingService() !== null" (click)="startService(service)">
                     <p-card
                         ><ng-template #title><i [class]="'pi ' + service.icon" aria-hidden="true"></i> {{ service.name }}</ng-template>
+                        <app-service-status [service]="service" />
                         <p>{{ service.description }}</p>
                         <small>{{ service.opening_hours }}</small
                         ><span class="card-cta">Contacter ce service <i class="pi pi-arrow-right" aria-hidden="true"></i></span

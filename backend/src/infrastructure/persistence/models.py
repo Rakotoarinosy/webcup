@@ -252,6 +252,67 @@ class MunicipalServiceModel(Base):
     address: Mapped[str | None] = mapped_column(String(255), nullable=True)
     latitude: Mapped[float | None] = mapped_column(Float, nullable=True)
     longitude: Mapped[float | None] = mapped_column(Float, nullable=True)
+    # État de fonctionnement (F38/F63/F64) — valeurs de ServiceStatus.
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="available", server_default="available", index=True
+    )
+    status_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    status_expected_back_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    status_alternative: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Pas de clé étrangère : la cohérence est vérifiée par le use case, le lien reste indicatif.
+    alternative_service_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    status_updated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    # Santé et urgences (F46).
+    open_24_7: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=false()
+    )
+    emergency_care: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=false()
+    )
+
+
+class TransportLineModel(Base):
+    """Ligne de transport municipal (F36) : horaires théoriques et état en temps réel."""
+
+    __tablename__ = "transport_lines"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    code: Mapped[str] = mapped_column(String(10), nullable=False, unique=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    mode: Mapped[str] = mapped_column(String(20), nullable=False)
+    first_departure: Mapped[str] = mapped_column(String(5), nullable=False)  # HH:MM, heure locale
+    last_departure: Mapped[str] = mapped_column(String(5), nullable=False)
+    frequency_minutes: Mapped[int] = mapped_column(Integer, nullable=False)
+    days_label: Mapped[str] = mapped_column(String(120), nullable=False)
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="normal", server_default="normal"
+    )
+    status_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    status_updated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    display_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+
+class TransportStopModel(Base):
+    """Arrêt principal d'une ligne, dans l'ordre du parcours."""
+
+    __tablename__ = "transport_stops"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    line_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("transport_lines.id", ondelete="CASCADE"), index=True
+    )
+    position: Mapped[int] = mapped_column(Integer, nullable=False)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    # Temps de trajet depuis le terminus de départ : permet de calculer le prochain passage.
+    minutes_from_start: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    latitude: Mapped[float | None] = mapped_column(Float, nullable=True)
+    longitude: Mapped[float | None] = mapped_column(Float, nullable=True)
 
 
 class MunicipalPublicationModel(Base):

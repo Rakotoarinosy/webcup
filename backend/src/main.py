@@ -23,6 +23,7 @@ from src.features.realtime.router import router as realtime_router
 from src.features.realtime.use_cases import publish_data_changed
 from src.features.search.router import router as search_router
 from src.features.terra_request.router import router as terra_request_router
+from src.features.transport.router import router as transport_router
 from src.features.user.router import router as user_router
 from src.features.user_export.router import router as user_export_router
 from src.infrastructure.config import configure_logging, get_settings
@@ -46,6 +47,7 @@ FEATURE_ROUTERS: list[APIRouter] = [
     audit_router,
     terra_request_router,
     realtime_router,
+    transport_router,
 ]
 
 

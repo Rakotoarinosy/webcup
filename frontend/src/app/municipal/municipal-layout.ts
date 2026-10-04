@@ -56,6 +56,11 @@ import { AuthService } from '../auth/auth.service';
                 font-weight: 600;
                 overflow-wrap: anywhere;
             }
+            .emergency-link {
+                color: var(--p-red-700, #b91c1c);
+                font-weight: 700;
+                border: 2px solid currentColor;
+            }
             main {
                 padding-block: 1.5rem 3rem;
             }

@@ -45,6 +45,10 @@ class MunicipalContentRepository(ABC):
     ) -> MunicipalService | None: ...
 
     @abstractmethod
+    def save_service_status(self, service: MunicipalService) -> MunicipalService | None:
+        """Enregistre l'état du service (statut, explication, retour prévu, alternative)."""
+
+    @abstractmethod
     def list_publications(self, category: str | None, limit: int) -> list[MunicipalPublication]: ...
 
     @abstractmethod

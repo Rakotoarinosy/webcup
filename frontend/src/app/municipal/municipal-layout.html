@@ -6,7 +6,10 @@
             <a routerLink="/municipal" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" ariaCurrentWhenActive="page">Accueil municipal</a>
             <a routerLink="/municipal/services" routerLinkActive="active" ariaCurrentWhenActive="page">Services</a>
             <a routerLink="/municipal/publications" routerLinkActive="active" ariaCurrentWhenActive="page">Publications</a>
+            <a routerLink="/municipal/transports" routerLinkActive="active" ariaCurrentWhenActive="page">Transports</a>
             <a routerLink="/municipal/contact" routerLinkActive="active" ariaCurrentWhenActive="page">Contacter la mairie</a>
+            <a routerLink="/municipal/lexique" routerLinkActive="active" ariaCurrentWhenActive="page">Lexique</a>
+            <a class="emergency-link" routerLink="/municipal/urgences" routerLinkActive="active" ariaCurrentWhenActive="page"><i class="pi pi-heart-fill" aria-hidden="true"></i> Urgences et santé</a>
         </nav>
         @if (auth.user(); as user) {
             <a class="account" [routerLink]="auth.homeUrl()">{{ user.name }} · Mon espace</a>

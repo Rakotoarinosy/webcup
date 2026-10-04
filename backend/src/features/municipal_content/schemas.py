@@ -2,6 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from src.domain.municipal_content import ServiceStatus
 from src.shared.validation import Email
 
 
@@ -21,6 +22,26 @@ class MunicipalServiceOut(BaseModel):
     address: str | None
     latitude: float | None
     longitude: float | None
+    status: ServiceStatus
+    status_message: str | None
+    status_expected_back_at: datetime | None
+    status_alternative: str | None
+    alternative_service_id: str | None
+    status_updated_at: datetime | None
+    open_24_7: bool
+    emergency_care: bool
+
+
+class UpdateServiceStatusIn(BaseModel):
+    """Mise hors service, perturbation ou remise en service (F63). Explication exigée hors état normal."""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    status: ServiceStatus
+    message: str | None = Field(default=None, max_length=1000)
+    expected_back_at: datetime | None = None
+    alternative: str | None = Field(default=None, max_length=1000)
+    alternative_service_id: str | None = Field(default=None, max_length=36)
 
 
 class UpdateMunicipalServiceCatalogIn(BaseModel):
@@ -127,6 +148,8 @@ class CreateContactMessageIn(BaseModel):
     sender_email: Email
     subject: str = Field(min_length=3, max_length=255)
     message: str = Field(min_length=10, max_length=5000)
+    # L'habitant a vu l'avertissement « service interrompu » et choisit d'écrire quand même.
+    acknowledge_interruption: bool = False
 
 
 class ContactReceiptOut(BaseModel):

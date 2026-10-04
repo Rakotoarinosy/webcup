@@ -11,8 +11,8 @@
             <h1 id="request-detail-title">{{ request.title }}</h1>
             <p>{{ request.description }}</p>
             <dl>
-                <dt>Référence</dt><dd>#{{ request.id.slice(0, 8) }}</dd>
-                <dt>Statut actuel</dt><dd><strong>{{ request.status }}</strong></dd>
+                <dt>Référence <app-term-help term="reference" /></dt><dd>#{{ request.id.slice(0, 8) }}</dd>
+                <dt>Statut actuel <app-term-help term="statut" /></dt><dd><strong>{{ request.status }}</strong> <app-term-help [term]="requestStatusTerm(request.status)" /></dd>
                 <dt>Créée le</dt><dd>{{ request.created_at | date: 'dd/MM/yyyy à HH:mm' }}</dd>
                 <dt>Lieu</dt><dd>{{ request.location }}</dd>
             </dl>
@@ -72,14 +72,14 @@
                 <div class="overflow-x-auto">
                     <table class="app-data-table">
                         <caption class="sr-only">Vos demandes, triées par date de création décroissante</caption>
-                        <thead><tr class="border-b border-surface"><th scope="col" class="p-3">Date</th><th scope="col" class="p-3">Type</th><th scope="col" class="p-3">Description</th><th scope="col" class="p-3">Statut</th></tr></thead>
+                        <thead><tr class="border-b border-surface"><th scope="col" class="p-3">Date</th><th scope="col" class="p-3">Type</th><th scope="col" class="p-3">Description</th><th scope="col" class="p-3">Statut <app-term-help term="statut" /></th></tr></thead>
                         <tbody>
                             @for (request of requests(); track request.id) {
                                 <tr class="border-b border-surface">
                                     <td class="whitespace-nowrap p-3">{{ request.created_at | date: 'dd/MM/yyyy HH:mm' }}</td>
                                     <td class="p-3">{{ request.category }}</td>
                                     <th scope="row" class="max-w-md p-3 text-left font-normal"><a class="font-medium text-primary underline" [routerLink]="['/home/my-requests', request.id]">{{ request.title }}</a><p class="mb-0 mt-1 line-clamp-2 text-sm text-muted-color">{{ request.description }}</p></th>
-                                    <td class="whitespace-nowrap p-3">{{ request.status }}</td>
+                                    <td class="whitespace-nowrap p-3">{{ request.status }} <app-term-help [term]="requestStatusTerm(request.status)" /></td>
                                 </tr>
                             }
                         </tbody>
@@ -116,7 +116,7 @@
 
         @if (creationStep() === 1) {
             <section class="mt-5" aria-labelledby="choose-type-title">
-                <h3 id="choose-type-title" class="m-0 text-lg font-semibold" tabindex="-1">Quel est le problème ?</h3>
+                <h3 id="choose-type-title" class="m-0 text-lg font-semibold" tabindex="-1">Quel est le problème ? <app-term-help term="categorie" /></h3>
                 <p class="mt-2 text-sm text-muted-color">Votre demande sera transmise automatiquement au service compétent.</p>
                 <div class="grid gap-3 sm:grid-cols-2" role="radiogroup" aria-labelledby="choose-type-title" aria-required="true" [attr.aria-invalid]="!!createError() && !form.category" [attr.aria-describedby]="createError() ? 'create-error' : null">
                     @for (category of categories; track category) {

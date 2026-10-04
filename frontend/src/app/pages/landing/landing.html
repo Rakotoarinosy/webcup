@@ -28,7 +28,7 @@
             @if (!loading()) {
                 <div class="my-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div class="rounded-xl bg-white p-4 dark:bg-emerald-950">
-                        <strong class="block text-3xl">{{ services().length }}</strong><span>Services disponibles</span>
+                        <strong class="block text-3xl">{{ availableCount() }}</strong><span>Services disponibles</span>
                     </div>
                     <div class="rounded-xl bg-white p-4 dark:bg-emerald-950">
                         <strong class="block text-3xl">{{ publications().length }}</strong><span>Informations récentes</span>

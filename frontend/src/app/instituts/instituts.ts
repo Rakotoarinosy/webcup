@@ -1,3 +1,4 @@
+import { TermHelp } from '@/app/glossary/term-help';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule, NgForm } from '@angular/forms';
 import { ConfirmationService, MessageService } from 'primeng/api';
@@ -36,7 +37,7 @@ const EMPTY_FORM: InstitutForm = { name: '', description: '', categories: [], ma
  */
 @Component({
     selector: 'app-instituts',
-    imports: [FormsModule, ButtonModule, ConfirmDialogModule, DialogModule, InputTextModule, MultiSelectModule, SelectModule, TableModule, TagModule, TextareaModule, ToastModule, ToolbarModule, TooltipModule],
+    imports: [TermHelp, FormsModule, ButtonModule, ConfirmDialogModule, DialogModule, InputTextModule, MultiSelectModule, SelectModule, TableModule, TagModule, TextareaModule, ToastModule, ToolbarModule, TooltipModule],
     templateUrl: './instituts.html',
     providers: [MessageService, ConfirmationService]
 })

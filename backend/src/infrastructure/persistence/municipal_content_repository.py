@@ -11,6 +11,7 @@ from src.domain.municipal_content import (
     MunicipalPublication,
     MunicipalPublicationComment,
     MunicipalService,
+    ServiceStatus,
 )
 from src.infrastructure.persistence.models import (
     ContactMessageModel,
@@ -111,6 +112,20 @@ class SqlAlchemyMunicipalContentRepository(MunicipalContentRepository):
         if row is None:
             return None
         row.address, row.latitude, row.longitude = address, latitude, longitude
+        self.db.commit()
+        self.db.refresh(row)
+        return self._service(row)
+
+    def save_service_status(self, service: MunicipalService) -> MunicipalService | None:
+        row = self.db.get(MunicipalServiceModel, service.id)
+        if row is None:
+            return None
+        row.status = service.status.value
+        row.status_message = service.status_message
+        row.status_expected_back_at = service.status_expected_back_at
+        row.status_alternative = service.status_alternative
+        row.alternative_service_id = service.alternative_service_id
+        row.status_updated_at = service.status_updated_at
         self.db.commit()
         self.db.refresh(row)
         return self._service(row)
@@ -319,6 +334,16 @@ class SqlAlchemyMunicipalContentRepository(MunicipalContentRepository):
             row.address,
             row.latitude,
             row.longitude,
+            status=ServiceStatus(row.status or ServiceStatus.AVAILABLE),
+            status_message=row.status_message,
+            status_expected_back_at=(
+                self._utc(row.status_expected_back_at) if row.status_expected_back_at else None
+            ),
+            status_alternative=row.status_alternative,
+            alternative_service_id=row.alternative_service_id,
+            status_updated_at=(self._utc(row.status_updated_at) if row.status_updated_at else None),
+            open_24_7=bool(row.open_24_7),
+            emergency_care=bool(row.emergency_care),
         )
 
     def _publication(self, row: MunicipalPublicationModel) -> MunicipalPublication:

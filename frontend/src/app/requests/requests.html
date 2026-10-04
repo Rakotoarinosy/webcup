@@ -5,7 +5,7 @@
     <p-toolbar styleClass="mb-5">
         <ng-template #start>
             <div>
-                <h1 class="m-0 text-xl font-semibold">Demandes citoyennes</h1>
+                <h1 class="m-0 text-xl font-semibold">Demandes citoyennes <app-term-help term="demande" /></h1>
                 <p class="mt-1 mb-0 text-sm text-muted-color">{{ auth.hasRole('admin') ? 'Toutes les demandes de la plateforme.' : 'Les demandes reçues par votre institut.' }}</p>
             </div>
         </ng-template>
@@ -288,7 +288,7 @@
             <div><dt class="text-sm text-muted-color">Catégorie</dt><dd class="mt-1">{{ request.category }}</dd></div>
             <div><dt class="text-sm text-muted-color">Institut</dt><dd class="mt-1">{{ institutName(request.institut_id) }}</dd></div>
             <div><dt class="text-sm text-muted-color">Priorité</dt><dd class="mt-1"><p-tag [value]="request.priority" [severity]="prioritySeverity(request.priority)" /> <span class="ml-2 text-sm text-muted-color">score {{ request.priority_score }}/100</span></dd></div>
-            <div><dt class="text-sm text-muted-color">Statut</dt><dd class="mt-1"><p-tag [value]="request.status" [severity]="statusSeverity(request.status)" /></dd></div>
+            <div><dt class="text-sm text-muted-color">Statut <app-term-help term="statut" /></dt><dd class="mt-1"><p-tag [value]="request.status" [severity]="statusSeverity(request.status)" /> <app-term-help [term]="requestStatusTerm(request.status)" /></dd></div>
             <div><dt class="text-sm text-muted-color">Citoyen</dt><dd class="mt-1">{{ userName(request.citizen_id) }}</dd></div>
             <div><dt class="text-sm text-muted-color">Agent assigné</dt><dd class="mt-1">{{ agentName(request.assigned_agent_id) }}</dd></div>
             <div class="sm:col-span-2"><dt class="text-sm text-muted-color">Localisation</dt><dd class="mt-1">{{ request.location }}</dd></div>

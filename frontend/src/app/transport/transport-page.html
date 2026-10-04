@@ -1,0 +1,115 @@
+<section class="transport-page">
+    <h1>Transports municipaux</h1>
+    <p class="intro">Horaires, prochains passages et perturbations des lignes de la ville. Les lignes perturbées ou interrompues sont affichées en premier.</p>
+    <p class="demo-note"><i class="pi pi-info-circle" aria-hidden="true"></i> Lignes et horaires de démonstration : ils seront remplacés par les données réelles de la ville.</p>
+
+    <form role="search" aria-label="Rechercher une ligne ou un arrêt" (submit)="$event.preventDefault(); load()">
+        <label for="transport-search" class="search-label">Rechercher une ligne ou un arrêt</label>
+        <input id="transport-search" type="search" name="transport-search" class="search-input" [ngModel]="query()" (ngModelChange)="onSearch($event)" aria-describedby="transport-search-help" autocomplete="off" />
+        <small id="transport-search-help">Par exemple : D1, Hôtel de ville, Marché central.</small>
+    </form>
+
+    <p class="sr-only" aria-live="polite">{{ lines().length }} ligne(s) trouvée(s), dont {{ disruptedCount() }} perturbée(s) ou interrompue(s).</p>
+    @if (loading()) {
+        <p role="status">Chargement des horaires…</p>
+    }
+    @if (error(); as message) {
+        <p role="alert" class="error">{{ message }} <button type="button" class="link-button" (click)="load()">Réessayer</button></p>
+    }
+    @if (manageError(); as message) {
+        <p role="alert" class="error">{{ message }}</p>
+    }
+    @if (manageNotice(); as message) {
+        <p role="status">{{ message }}</p>
+    }
+
+    <div class="lines">
+        @for (line of lines(); track line.id) {
+            <article class="line" [class]="'line tone-' + statusDisplay[line.status].tone" [attr.aria-labelledby]="'line-' + line.id">
+                <header class="line-header">
+                    <span class="line-code" aria-hidden="true">{{ line.code }}</span>
+                    <div>
+                        <h2 [id]="'line-' + line.id"><span class="sr-only">Ligne </span>{{ line.code }} · {{ line.name }}</h2>
+                        <p class="line-mode">{{ modeLabels[line.mode] }}@if (line.mode === 'minibus') { <app-term-help term="taxi-be" />}</p>
+                    </div>
+                    <span [class]="'line-status tone-' + statusDisplay[line.status].tone">
+                        <i [class]="'pi ' + statusDisplay[line.status].icon" aria-hidden="true"></i>
+                        {{ statusDisplay[line.status].label }}
+                    </span>
+                </header>
+
+                @if (line.status_message) {
+                    <p class="line-message"><strong>Info trafic :</strong> {{ line.status_message }}</p>
+                }
+
+                <p class="schedule">
+                    Premier départ {{ line.first_departure }} · dernier départ {{ line.last_departure }} · un passage toutes les {{ line.frequency_minutes }} min <app-term-help term="frequence" /> · {{ line.days_label }}
+                </p>
+
+                <h3 class="stops-title">Arrêts principaux et prochains passages <app-term-help term="prochain-passage" /></h3>
+                <ol class="stops">
+                    @for (stop of line.stops; track stop.id) {
+                        <li [class.matched]="stop.matches_search">
+                            <span class="stop-name">
+                                {{ stop.name }}
+                                @if (stop.matches_search) {
+                                    <span class="matched-label">(arrêt recherché)</span>
+                                }
+                            </span>
+                            <span class="stop-next">
+                                @if (stop.next_passages.length) {
+                                    Prochain : {{ passage(stop.next_passages[0]) }}
+                                    @if (stop.next_passages[1]; as following) {
+                                        <span class="following">, puis {{ passage(following) }}</span>
+                                    }
+                                } @else {
+                                    Aucun passage annoncé
+                                }
+                            </span>
+                        </li>
+                    }
+                </ol>
+
+                @if (canManage()) {
+                    <div class="manage">
+                        @if (editing() !== line.id) {
+                            <button type="button" class="manage-button" (click)="edit(line)">Modifier l’état<span class="sr-only"> de la ligne {{ line.code }}</span></button>
+                        } @else {
+                            <fieldset [disabled]="saving()">
+                                <legend>État de la ligne {{ line.code }}</legend>
+                                <label [for]="'line-status-' + line.id">État</label>
+                                <select [id]="'line-status-' + line.id" [name]="'line-status-' + line.id" [(ngModel)]="statusForm.status" [attr.aria-describedby]="'line-status-help-' + line.id">
+                                    @for (option of statusOptions; track option) {
+                                        <option [value]="option">{{ statusDisplay[option].label }}</option>
+                                    }
+                                </select>
+                                <small [id]="'line-status-help-' + line.id">« Ligne interrompue » : aucun horaire n’est plus annoncé aux voyageurs.</small>
+                                @if (statusForm.status !== 'normal') {
+                                    <label [for]="'line-message-' + line.id">Message aux voyageurs *</label>
+                                    <textarea
+                                        [id]="'line-message-' + line.id"
+                                        [name]="'line-message-' + line.id"
+                                        rows="2"
+                                        maxlength="1000"
+                                        [(ngModel)]="statusForm.message"
+                                        [attr.aria-describedby]="'line-message-help-' + line.id"
+                                        [attr.aria-invalid]="!!manageError() && !statusForm.message.trim()"
+                                    ></textarea>
+                                    <small [id]="'line-message-help-' + line.id">Ce qui se passe et quoi faire : arrêt de remplacement, autre ligne…</small>
+                                }
+                                <div class="manage-actions">
+                                    <button type="button" class="manage-button primary" (click)="save(line)">Enregistrer</button>
+                                    <button type="button" class="manage-button" (click)="editing.set(null)">Annuler</button>
+                                </div>
+                            </fieldset>
+                        }
+                    </div>
+                }
+            </article>
+        } @empty {
+            @if (!loading() && !error()) {
+                <p>Aucune ligne ne correspond à « {{ query() }} ». Vérifiez l’orthographe ou cherchez un arrêt proche.</p>
+            }
+        }
+    </div>
+</section>

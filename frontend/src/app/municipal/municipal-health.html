@@ -1,0 +1,104 @@
+<section class="health-page">
+    <h1>Urgences et santé</h1>
+
+    <section class="emergency" aria-labelledby="emergency-title">
+        <h2 id="emergency-title"><i class="pi pi-phone" aria-hidden="true"></i> Une urgence ? Appelez immédiatement <app-term-help term="urgence" /></h2>
+        <ul class="numbers">
+            @for (item of emergencyNumbers; track item.number) {
+                <li>
+                    <a class="call" [href]="'tel:' + item.number">
+                        <i [class]="'pi ' + item.icon" aria-hidden="true"></i>
+                        <span class="call-number">{{ item.number }}</span>
+                        <span class="call-label">{{ item.label }}<span class="sr-only"> : appeler le {{ item.number }}</span></span>
+                        <small>{{ item.description }}</small>
+                    </a>
+                </li>
+            }
+        </ul>
+        <p class="hint">Sur téléphone, touchez un numéro pour appeler. Pour une urgence médicale, appelez aussi directement l’hôpital le plus proche ci-dessous.</p>
+    </section>
+
+    <section aria-labelledby="places-title">
+        <h2 id="places-title">Hôpitaux et lieux de santé</h2>
+        <div class="toolbar">
+            <button type="button" class="locate-button" [disabled]="locating()" (click)="locateMe()">
+                <i class="pi pi-compass" aria-hidden="true"></i> {{ locating() ? 'Localisation…' : 'Le plus proche de moi' }}
+            </button>
+            <label class="filter" for="emergency-only">
+                <input id="emergency-only" type="checkbox" [checked]="emergencyOnly()" (change)="emergencyOnly.set($any($event.target).checked)" />
+                Uniquement les lieux qui accueillent les urgences
+            </label>
+        </div>
+        @if (locateMessage(); as message) {
+            <p role="status" class="locate-message">{{ message }}</p>
+        }
+        @if (nearestEmergency(); as nearest) {
+            <div class="nearest">
+                <p class="m-0"><strong>Urgences les plus proches :</strong> {{ nearest.name }} — à {{ distance(nearest) }}@if (nearest.open_24_7) {, ouvert 24h/24}.</p>
+                <div class="actions">
+                    @if (phoneHref(nearest.contact_details); as tel) {
+                        <a class="action" [href]="tel"><i class="pi pi-phone" aria-hidden="true"></i> Appeler<span class="sr-only"> {{ nearest.name }}</span></a>
+                    }
+                    <a class="action" [href]="directionsUrl(nearest)" target="_blank" rel="noopener"><i class="pi pi-directions" aria-hidden="true"></i> Itinéraire<span class="sr-only"> vers {{ nearest.name }} (nouvel onglet)</span></a>
+                </div>
+            </div>
+        }
+        @if (loading() && !services().length) {
+            <p role="status">Chargement des lieux de santé…</p>
+        }
+        @if (error(); as message) {
+            <p role="alert" class="error">{{ message }}</p>
+        }
+        <p class="sr-only" aria-live="polite">{{ healthServices().length }} lieu(x) de santé affiché(s).</p>
+
+        @if (locatedServices().length) {
+            <div #mapSection class="map">
+                <app-services-map [services]="locatedServices()" [position]="position()" label="Carte des hôpitaux et lieux de santé" />
+            </div>
+        }
+
+        <div class="places">
+            @for (service of healthServices(); track service.id) {
+                <article class="place" [attr.aria-labelledby]="'place-' + service.id">
+                    <h3 [id]="'place-' + service.id"><i [class]="'pi ' + service.icon" aria-hidden="true"></i> {{ service.name }}</h3>
+                    <div class="tags">
+                        @if (service.open_24_7) {
+                            <span class="tag tag-strong"><i class="pi pi-clock" aria-hidden="true"></i> Ouvert 24h/24</span><app-term-help term="24h-24" />
+                        }
+                        @if (service.emergency_care) {
+                            <span class="tag"><i class="pi pi-plus-circle" aria-hidden="true"></i> Accueille les urgences</span>
+                        }
+                        <app-service-status [service]="service" [services]="services()" [detailed]="true" />
+                    </div>
+                    <dl>
+                        <dt>Horaires</dt>
+                        <dd>{{ service.opening_hours }}</dd>
+                        <dt>Adresse</dt>
+                        <dd>
+                            {{ service.address ?? 'Adresse non renseignée' }}
+                            @if (distance(service); as away) {
+                                <strong> · à {{ away }}</strong>
+                            }
+                        </dd>
+                        <dt>Contact</dt>
+                        <dd>{{ service.contact_details }}</dd>
+                    </dl>
+                    <div class="actions">
+                        @if (phoneHref(service.contact_details); as tel) {
+                            <a class="action" [href]="tel"><i class="pi pi-phone" aria-hidden="true"></i> Appeler<span class="sr-only"> {{ service.name }}</span></a>
+                        }
+                        @if (isLocated(service)) {
+                            <a class="action" [href]="directionsUrl(service)" target="_blank" rel="noopener"><i class="pi pi-directions" aria-hidden="true"></i> Itinéraire<span class="sr-only"> vers {{ service.name }} (nouvel onglet)</span></a>
+                            <button type="button" class="action" (click)="showOnMap(service)"><i class="pi pi-map-marker" aria-hidden="true"></i> Voir sur la carte<span class="sr-only"> : {{ service.name }}</span></button>
+                        }
+                    </div>
+                </article>
+            } @empty {
+                @if (!loading()) {
+                    <p>Aucun lieu de santé n’est encore référencé. En cas d’urgence, appelez un numéro ci-dessus.</p>
+                }
+            }
+        </div>
+        <p class="demo-note"><i class="pi pi-info-circle" aria-hidden="true"></i> Les lieux marqués « (démo) » et leurs numéros sont fictifs : ils seront remplacés par les données de la ville.</p>
+    </section>
+</section>

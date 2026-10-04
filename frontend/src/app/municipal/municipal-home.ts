@@ -10,11 +10,12 @@ import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
 
 import { MunicipalContentService } from './municipal-content.service';
-import { MunicipalPublication, MunicipalService } from './municipal-content.model';
+import { MunicipalPublication, MunicipalService, canStart } from './municipal-content.model';
+import { ServiceStatusBadge } from './service-status';
 
 @Component({
     selector: 'app-municipal-home',
-    imports: [DatePipe, RouterLink, ButtonModule, CardModule],
+    imports: [DatePipe, RouterLink, ButtonModule, CardModule, ServiceStatusBadge],
     templateUrl: './municipal-home.html',
     styleUrl: './municipal-home.scss'
 })
@@ -29,6 +30,9 @@ export class MunicipalHome implements OnInit {
     readonly loadError = signal<string | null>(null);
     readonly popularServices = signal<MunicipalService[]>([]);
     readonly publications = signal<MunicipalPublication[]>([]);
+    /** Services perturbés ou interrompus, visibles dès l'accueil (F38/F64). */
+    readonly interruptions = signal<MunicipalService[]>([]);
+    readonly allServices = signal<MunicipalService[]>([]);
     readonly startError = signal<string | null>(null);
 
     ngOnInit(): void {
@@ -43,13 +47,15 @@ export class MunicipalHome implements OnInit {
         if (this.loading()) return;
         this.loading.set(true);
         this.loadError.set(null);
-        forkJoin({ popular: this.content.popularServices(6), publications: this.content.publications() })
+        forkJoin({ popular: this.content.popularServices(6), publications: this.content.publications(), services: this.content.services() })
             .pipe(
                 takeUntilDestroyed(this.destroyRef),
                 finalize(() => this.loading.set(false))
             )
             .subscribe({
-                next: ({ popular, publications }) => {
+                next: ({ popular, publications, services }) => {
+                    this.allServices.set(services);
+                    this.interruptions.set(services.filter((service) => service.status !== 'available'));
                     this.popularServices.set(popular.slice(0, 6));
                     this.publications.set(publications.slice(0, 2));
                 },
@@ -59,6 +65,11 @@ export class MunicipalHome implements OnInit {
 
     startService(service: MunicipalService): void {
         if (this.openingService()) return;
+        if (!canStart(service)) {
+            // Démarche bloquée : la page de contact affiche l'état, l'alternative et demande confirmation.
+            void this.router.navigate([this.navigation.path('contact')], { queryParams: { service: service.id } });
+            return;
+        }
         this.openingService.set(service.id);
         this.startError.set(null);
         this.content

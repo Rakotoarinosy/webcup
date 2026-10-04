@@ -67,7 +67,9 @@ export const AUDIT_LABELS: Record<AuditAction, string> = {
     agent_deactivated: 'Agent désactivé',
     agent_status_changed: 'Disponibilité de l’agent modifiée',
     data_concern_reviewed: 'Signalement sur les données pris en charge',
-    data_concern_answered: 'Réponse à un signalement sur les données'
+    data_concern_answered: 'Réponse à un signalement sur les données',
+    service_status_changed: 'État d’un service municipal modifié',
+    transport_line_status_changed: 'État d’une ligne de transport modifié'
 };
 
 const FIELD_LABELS: Record<string, string> = {
@@ -79,7 +81,11 @@ const FIELD_LABELS: Record<string, string> = {
     is_active: 'actif',
     manager: 'responsable',
     institut: 'institut',
-    status: 'disponibilité'
+    status: 'disponibilité',
+    status_message: 'explication',
+    status_expected_back_at: 'retour prévu',
+    status_alternative: 'que faire à la place',
+    alternative_service_id: 'service de remplacement'
 };
 
 /** « rôle : citizen → manager ; email : a → b » : lisible sans connaître le format technique. */

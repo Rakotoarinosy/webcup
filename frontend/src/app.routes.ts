@@ -47,6 +47,9 @@ export const appRoutes: Routes = [
             { path: 'municipal/services', data: { breadcrumb: 'Services municipaux' }, loadComponent: () => import('./app/municipal/municipal-services').then((m) => m.MunicipalServices) },
             { path: 'municipal/publications', data: { breadcrumb: 'Publications' }, loadComponent: () => import('./app/municipal/municipal-publications').then((m) => m.MunicipalPublications) },
             { path: 'municipal/contact', data: { breadcrumb: 'Contacter la mairie' }, loadComponent: () => import('./app/municipal/municipal-contact').then((m) => m.MunicipalContact) },
+            { path: 'municipal/urgences', data: { breadcrumb: 'Urgences et santé' }, loadComponent: () => import('./app/municipal/municipal-health').then((m) => m.MunicipalHealth) },
+            { path: 'municipal/transports', data: { breadcrumb: 'Transports' }, loadComponent: () => import('./app/transport/transport-page').then((m) => m.TransportPage) },
+            { path: 'municipal/lexique', data: { breadcrumb: 'Lexique' }, loadComponent: () => import('./app/glossary/glossary-page').then((m) => m.GlossaryPage) },
             { path: 'terra-nova', data: { breadcrumb: 'API Terra Nova', roles: ['agent', 'manager', 'admin'] }, loadChildren: () => import('./app/terra-nova/terra-nova.routes') }
         ]
     },
@@ -58,7 +61,10 @@ export const appRoutes: Routes = [
             { path: '', loadComponent: () => import('./app/municipal/municipal-home').then((m) => m.MunicipalHome) },
             { path: 'services', loadComponent: () => import('./app/municipal/municipal-services').then((m) => m.MunicipalServices) },
             { path: 'publications', loadComponent: () => import('./app/municipal/municipal-publications').then((m) => m.MunicipalPublications) },
-            { path: 'contact', loadComponent: () => import('./app/municipal/municipal-contact').then((m) => m.MunicipalContact) }
+            { path: 'contact', loadComponent: () => import('./app/municipal/municipal-contact').then((m) => m.MunicipalContact) },
+            { path: 'urgences', loadComponent: () => import('./app/municipal/municipal-health').then((m) => m.MunicipalHealth) },
+            { path: 'transports', loadComponent: () => import('./app/transport/transport-page').then((m) => m.TransportPage) },
+            { path: 'lexique', loadComponent: () => import('./app/glossary/glossary-page').then((m) => m.GlossaryPage) }
         ]
     },
     { path: '', component: Landing, canActivate: [publicSessionGuard] },

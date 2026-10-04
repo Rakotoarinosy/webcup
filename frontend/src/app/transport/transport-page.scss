@@ -1,0 +1,188 @@
+.transport-page {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 1rem;
+}
+.intro,
+.schedule,
+.line-mode {
+    color: var(--p-text-muted-color);
+}
+.demo-note {
+    display: flex;
+    gap: 0.5rem;
+    align-items: baseline;
+    font-size: 0.9rem;
+}
+form {
+    display: grid;
+    gap: 0.35rem;
+    margin: 1rem 0;
+}
+.search-label {
+    font-weight: 700;
+}
+.search-input,
+select,
+textarea {
+    padding: 0.7rem;
+    border-radius: 0.5rem;
+    border: 1px solid var(--p-content-border-color, #ccc);
+    background: transparent;
+    color: inherit;
+    font: inherit;
+}
+.search-input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+button:focus-visible {
+    outline: 2px solid var(--p-primary-color);
+    outline-offset: 2px;
+}
+.error {
+    color: var(--p-red-700, #b91c1c);
+}
+.link-button {
+    border: 0;
+    background: none;
+    color: var(--p-primary-color);
+    font: inherit;
+    font-weight: 600;
+    text-decoration: underline;
+    cursor: pointer;
+}
+.lines {
+    display: grid;
+    gap: 1rem;
+}
+.line {
+    padding: 1rem 1.25rem;
+    border-radius: 0.75rem;
+    border: 1px solid var(--p-content-border-color, #ddd);
+    border-left-width: 6px;
+    background: var(--p-content-background);
+}
+.tone-ok {
+    border-left-color: var(--p-green-700, #15803d);
+}
+.tone-warn {
+    border-left-color: var(--p-orange-600, #ea580c);
+}
+.tone-down {
+    border-left-color: var(--p-red-700, #b91c1c);
+}
+.line-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+}
+.line-header h2 {
+    margin: 0;
+    font-size: 1.2rem;
+}
+.line-header p {
+    margin: 0;
+}
+.line-code {
+    display: grid;
+    place-items: center;
+    min-width: 3rem;
+    height: 3rem;
+    border-radius: 0.5rem;
+    background: var(--p-primary-color);
+    color: var(--p-primary-contrast-color, #fff);
+    font-weight: 800;
+}
+.line-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-left: auto;
+    padding: 0.2rem 0.65rem;
+    border-radius: 999px;
+    border: 1px solid currentColor;
+    font-weight: 700;
+    font-size: 0.875rem;
+}
+.line-status.tone-ok {
+    color: var(--p-green-700, #15803d);
+}
+.line-status.tone-warn {
+    color: var(--p-orange-700, #c2410c);
+}
+.line-status.tone-down {
+    color: var(--p-red-700, #b91c1c);
+}
+.line-message {
+    margin: 0.75rem 0 0;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    background: var(--p-content-hover-background, rgba(0, 0, 0, 0.04));
+}
+.stops-title {
+    font-size: 1rem;
+    margin: 1rem 0 0.5rem;
+}
+.stops {
+    display: grid;
+    gap: 0.35rem;
+    margin: 0;
+    padding-left: 1.5rem;
+}
+.stops li {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.25rem 1rem;
+    padding: 0.35rem 0.5rem;
+    border-radius: 0.4rem;
+}
+.stops li.matched {
+    outline: 2px solid var(--p-primary-color);
+}
+.stop-name {
+    font-weight: 600;
+}
+.matched-label {
+    font-weight: 400;
+    font-size: 0.85rem;
+}
+.following {
+    color: var(--p-text-muted-color);
+}
+.manage {
+    margin-top: 1rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--p-content-border-color, #ddd);
+}
+.manage fieldset {
+    display: grid;
+    gap: 0.4rem;
+    border: 1px solid var(--p-content-border-color, #ddd);
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+}
+.manage legend,
+.manage label {
+    font-weight: 600;
+}
+.manage-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+.manage-button {
+    padding: 0.5rem 0.9rem;
+    border-radius: 0.5rem;
+    border: 1px solid var(--p-content-border-color, #ccc);
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+}
+.manage-button.primary {
+    background: var(--p-primary-color);
+    color: var(--p-primary-contrast-color, #fff);
+    border-color: var(--p-primary-color);
+}

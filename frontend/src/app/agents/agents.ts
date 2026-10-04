@@ -1,3 +1,4 @@
+import { TermHelp } from '@/app/glossary/term-help';
 import { LiveDataService } from '@/app/shared/live-data.service';
 import { DatePipe } from '@angular/common';
 import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
@@ -45,7 +46,7 @@ const EMPTY_FORM: AgentForm = { mode: 'existing', user_id: null, name: '', email
 
 @Component({
     selector: 'app-agents',
-    imports: [DatePipe, FormsModule, ButtonModule, ConfirmDialogModule, DialogModule, IconFieldModule, InputIconModule, InputTextModule, SelectModule, TableModule, TagModule, ToastModule, ToolbarModule, TooltipModule],
+    imports: [TermHelp, DatePipe, FormsModule, ButtonModule, ConfirmDialogModule, DialogModule, IconFieldModule, InputIconModule, InputTextModule, SelectModule, TableModule, TagModule, ToastModule, ToolbarModule, TooltipModule],
     templateUrl: './agents.html',
     styleUrl: './agents.scss',
     providers: [MessageService, ConfirmationService]

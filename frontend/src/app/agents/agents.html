@@ -5,7 +5,7 @@
     <p-toolbar styleClass="mb-5">
         <ng-template #start>
             <div>
-                <h1 class="m-0 text-xl font-semibold">Gestion des agents</h1>
+                <h1 class="m-0 text-xl font-semibold">Gestion des agents <app-term-help term="agent" /></h1>
                 <p class="mt-1 mb-0 text-sm text-muted-color">{{ auth.hasRole('admin') ? 'Équipes de terrain de tous les instituts.' : 'Les agents de votre institut.' }}</p>
             </div>
         </ng-template>

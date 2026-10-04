@@ -10,6 +10,8 @@ from src.domain.municipal_content import (
     MunicipalService,
 )
 from src.domain.user import Role, User
+from src.features.audit.recording import AuditTrail
+from src.features.audit.router import get_audit_trail
 from src.features.municipal_content.schemas import (
     ContactReceiptOut,
     CreateContactMessageIn,
@@ -22,13 +24,17 @@ from src.features.municipal_content.schemas import (
     UpdateMunicipalPublicationIn,
     UpdateMunicipalServiceCatalogIn,
     UpdateServiceLocationIn,
+    UpdateServiceStatusIn,
 )
 from src.features.municipal_content.use_cases import (
+    change_municipal_service_status,
     create_municipal_publication,
     create_publication_comment,
     delete_municipal_publication,
     get_municipal_publication,
+    get_municipal_service,
     list_featured_municipal_services,
+    list_interrupted_municipal_services,
     list_municipal_publications,
     list_municipal_services,
     list_popular_municipal_services,
@@ -57,9 +63,19 @@ def get_municipal_content_repo(db: Session = Depends(get_db)) -> MunicipalConten
 
 @router.get("/services", response_model=list[MunicipalServiceOut])
 def list_services_endpoint(
+    available_only: bool = Query(default=False),
+    category: str | None = Query(default=None, min_length=1, max_length=80),
     repo: MunicipalContentRepository = Depends(get_municipal_content_repo),
 ) -> list[MunicipalService]:
-    return list_municipal_services(repo)
+    return list_municipal_services(repo, available_only=available_only, category=category)
+
+
+@router.get("/services/interruptions", response_model=list[MunicipalServiceOut])
+def list_interrupted_services_endpoint(
+    repo: MunicipalContentRepository = Depends(get_municipal_content_repo),
+) -> list[MunicipalService]:
+    """Public : services perturbés, en maintenance ou hors service, les plus graves d'abord."""
+    return list_interrupted_municipal_services(repo)
 
 
 @router.get("/services/featured", response_model=list[MunicipalServiceOut])
@@ -75,6 +91,26 @@ def list_popular_services_endpoint(
     repo: MunicipalContentRepository = Depends(get_municipal_content_repo),
 ) -> list[MunicipalService]:
     return list_popular_municipal_services(limit, repo)
+
+
+@router.get("/services/{service_id}", response_model=MunicipalServiceOut)
+def get_service_endpoint(
+    service_id: str,
+    repo: MunicipalContentRepository = Depends(get_municipal_content_repo),
+) -> MunicipalService:
+    """Public : fiche et état actuel d'un service, à consulter avant de commencer une démarche."""
+    return get_municipal_service(service_id, repo)
+
+
+@router.patch("/services/{service_id}/status", response_model=MunicipalServiceOut)
+def update_service_status_endpoint(
+    service_id: str,
+    payload: UpdateServiceStatusIn,
+    repo: MunicipalContentRepository = Depends(get_municipal_content_repo),
+    _: User = Depends(require_roles(Role.ADMIN, Role.MANAGER)),
+    audit: AuditTrail = Depends(get_audit_trail),
+) -> MunicipalService:
+    return change_municipal_service_status(service_id, payload, repo, audit=audit)
 
 
 @router.post("/services/{service_id}/start", response_model=MunicipalServiceOut)

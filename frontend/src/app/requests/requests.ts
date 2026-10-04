@@ -1,3 +1,5 @@
+import { TermHelp } from '@/app/glossary/term-help';
+import { requestStatusTerm } from '@/app/glossary/glossary';
 import { DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
@@ -85,6 +87,7 @@ const STATUS_ACTION_LABELS: Record<RequestStatus, string> = {
 @Component({
     selector: 'app-requests',
     imports: [
+        TermHelp,
         DatePipe,
         FormsModule,
         ButtonModule,
@@ -106,6 +109,7 @@ const STATUS_ACTION_LABELS: Record<RequestStatus, string> = {
     providers: [MessageService, ConfirmationService]
 })
 export class Requests implements OnInit {
+    readonly requestStatusTerm = requestStatusTerm;
     private readonly requestService = inject(CitizenRequestService);
     private readonly userService = inject(UserService);
     private readonly agentService = inject(AgentService);

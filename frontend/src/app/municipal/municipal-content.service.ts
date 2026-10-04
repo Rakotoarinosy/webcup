@@ -3,15 +3,29 @@ import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { environment } from '@/environments/environment';
-import { ContactMessageIn, ContactReceipt, MunicipalPublication, MunicipalPublicationComment, MunicipalPublicationIn, MunicipalService, PublicationLikeResult, ServiceLocationIn } from './municipal-content.model';
+import { ContactMessageIn, ContactReceipt, MunicipalPublication, MunicipalPublicationComment, MunicipalPublicationIn, MunicipalService, PublicationLikeResult, ServiceLocationIn, ServiceStatusIn } from './municipal-content.model';
 
 @Injectable({ providedIn: 'root' })
 export class MunicipalContentService {
     private readonly http = inject(HttpClient);
     private readonly baseUrl = `${environment.apiUrl}/municipal`;
 
-    services(): Observable<MunicipalService[]> {
-        return this.http.get<MunicipalService[]>(`${this.baseUrl}/services`);
+    services(options: { availableOnly?: boolean } = {}): Observable<MunicipalService[]> {
+        const params = options.availableOnly ? new HttpParams().set('available_only', true) : undefined;
+        return this.http.get<MunicipalService[]>(`${this.baseUrl}/services`, { params });
+    }
+
+    service(id: string): Observable<MunicipalService> {
+        return this.http.get<MunicipalService>(`${this.baseUrl}/services/${encodeURIComponent(id)}`);
+    }
+
+    /** Services perturbés, en maintenance ou hors service, les plus graves d'abord. */
+    interruptions(): Observable<MunicipalService[]> {
+        return this.http.get<MunicipalService[]>(`${this.baseUrl}/services/interruptions`);
+    }
+
+    updateServiceStatus(id: string, payload: ServiceStatusIn): Observable<MunicipalService> {
+        return this.http.patch<MunicipalService>(`${this.baseUrl}/services/${encodeURIComponent(id)}/status`, payload);
     }
 
     featuredServices(): Observable<MunicipalService[]> {

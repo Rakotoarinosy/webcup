@@ -66,7 +66,10 @@ export class AppMenu {
                 { label: 'Accueil municipal', icon: 'pi pi-fw pi-building', routerLink: ['/home/municipal'], routerLinkActiveOptions: { exact: true } },
                 { label: 'Services municipaux', icon: 'pi pi-fw pi-map-marker', routerLink: ['/home/municipal/services'] },
                 { label: 'Publications', icon: 'pi pi-fw pi-megaphone', routerLink: ['/home/municipal/publications'], badge: this.publicationBadge() },
-                { label: 'Contacter la mairie', icon: 'pi pi-fw pi-envelope', routerLink: ['/home/municipal/contact'] }
+                { label: 'Contacter la mairie', icon: 'pi pi-fw pi-envelope', routerLink: ['/home/municipal/contact'] },
+                { label: 'Urgences et santé', icon: 'pi pi-fw pi-heart', routerLink: ['/home/municipal/urgences'] },
+                { label: 'Transports', icon: 'pi pi-fw pi-car', routerLink: ['/home/municipal/transports'] },
+                { label: 'Lexique', icon: 'pi pi-fw pi-book', routerLink: ['/home/municipal/lexique'] }
             ]
         });
 

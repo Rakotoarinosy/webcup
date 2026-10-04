@@ -5,15 +5,25 @@ import { finalize } from 'rxjs';
 import { Component, DestroyRef, ElementRef, computed, inject, OnInit, signal, viewChild } from '@angular/core';
 import { CardModule } from 'primeng/card';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../auth/auth.service';
-import { LocatedService, MunicipalService, directionsUrl, distanceKm, formatDistance, isLocated } from './municipal-content.model';
+import { TermHelp } from '../glossary/term-help';
+import { LocatedService, MunicipalService, SERVICE_STATUS_DISPLAY, SERVICE_STATUS_VALUES_FOR_FORM, ServiceStatus, canStart, directionsUrl, distanceKm, formatDistance, isLocated } from './municipal-content.model';
 import { MunicipalContentService } from './municipal-content.service';
 import { ServicesMap } from './services-map';
+import { ServiceStatusBadge } from './service-status';
 
 interface Position {
     latitude: number;
     longitude: number;
+}
+
+interface StatusForm {
+    status: ServiceStatus;
+    message: string;
+    expected_back_at: string; // datetime-local, heure de l'appareil
+    alternative: string;
+    alternative_service_id: string | null;
 }
 
 interface LocationForm {
@@ -22,7 +32,7 @@ interface LocationForm {
     longitude: number | null;
 }
 
-@Component({ selector: 'app-municipal-services', imports: [CardModule, FormsModule, ServicesMap], templateUrl: './municipal-services.html', styleUrl: './municipal-services.scss' })
+@Component({ selector: 'app-municipal-services', imports: [CardModule, FormsModule, RouterLink, ServicesMap, ServiceStatusBadge, TermHelp], templateUrl: './municipal-services.html', styleUrl: './municipal-services.scss' })
 export class MunicipalServices implements OnInit {
     private readonly live = inject(LiveDataService);
     private readonly destroyRef = inject(DestroyRef);
@@ -43,6 +53,15 @@ export class MunicipalServices implements OnInit {
     readonly editingLocation = signal<string | null>(null);
     readonly directionsUrl = directionsUrl;
     readonly isLocated = isLocated;
+    readonly canStart = canStart;
+    readonly statusDisplay = SERVICE_STATUS_DISPLAY;
+    readonly statusOptions = SERVICE_STATUS_VALUES_FOR_FORM;
+    /** F63 : « disponibles uniquement » masque les services où l'on ne peut rien commencer. */
+    readonly availableOnly = signal(false);
+    readonly editingStatus = signal<string | null>(null);
+    readonly statusError = signal<string | null>(null);
+    readonly statusNotice = signal<string | null>(null);
+    statusForm: StatusForm = { status: 'out_of_service', message: '', expected_back_at: '', alternative: '', alternative_service_id: null };
     locationForm: LocationForm = { address: '', latitude: null, longitude: null };
     private readonly map = viewChild(ServicesMap);
     private readonly mapSection = viewChild<ElementRef<HTMLElement>>('mapSection');
@@ -62,15 +81,17 @@ export class MunicipalServices implements OnInit {
             const distance = (service: MunicipalService) => (isLocated(service) ? distanceKm(position, service) : Number.POSITIVE_INFINITY);
             items.sort((a, b) => distance(a) - distance(b));
         }
-        return query ? items.filter((service) => normalize(`${service.name} ${service.category ?? ''} ${service.description} ${service.address ?? ''}`).includes(query)) : items;
+        const usable = this.availableOnly() ? items.filter(canStart) : items;
+        return query ? usable.filter((service) => normalize(`${service.name} ${service.category ?? ''} ${service.description} ${service.address ?? ''}`).includes(query)) : usable;
     });
+    readonly interruptedCount = computed(() => this.services().filter((service) => !canStart(service)).length);
 
     ngOnInit(): void {
         this.load();
         this.live.watch(
             this.destroyRef,
             () => this.load(),
-            () => !this.loading() && !this.saving()
+            () => !this.loading() && !this.saving() && this.editingStatus() === null
         );
     }
     load(): void {
@@ -168,6 +189,70 @@ export class MunicipalServices implements OnInit {
         });
     }
 
+    /** Autres services vers lesquels orienter les habitants pendant l'interruption. */
+    alternativesFor(service: MunicipalService): MunicipalService[] {
+        return this.services().filter((item) => item.id !== service.id && canStart(item));
+    }
+
+    editStatus(service: MunicipalService, status: ServiceStatus = service.status === 'available' ? 'out_of_service' : service.status): void {
+        this.editingStatus.set(service.id);
+        this.statusError.set(null);
+        this.statusNotice.set(null);
+        this.statusForm = {
+            status,
+            message: service.status_message ?? '',
+            expected_back_at: toLocalInput(service.status_expected_back_at),
+            alternative: service.status_alternative ?? '',
+            alternative_service_id: service.alternative_service_id
+        };
+    }
+
+    saveStatus(service: MunicipalService): void {
+        const form = this.statusForm;
+        if (form.status !== 'available' && !form.message.trim()) {
+            this.statusError.set('Expliquez aux habitants pourquoi le service n’est pas pleinement disponible.');
+            return;
+        }
+        if (form.expected_back_at && new Date(form.expected_back_at).getTime() <= Date.now()) {
+            this.statusError.set('La date de retour prévue doit être dans le futur.');
+            return;
+        }
+        const payload =
+            form.status === 'available'
+                ? { status: form.status }
+                : {
+                      status: form.status,
+                      message: form.message.trim(),
+                      expected_back_at: form.expected_back_at ? new Date(form.expected_back_at).toISOString() : null,
+                      alternative: form.alternative.trim() || null,
+                      alternative_service_id: form.alternative_service_id || null
+                  };
+        this.sendStatus(service, payload);
+    }
+
+    /** F63 : remise en service en un clic. */
+    restore(service: MunicipalService): void {
+        this.sendStatus(service, { status: 'available' });
+    }
+
+    private sendStatus(service: MunicipalService, payload: Parameters<MunicipalContentService['updateServiceStatus']>[1]): void {
+        if (this.saving()) return;
+        this.saving.set(service.id);
+        this.statusError.set(null);
+        this.statusNotice.set(null);
+        this.content
+            .updateServiceStatus(service.id, payload)
+            .pipe(finalize(() => this.saving.set(null)))
+            .subscribe({
+                next: (updated) => {
+                    this.services.update((items) => items.map((item) => (item.id === updated.id ? updated : item)));
+                    this.editingStatus.set(null);
+                    this.statusNotice.set(`« ${updated.name} » : ${SERVICE_STATUS_DISPLAY[updated.status].label}.`);
+                },
+                error: () => this.statusError.set(`Impossible de modifier l’état de « ${service.name} ». Vérifiez les informations puis réessayez.`)
+            });
+    }
+
     startService(service: MunicipalService): void {
         if (this.openingService()) return;
         this.openingService.set(service.id);
@@ -183,4 +268,12 @@ export class MunicipalServices implements OnInit {
                 error: () => this.error.set('Impossible d’ouvrir cette démarche. Réessayez dans quelques instants.')
             });
     }
+}
+
+/** ISO → valeur d'un champ datetime-local (heure de l'appareil). */
+function toLocalInput(iso: string | null): string {
+    if (!iso) return '';
+    const date = new Date(iso);
+    const pad = (value: number) => String(value).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }

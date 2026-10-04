@@ -1,3 +1,7 @@
+import { SERVICE_STATUS_VALUES, ServiceStatus } from '@/app/shared/api-enums';
+
+export type { ServiceStatus };
+
 export interface MunicipalService {
     id: string;
     name: string;
@@ -13,6 +17,48 @@ export interface MunicipalService {
     address: string | null;
     latitude: number | null;
     longitude: number | null;
+    /** État actuel (F38/F63/F64), visible avant toute démarche. */
+    status: ServiceStatus;
+    status_message: string | null;
+    status_expected_back_at: string | null;
+    status_alternative: string | null;
+    alternative_service_id: string | null;
+    status_updated_at: string | null;
+    /** Santé et urgences (F46). */
+    open_24_7: boolean;
+    emergency_care: boolean;
+}
+
+export interface ServiceStatusIn {
+    status: ServiceStatus;
+    message?: string | null;
+    expected_back_at?: string | null;
+    alternative?: string | null;
+    alternative_service_id?: string | null;
+}
+
+/** Libellé, icône et ton de chaque état : l'information n'est jamais portée par la seule couleur. */
+export const SERVICE_STATUS_DISPLAY: Record<ServiceStatus, { label: string; icon: string; tone: 'ok' | 'warn' | 'down' }> = {
+    available: { label: 'Disponible', icon: 'pi-check-circle', tone: 'ok' },
+    disrupted: { label: 'Perturbé', icon: 'pi-exclamation-triangle', tone: 'warn' },
+    maintenance: { label: 'En maintenance', icon: 'pi-wrench', tone: 'down' },
+    out_of_service: { label: 'Hors service', icon: 'pi-times-circle', tone: 'down' }
+};
+
+export const SERVICE_STATUS_VALUES_FOR_FORM: readonly ServiceStatus[] = SERVICE_STATUS_VALUES;
+
+/** Une démarche peut-elle être commencée ? (même règle que le backend : ServiceStatus.can_start) */
+export function canStart(service: Pick<MunicipalService, 'status'>): boolean {
+    return service.status === 'available' || service.status === 'disrupted';
+}
+
+/** Lieux de santé et d'urgence : catégorie « Santé… » ou prise en charge des urgences. */
+export function isHealthService(service: MunicipalService): boolean {
+    const category = service.category
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLocaleLowerCase('fr');
+    return service.emergency_care || category.includes('sante') || category.includes('urgence');
 }
 
 export interface ServiceLocationIn {
@@ -88,6 +134,8 @@ export interface ContactMessageIn {
     sender_email: string;
     subject: string;
     message: string;
+    /** L'habitant a vu que le service est interrompu et choisit d'écrire quand même. */
+    acknowledge_interruption?: boolean;
 }
 
 export interface ContactReceipt {

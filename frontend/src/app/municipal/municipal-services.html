@@ -2,14 +2,25 @@
     <p role="status">Actualisation des services…</p>
 }
 <section class="municipal-page">
-    <h1>Services municipaux</h1>
-    <p class="intro">Trouvez le bon interlocuteur, où il vous accueille, ses horaires, et comment vous y rendre.</p>
+    <h1>Services municipaux <app-term-help term="service-municipal" /></h1>
+    <p class="intro">Trouvez le bon interlocuteur, où il vous accueille, ses horaires, et comment vous y rendre. L’état de chaque service est indiqué avant de commencer une démarche.</p>
+    @if (interruptedCount() > 0) {
+        <p class="interruption-summary" role="status">
+            <i class="pi pi-exclamation-triangle" aria-hidden="true"></i>
+            {{ interruptedCount() }} service(s) actuellement interrompu(s) <app-term-help term="hors-service" /> : consultez leur fiche pour savoir quand revenir ou quoi faire à la place.
+        </p>
+    }
 
     <div class="mb-5 flex flex-wrap items-end gap-3">
         <form role="search" aria-label="Rechercher un service municipal" class="min-w-[16rem] flex-1">
             <label for="service-search" class="mb-2 block font-semibold">Rechercher par nom, catégorie ou adresse</label>
             <input id="service-search" type="search" class="w-full rounded border border-surface bg-transparent p-3" [ngModel]="search()" (ngModelChange)="search.set($event)" name="service-search" />
         </form>
+        <label class="available-filter" for="available-only">
+            <input id="available-only" type="checkbox" [checked]="availableOnly()" (change)="availableOnly.set($any($event.target).checked)" aria-describedby="available-only-help" />
+            Disponibles uniquement
+            <small id="available-only-help" class="sr-only">Masque les services en maintenance ou hors service.</small>
+        </label>
         <button type="button" class="locate-button" [disabled]="locating()" (click)="locateMe()">
             <i class="pi pi-compass" aria-hidden="true"></i> {{ locating() ? 'Localisation…' : 'Services près de moi' }}
         </button>
@@ -21,6 +32,12 @@
 
     @if (error(); as message) {
         <p role="alert" class="mb-4 text-red-600">{{ message }}</p>
+    }
+    @if (statusError(); as message) {
+        <p role="alert" class="mb-4 text-red-600">{{ message }}</p>
+    }
+    @if (statusNotice(); as message) {
+        <p role="status" class="mb-4">{{ message }}</p>
     }
 
     @if (locatedServices().length) {
@@ -37,6 +54,7 @@
                     <ng-template #title
                         ><span [id]="'service-' + service.id"><i [class]="'pi ' + service.icon" aria-hidden="true"></i> {{ service.name }}</span></ng-template
                     >
+                    <app-service-status [service]="service" [services]="services()" [detailed]="true" />
                     <p>{{ service.description }}</p>
                     <dl>
                         <dt>Adresse</dt>
@@ -64,9 +82,15 @@
                                 <i class="pi pi-map-marker" aria-hidden="true"></i> Voir sur la carte<span class="sr-only"> : {{ service.name }}</span>
                             </button>
                         }
-                        <button type="button" class="card-action" [disabled]="openingService() !== null" (click)="startService(service)">
-                            Contacter ce service<span class="sr-only"> : {{ service.name }}</span> <i class="pi pi-arrow-right" aria-hidden="true"></i>
-                        </button>
+                        @if (canStart(service)) {
+                            <button type="button" class="card-action" [disabled]="openingService() !== null" (click)="startService(service)">
+                                Contacter ce service<span class="sr-only"> : {{ service.name }}</span> <i class="pi pi-arrow-right" aria-hidden="true"></i>
+                            </button>
+                        } @else {
+                            <a class="card-action card-action-secondary" [routerLink]="navigation.path('contact')" [queryParams]="{ service: service.id }">
+                                Écrire quand même<span class="sr-only"> au service {{ service.name }}, actuellement interrompu</span> <i class="pi pi-envelope" aria-hidden="true"></i>
+                            </a>
+                        }
                     </div>
 
                     @if (auth.hasRole('manager', 'admin')) {
@@ -82,12 +106,72 @@
                             <button type="button" class="rounded border border-surface px-3 py-2 focus-visible:outline-2" [disabled]="saving() === service.id" (click)="updateFeatured(service, service.is_featured, +orderInput.value)">
                                 Enregistrer<span class="sr-only"> la mise en avant de {{ service.name }}</span>
                             </button>
+                            @if (service.status === 'available') {
+                                <button type="button" class="rounded border border-red-600 px-3 py-2 font-semibold text-red-700 focus-visible:outline-2" [disabled]="saving() === service.id" (click)="editStatus(service, 'out_of_service')">
+                                    <i class="pi pi-power-off" aria-hidden="true"></i> Mettre hors service<span class="sr-only"> : {{ service.name }}</span>
+                                </button>
+                                <button type="button" class="rounded border border-surface px-3 py-2 focus-visible:outline-2" [disabled]="saving() === service.id" (click)="editStatus(service, 'disrupted')">
+                                    Signaler une perturbation<span class="sr-only"> : {{ service.name }}</span>
+                                </button>
+                            } @else {
+                                <button type="button" class="rounded border border-green-700 px-3 py-2 font-semibold text-green-800 focus-visible:outline-2" [disabled]="saving() === service.id" (click)="restore(service)">
+                                    <i class="pi pi-check" aria-hidden="true"></i> Remettre en service<span class="sr-only"> : {{ service.name }}</span>
+                                </button>
+                                <button type="button" class="rounded border border-surface px-3 py-2 focus-visible:outline-2" [disabled]="saving() === service.id" (click)="editStatus(service)">
+                                    Modifier l’état<span class="sr-only"> de {{ service.name }}</span>
+                                </button>
+                            }
                             @if (editingLocation() !== service.id) {
                                 <button type="button" class="rounded border border-surface px-3 py-2 focus-visible:outline-2" (click)="editLocation(service)">
                                     Modifier le lieu d’accueil<span class="sr-only"> de {{ service.name }}</span>
                                 </button>
                             }
                         </div>
+                        @if (editingStatus() === service.id) {
+                            <fieldset class="location-form mt-3 grid gap-3 rounded border border-surface p-3" [disabled]="saving() === service.id">
+                                <legend class="px-1 font-semibold">État de {{ service.name }}</legend>
+                                <div class="grid gap-1">
+                                    <label [for]="'status-' + service.id">État *</label>
+                                    <select [id]="'status-' + service.id" class="rounded border border-surface bg-transparent p-2" [(ngModel)]="statusForm.status" [name]="'status-' + service.id" [attr.aria-describedby]="'status-help-' + service.id">
+                                        @for (option of statusOptions; track option) {
+                                            <option [value]="option">{{ statusDisplay[option].label }}</option>
+                                        }
+                                    </select>
+                                    <small [id]="'status-help-' + service.id">« Perturbé » : la démarche reste possible. « En maintenance » ou « Hors service » : la démarche est bloquée.</small>
+                                </div>
+                                @if (statusForm.status !== 'available') {
+                                    <div class="grid gap-1">
+                                        <label [for]="'status-message-' + service.id">Explication pour les habitants *</label>
+                                        <textarea [id]="'status-message-' + service.id" rows="2" maxlength="1000" class="rounded border border-surface bg-transparent p-2" [(ngModel)]="statusForm.message" [name]="'status-message-' + service.id" [attr.aria-describedby]="'status-message-help-' + service.id" [attr.aria-invalid]="!!statusError() && !statusForm.message.trim()"></textarea>
+                                        <small [id]="'status-message-help-' + service.id">Ce qui se passe, en mots simples. Ex. : « Panne du système informatique ».</small>
+                                    </div>
+                                    <div class="grid gap-1">
+                                        <label [for]="'status-back-' + service.id">Retour prévu (facultatif)</label>
+                                        <input type="datetime-local" [id]="'status-back-' + service.id" class="rounded border border-surface bg-transparent p-2" [(ngModel)]="statusForm.expected_back_at" [name]="'status-back-' + service.id" [attr.aria-describedby]="'status-back-help-' + service.id" />
+                                        <small [id]="'status-back-help-' + service.id">Laissez vide si la date n’est pas connue.</small>
+                                    </div>
+                                    <div class="grid gap-1">
+                                        <label [for]="'status-alt-' + service.id">Que faire à la place ? (facultatif)</label>
+                                        <textarea [id]="'status-alt-' + service.id" rows="2" maxlength="1000" class="rounded border border-surface bg-transparent p-2" [(ngModel)]="statusForm.alternative" [name]="'status-alt-' + service.id" [attr.aria-describedby]="'status-alt-help-' + service.id"></textarea>
+                                        <small [id]="'status-alt-help-' + service.id">Ex. : « Les actes urgents sont délivrés à la mairie annexe ».</small>
+                                    </div>
+                                    <div class="grid gap-1">
+                                        <label [for]="'status-alt-service-' + service.id">Service de remplacement (facultatif)</label>
+                                        <select [id]="'status-alt-service-' + service.id" class="rounded border border-surface bg-transparent p-2" [(ngModel)]="statusForm.alternative_service_id" [name]="'status-alt-service-' + service.id" [attr.aria-describedby]="'status-alt-service-help-' + service.id">
+                                            <option [ngValue]="null">Aucun</option>
+                                            @for (other of alternativesFor(service); track other.id) {
+                                                <option [ngValue]="other.id">{{ other.name }}</option>
+                                            }
+                                        </select>
+                                        <small [id]="'status-alt-service-help-' + service.id">Les habitants pourront le contacter en un clic.</small>
+                                    </div>
+                                }
+                                <div class="flex flex-wrap gap-2">
+                                    <button type="button" class="rounded bg-primary px-3 py-2 text-primary-contrast" (click)="saveStatus(service)">Enregistrer l’état</button>
+                                    <button type="button" class="rounded px-3 py-2" (click)="editingStatus.set(null)">Annuler</button>
+                                </div>
+                            </fieldset>
+                        }
                         @if (editingLocation() === service.id) {
                             <fieldset class="location-form mt-3 grid gap-3 rounded border border-surface p-3" [disabled]="saving() === service.id">
                                 <legend class="px-1 font-semibold">Lieu d’accueil de {{ service.name }}</legend>
