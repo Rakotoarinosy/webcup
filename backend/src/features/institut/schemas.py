@@ -69,6 +69,25 @@ class InstitutDashboardOut(BaseModel):
     services: list[InstitutServiceOut]
 
 
+class CitizenInstitutServiceOut(BaseModel):
+    id: str
+    institut_id: str
+    name: str
+    category: str
+    description: str
+    contact_details: str
+    opening_hours: str
+    icon: str
+    request_category: RequestCategory | None
+    metrics: RequestMetricsOut
+
+
+class CitizenInstitutDashboardOut(BaseModel):
+    institut: InstitutOut
+    metrics: RequestMetricsOut
+    services: list[CitizenInstitutServiceOut]
+
+
 class CreateInstitutServiceIn(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 

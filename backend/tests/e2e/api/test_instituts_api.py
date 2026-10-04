@@ -58,7 +58,14 @@ async def test_manager_reads_own_institut_and_loses_access_when_deactivated(
     assert (
         await client.get(f"{INSTITUTS}/{platform.instituts['eau']}", headers=platform.as_("m1"))
     ).status_code == 403
-    assert (await client.get(INSTITUTS, headers=platform.as_("c1"))).json() == []
+    citizen_instituts = (await client.get(INSTITUTS, headers=platform.as_("c1"))).json()
+    assert {institut["id"] for institut in citizen_instituts} == set(platform.instituts.values())
+    citizen_dashboard = await client.get(
+        f"{voirie}/citizen-dashboard", headers=platform.as_("c1")
+    )
+    assert citizen_dashboard.status_code == 200
+    assert "manager_name" not in citizen_dashboard.json()
+    assert "associated_agents" not in citizen_dashboard.json()
 
     await platform.submit()
     assert (await client.patch(voirie, headers=platform.admin, json={"is_active": False})).json()[

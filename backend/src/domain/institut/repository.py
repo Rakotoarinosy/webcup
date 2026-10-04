@@ -3,7 +3,12 @@
 from abc import ABC, abstractmethod
 
 from src.domain.citizen_request.entities import RequestCategory
-from src.domain.institut.entities import Institut, InstitutDashboard, InstitutService
+from src.domain.institut.entities import (
+    CitizenInstitutDashboard,
+    Institut,
+    InstitutDashboard,
+    InstitutService,
+)
 
 
 class InstitutRepository(ABC):
@@ -32,6 +37,11 @@ class InstitutRepository(ABC):
 
     @abstractmethod
     def get_dashboard(self, institut_id: str) -> InstitutDashboard | None: ...
+
+    @abstractmethod
+    def get_citizen_dashboard(
+        self, institut_id: str, citizen_id: str
+    ) -> CitizenInstitutDashboard | None: ...
 
     @abstractmethod
     def get_service(self, institut_id: str, service_id: str) -> InstitutService | None: ...

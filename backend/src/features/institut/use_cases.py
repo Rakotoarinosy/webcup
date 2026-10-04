@@ -4,22 +4,23 @@ import uuid
 from dataclasses import replace
 from datetime import UTC, datetime
 
+from src.domain.agent import AgentRepository
 from src.domain.audit import AuditAction, AuditTarget
 from src.domain.citizen_request import Actor, ensure_can_manage_institut
 from src.domain.institut import (
     CategoryConflictError,
+    CitizenInstitutDashboard,
     Institut,
     InstitutAlreadyExistsError,
+    InstitutDashboard,
     InstitutNotFoundError,
     InstitutRepository,
-    InvalidManagerError,
-    ManagerConflictError,
-    InstitutDashboard,
     InstitutService,
+    InvalidManagerError,
     InvalidServiceAgentError,
+    ManagerConflictError,
     overlapping_categories,
 )
-from src.domain.agent import AgentRepository
 from src.domain.user import ForbiddenError, Role, UserRepository
 from src.features.audit.recording import AuditTrail, field_changes, record
 from src.features.institut.schemas import (
@@ -148,6 +149,8 @@ def list_instituts(actor: Actor, repo: InstitutRepository, *, active_only: bool)
         return repo.list(active_only=active_only)
     if actor.role is Role.MANAGER and actor.institut_id is not None:
         return [_load(actor.institut_id, repo)]
+    if actor.role is Role.CITIZEN:
+        return repo.list(active_only=True)
 
     return []
 
@@ -155,6 +158,17 @@ def list_instituts(actor: Actor, repo: InstitutRepository, *, active_only: bool)
 def get_institut_dashboard(institut_id: str, actor: Actor, repo: InstitutRepository) -> InstitutDashboard:
     ensure_can_manage_institut(actor, institut_id)
     dashboard = repo.get_dashboard(institut_id)
+    if dashboard is None:
+        raise InstitutNotFoundError(institut_id)
+    return dashboard
+
+
+def get_citizen_institut_dashboard(
+    institut_id: str, actor: Actor, repo: InstitutRepository
+) -> CitizenInstitutDashboard:
+    if actor.role is not Role.CITIZEN:
+        raise ForbiddenError()
+    dashboard = repo.get_citizen_dashboard(institut_id, actor.user_id)
     if dashboard is None:
         raise InstitutNotFoundError(institut_id)
     return dashboard

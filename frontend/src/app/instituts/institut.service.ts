@@ -3,7 +3,7 @@ import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { environment } from '@/environments/environment';
-import { CreateInstitutIn, CreateInstitutServiceIn, Institut, InstitutDashboard, InstitutService as InstitutServiceDashboard, UpdateInstitutIn } from './institut.model';
+import { CitizenInstitutDashboard, CreateInstitutIn, CreateInstitutServiceIn, Institut, InstitutDashboard, InstitutService as InstitutServiceDashboard, UpdateInstitutIn } from './institut.model';
 
 /** Client HTTP des instituts : /api/v1/instituts (admin ; un manager ne lit que le sien). */
 @Injectable({ providedIn: 'root' })
@@ -34,6 +34,10 @@ export class InstitutService {
 
     dashboard(id: string): Observable<InstitutDashboard> {
         return this.http.get<InstitutDashboard>(`${this.baseUrl}/${id}/dashboard`);
+    }
+
+    citizenDashboard(id: string): Observable<CitizenInstitutDashboard> {
+        return this.http.get<CitizenInstitutDashboard>(`${this.baseUrl}/${id}/citizen-dashboard`);
     }
 
     service(id: string, serviceId: string): Observable<InstitutServiceDashboard> {

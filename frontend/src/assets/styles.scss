@@ -166,3 +166,64 @@ html[data-font-family='mono'] {
         color: var(--primary-color);
     }
 }
+/* Authentification : la zone de formulaire reste volontairement claire, même
+   si le système est sombre. Cela garantit un contraste stable et évite que le
+   formulaire reprenne le fond fuchsia profond de l'écran promotionnel. */
+.auth-form-panel,
+.app-dark .auth-form-panel {
+    color: #4a044e;
+    background-color: #fdf4ff !important;
+}
+
+.auth-form-panel > .rounded-2xl,
+.app-dark .auth-form-panel > .rounded-2xl {
+    color: #4a044e;
+    background-color: transparent !important;
+}
+
+.auth-form-panel :is(header h1, header p, form > p, label, small:not(.field-error), a:not(.p-button)) {
+    color: #701a75 !important;
+}
+
+.auth-form-panel [role='group'] {
+    background-color: #fae8ff !important;
+}
+
+/* Authentification : surfaces sobres, sans cadres persistants. Le focus reste
+   apparent afin de ne pas dégrader la navigation clavier. */
+:is(app-login, app-register) form input,
+:is(app-login, app-register) form textarea,
+:is(app-login, app-register) form select {
+    border-color: transparent !important;
+    color: #4a044e !important;
+    background-color: #ffffff !important;
+    box-shadow: none !important;
+}
+
+.app-dark :is(app-login, app-register) form input,
+.app-dark :is(app-login, app-register) form textarea,
+.app-dark :is(app-login, app-register) form select {
+    color: #4a044e !important;
+    background-color: #ffffff !important;
+}
+
+.auth-form-panel form input::placeholder {
+    color: #86198f !important;
+    opacity: 0.62;
+}
+
+.auth-form-panel form :is(span > i, button i) {
+    color: #86198f !important;
+}
+
+:is(app-login, app-register) form input:focus,
+:is(app-login, app-register) form textarea:focus,
+:is(app-login, app-register) form select:focus {
+    outline: 2px solid var(--p-primary-color);
+    outline-offset: 2px;
+}
+
+:is(app-login, app-register) section > .rounded-2xl {
+    border-color: transparent !important;
+    box-shadow: none !important;
+}

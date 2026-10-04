@@ -14,6 +14,7 @@ import { finalize, forkJoin } from 'rxjs';
 
 import { AgentService } from '@/app/agents/agent.service';
 import { Agent } from '@/app/agents/agent.model';
+import { AuthService } from '@/app/auth/auth.service';
 import { REQUEST_CATEGORIES, RequestCategory } from '@/app/requests/request.model';
 import { apiErrorMessage } from '@/app/users/user.service';
 import { CreateInstitutServiceIn, InstitutDashboard, InstitutService } from './institut.model';
@@ -35,6 +36,7 @@ export class InstitutDashboardPage implements OnInit {
     private readonly router = inject(Router);
     private readonly api = inject(InstitutApi);
     private readonly agentsApi = inject(AgentService);
+    private readonly auth = inject(AuthService);
     private readonly messages = inject(MessageService);
 
     readonly dashboard = signal<InstitutDashboard | null>(null);
@@ -44,6 +46,7 @@ export class InstitutDashboardPage implements OnInit {
     readonly saving = signal(false);
     readonly serviceId = signal<string | null>(null);
     readonly isServicePage = computed(() => !!this.serviceId());
+    readonly citizenView = computed(() => this.auth.hasRole('citizen'));
     readonly agentOptions = computed(() => this.agents().filter((agent) => agent.is_active).map((agent) => ({ label: agent.name, value: agent.id })));
     readonly categories = REQUEST_CATEGORIES.map((category) => ({ label: category, value: category }));
 
@@ -64,6 +67,32 @@ export class InstitutDashboardPage implements OnInit {
         const institutId = this.institutId();
         if (!institutId) return;
         this.loading.set(true);
+        if (this.citizenView()) {
+            this.api.citizenDashboard(institutId)
+                .pipe(finalize(() => this.loading.set(false)))
+                .subscribe({
+                    next: (dashboard) => {
+                        // La structure interne reste commune, mais ces valeurs ne sont
+                        // jamais reçues de l'API citoyenne et ne sont pas affichées.
+                        const view: InstitutDashboard = {
+                            ...dashboard,
+                            manager_name: null,
+                            associated_agents: 0,
+                            services: dashboard.services.map((service) => ({
+                                ...service,
+                                responsible_agent_id: null,
+                                responsible_agent_name: null,
+                                associated_agents: 0
+                            }))
+                        };
+                        this.dashboard.set(view);
+                        const serviceId = this.serviceId();
+                        this.serviceDetail.set(serviceId ? view.services.find((service) => service.id === serviceId) ?? null : null);
+                    },
+                    error: (error: unknown) => this.error(error)
+                });
+            return;
+        }
         forkJoin({ dashboard: this.api.dashboard(institutId), agents: this.agentsApi.list({ institut_id: institutId, is_active: true }) })
             .pipe(finalize(() => this.loading.set(false)))
             .subscribe({
@@ -78,6 +107,13 @@ export class InstitutDashboardPage implements OnInit {
     }
 
     openAdd(): void {
+        if (this.citizenView()) {
+            const category = this.serviceDetail()?.request_category ?? null;
+            void this.router.navigate(['/home/my-requests'], {
+                queryParams: { new: 1, ...(category ? { category } : {}) }
+            });
+            return;
+        }
         this.form = { ...EMPTY_SERVICE, agent_ids: [] };
         this.addDialog = true;
     }

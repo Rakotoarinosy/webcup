@@ -10,6 +10,8 @@ import { Institut, InstitutService as ManagedService } from '@/app/instituts/ins
 import { InstitutService } from '@/app/instituts/institut.service';
 import { AppMenuitem } from '../menuitem/app.menuitem';
 
+type InstitutMenuService = Pick<ManagedService, 'id' | 'name' | 'icon'>;
+
 @Component({
     selector: 'app-menu',
     imports: [CommonModule, AppMenuitem, RouterModule],
@@ -23,11 +25,11 @@ export class AppMenu {
     private readonly institutApi = inject(InstitutService);
     /** Navigation de pilotage chargée depuis l'API : elle suit les vrais instituts et services. */
     private readonly instituts = signal<Institut[]>([]);
-    private readonly servicesByInstitut = signal(new Map<string, ManagedService[]>());
+    private readonly servicesByInstitut = signal(new Map<string, InstitutMenuService[]>());
 
     constructor() {
         effect(() => {
-            if (!this.auth.hasRole('admin')) {
+            if (!this.auth.hasRole('admin', 'citizen')) {
                 this.instituts.set([]);
                 this.servicesByInstitut.set(new Map());
                 return;
@@ -78,7 +80,7 @@ export class AppMenu {
         const groups: MenuItem[] = [{ label: 'Terra Nova', items }];
 
         items.push({ label: 'Publications', icon: 'pi pi-fw pi-megaphone', routerLink: ['/home/municipal/publications'], badge: this.publicationBadge() });
-        if (this.auth.hasRole('admin')) {
+        if (this.auth.hasRole('admin', 'citizen')) {
             items.push({
                 label: 'Instituts', icon: 'pi pi-fw pi-building', path: '__instituts', dropdownOnly: true,
                 items: this.institutMenuItems()
@@ -113,7 +115,10 @@ export class AppMenu {
         this.institutApi.list().subscribe({
             next: (instituts) => {
                 this.instituts.set(instituts);
-                instituts.forEach((institut) => this.institutApi.dashboard(institut.id).subscribe({
+                instituts.forEach((institut) => (this.auth.hasRole('citizen')
+                    ? this.institutApi.citizenDashboard(institut.id)
+                    : this.institutApi.dashboard(institut.id)
+                ).subscribe({
                     next: (dashboard) => this.servicesByInstitut.update((current) => new Map(current).set(institut.id, dashboard.services)),
                     error: () => undefined
                 }));

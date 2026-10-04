@@ -15,10 +15,10 @@ const DARK_QUERY = '(prefers-color-scheme: dark)';
 function readStoredThemeMode(): ThemeMode {
     try {
         const stored = localStorage.getItem(THEME_STORAGE_KEY);
-        return stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'system';
+        return stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'light';
     } catch {
         // Stockage indisponible (navigation privée stricte, cookies bloqués…) : on suit le système.
-        return 'system';
+        return 'light';
     }
 }
 
@@ -67,7 +67,7 @@ export class LayoutService {
 
     layoutConfig = signal<LayoutConfig>({
         preset: 'Aura',
-        primary: 'emerald',
+        primary: 'fuchsia',
         surface: null,
         darkTheme: isDark(this.themeMode(), this.systemDark()),
         menuMode: 'static'

@@ -30,8 +30,8 @@
                         ],
                         "styles": [
                             "node_modules/leaflet/dist/leaflet.css",
-                            "src/assets/styles.scss",
-                            "src/assets/tailwind.css"
+                            "src/assets/tailwind.css",
+                            "src/assets/styles.scss"
                         ],
                         "scripts": []
                     },

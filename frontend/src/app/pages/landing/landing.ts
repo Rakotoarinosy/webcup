@@ -21,7 +21,6 @@ export class Landing implements OnInit {
     readonly error = signal<string | null>(null);
     readonly updatedAt = signal<Date | null>(null);
     readonly year = new Date().getFullYear();
-
     ngOnInit(): void {
         this.load();
         this.live.watch(

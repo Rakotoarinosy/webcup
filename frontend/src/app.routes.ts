@@ -42,11 +42,12 @@ export const appRoutes: Routes = [
             { path: 'data-concerns', data: { breadcrumb: 'Signalements sur les données', roles: ['admin'] }, loadComponent: () => import('./app/data-privacy/data-concerns-admin').then((m) => m.DataConcernsAdmin) },
             {
                 path: 'instituts',
-                data: { breadcrumb: 'Instituts', roles: ['admin'] },
+                data: { breadcrumb: 'Instituts', roles: ['admin', 'citizen'] },
                 children: [
-                    { path: '', loadComponent: () => import('./app/instituts/instituts').then((m) => m.Instituts) },
+                    { path: '', data: { roles: ['admin'] }, loadComponent: () => import('./app/instituts/instituts').then((m) => m.Instituts) },
                     {
                         path: ':id',
+                        data: { roles: ['admin', 'citizen'] },
                         resolve: { institutBreadcrumb: institutBreadcrumbResolver },
                         children: [
                             { path: '', data: { breadcrumb: 'Principal' }, loadComponent: () => import('./app/instituts/institut-dashboard').then((m) => m.InstitutDashboardPage) },

@@ -112,6 +112,9 @@ class FakeInstitutRepository(InstitutRepository):
     def get_dashboard(self, institut_id):
         return None
 
+    def get_citizen_dashboard(self, institut_id, citizen_id):
+        return None
+
     def get_service(self, institut_id, service_id):
         return None
 

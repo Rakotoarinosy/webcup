@@ -1,4 +1,4 @@
-<main class="min-h-dvh bg-white text-emerald-950 dark:bg-emerald-950 dark:text-emerald-50">
+<main class="min-h-dvh bg-surface-0 text-surface-950 dark:bg-surface-950 dark:text-surface-50">
     <topbar-widget class="relative mx-auto flex max-w-7xl items-center justify-between px-6 py-5 lg:px-10" />
     <section class="mx-auto grid max-w-7xl items-center gap-14 px-6 pb-24 pt-14 lg:grid-cols-2 lg:px-10 lg:py-24">
         <div>
@@ -49,15 +49,17 @@
     <section class="mx-auto max-w-7xl px-6 pb-20 lg:px-10" aria-labelledby="public-news-title">
         <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
             <h2 id="public-news-title" class="m-0 !text-3xl font-bold">Les informations de votre mairie</h2>
-            <a routerLink="/municipal/publications" class="font-semibold text-emerald-700 dark:text-emerald-300">Toutes les publications</a>
+            <a routerLink="/municipal/publications" class="font-semibold text-primary">Toutes les publications</a>
         </div>
         <div class="grid gap-6 md:grid-cols-3">
             @for (publication of publications(); track publication.id) {
                 <a class="block" routerLink="/municipal/publications" [queryParams]="{ publication: publication.id }" [attr.aria-label]="'Lire la publication : ' + publication.title"
-                    ><article class="rounded-2xl border border-emerald-100 p-6 dark:border-emerald-800">
-                        <p class="text-sm text-emerald-700 dark:text-emerald-300">{{ publication.category }} · {{ publication.published_at | date: 'dd/MM/yyyy' }}</p>
+                    ><article class="h-full overflow-hidden rounded-2xl border border-surface-200 bg-surface-0 transition hover:border-primary hover:shadow-lg dark:border-surface-800 dark:bg-surface-900">
+                        @if (publication.image_url) { <img class="h-40 w-full object-cover" [src]="publication.image_url" [alt]="''" /> }
+                        <div class="p-6"><p class="text-sm text-primary">{{ publication.category }} · {{ publication.published_at | date: 'dd/MM/yyyy' }}</p>
                         <h3 class="!text-xl font-semibold">{{ publication.title }}</h3>
                         <p>{{ publication.summary }}</p>
+                        <p class="mb-0 flex gap-4 text-sm text-muted-color"><span><i class="pi pi-eye mr-1" aria-hidden="true"></i>{{ publication.view_count ?? 0 }} vues</span><span><i class="pi pi-heart mr-1" aria-hidden="true"></i>{{ publication.like_count ?? 0 }} réactions</span></p></div>
                     </article></a
                 >
             } @empty {

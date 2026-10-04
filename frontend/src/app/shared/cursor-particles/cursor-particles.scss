@@ -1,0 +1,4 @@
+.particles { position: fixed; z-index: 1000; inset: 0; pointer-events: none; }
+.particle { position: absolute; width: 5px; height: 5px; border-radius: 999px; background: var(--p-primary-color); opacity: 0; box-shadow: 0 0 12px color-mix(in srgb, var(--p-primary-color) 70%, transparent); animation: particle-float 850ms ease-out forwards; }
+@keyframes particle-float { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.45); } 22% { opacity: .55; } 100% { opacity: 0; transform: translate(calc(-50% + var(--particle-x, 0px)), calc(-50% - 22px)) scale(1.25); } }
+@media (prefers-reduced-motion: reduce), (pointer: coarse) { .particles { display: none; } }

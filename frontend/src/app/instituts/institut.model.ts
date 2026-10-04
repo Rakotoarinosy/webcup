@@ -50,6 +50,26 @@ export interface InstitutDashboard {
     services: InstitutService[];
 }
 
+/** Vue citoyenne : uniquement ses demandes, jamais les agents de l'institut. */
+export interface CitizenInstitutService {
+    id: string;
+    institut_id: string;
+    name: string;
+    category: string;
+    description: string;
+    contact_details: string;
+    opening_hours: string;
+    icon: string;
+    request_category: RequestCategory | null;
+    metrics: RequestMetrics;
+}
+
+export interface CitizenInstitutDashboard {
+    institut: Institut;
+    metrics: RequestMetrics;
+    services: CitizenInstitutService[];
+}
+
 export interface CreateInstitutServiceIn {
     name: string;
     category: string;

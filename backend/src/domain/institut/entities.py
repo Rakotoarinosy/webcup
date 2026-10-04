@@ -62,6 +62,35 @@ class InstitutDashboard:
     services: tuple[InstitutService, ...]
 
 
+@dataclass(frozen=True)
+class CitizenInstitutService:
+    """Vue d'un service destinée au citoyen.
+
+    Les compteurs ne portent que sur ses propres demandes ; aucune donnée
+    d'organisation (agents, responsable) n'est divulguée.
+    """
+
+    id: str
+    institut_id: str
+    name: str
+    category: str
+    description: str
+    contact_details: str
+    opening_hours: str
+    icon: str
+    request_category: RequestCategory | None
+    metrics: RequestMetrics = RequestMetrics()
+
+
+@dataclass(frozen=True)
+class CitizenInstitutDashboard:
+    """Présentation d'un institut adaptée au titulaire des demandes."""
+
+    institut: Institut
+    metrics: RequestMetrics
+    services: tuple[CitizenInstitutService, ...]
+
+
 def overlapping_categories(
     candidate: Institut, others: list[Institut]
 ) -> frozenset[RequestCategory]:

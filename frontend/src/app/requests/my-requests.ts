@@ -2,7 +2,7 @@ import { DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, DestroyRef, Injector, OnInit, afterNextRender, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
@@ -55,6 +55,7 @@ export class MyRequests implements OnInit {
     private readonly requestsApi = inject(CitizenRequestService);
     private readonly auth = inject(AuthService);
     private readonly route = inject(ActivatedRoute);
+    private readonly router = inject(Router);
     private readonly destroyRef = inject(DestroyRef);
     private readonly injector = inject(Injector);
 
@@ -94,6 +95,12 @@ export class MyRequests implements OnInit {
                 this.selectedRequest.set(null);
                 this.load();
             }
+        });
+        this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((query) => {
+            if (this.detailMode() || query.get('new') !== '1') return;
+            const category = query.get('category');
+            this.openCreateDialog(this.categories.includes(category as RequestCategory) ? category as RequestCategory : null);
+            void this.router.navigate([], { relativeTo: this.route, queryParams: {}, replaceUrl: true });
         });
     }
 
@@ -158,11 +165,11 @@ export class MyRequests implements OnInit {
         return Array.from({ length: Math.min(5, total) }, (_, index) => first + index);
     }
 
-    protected openCreateDialog(): void {
+    protected openCreateDialog(category: RequestCategory | null = null): void {
         this.creationStep.set(1);
         this.createError.set(null);
         this.descriptionAttempted.set(false);
-        this.form = { ...EMPTY_FORM };
+        this.form = { ...EMPTY_FORM, category };
         this.createDialogVisible.set(true);
     }
 

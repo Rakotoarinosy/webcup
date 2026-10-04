@@ -72,7 +72,7 @@ const FONT_FAMILY_OPTIONS: { label: string; value: FontFamily }[] = [
 ];
 
 const DEFAULT_PREFERENCES: UserPreferences = {
-    theme: 'system',
+    theme: 'light',
     font_size: 'medium',
     font_family: 'system'
 };

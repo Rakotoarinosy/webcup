@@ -1,4 +1,6 @@
 from src.domain.institut.entities import (
+    CitizenInstitutDashboard,
+    CitizenInstitutService,
     Institut,
     InstitutDashboard,
     InstitutService,
@@ -10,21 +12,23 @@ from src.domain.institut.exceptions import (
     InstitutAlreadyExistsError,
     InstitutInactiveError,
     InstitutNotFoundError,
-    InvalidServiceAgentError,
     InvalidManagerError,
+    InvalidServiceAgentError,
     ManagerConflictError,
 )
 from src.domain.institut.repository import InstitutRepository
 
 __all__ = [
     "CategoryConflictError",
+    "CitizenInstitutDashboard",
+    "CitizenInstitutService",
     "Institut",
-    "InstitutDashboard",
-    "InstitutService",
     "InstitutAlreadyExistsError",
+    "InstitutDashboard",
     "InstitutInactiveError",
     "InstitutNotFoundError",
     "InstitutRepository",
+    "InstitutService",
     "InvalidManagerError",
     "InvalidServiceAgentError",
     "ManagerConflictError",

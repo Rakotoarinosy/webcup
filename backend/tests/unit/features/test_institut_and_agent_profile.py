@@ -133,9 +133,10 @@ def test_manager_reads_only_own_institut(instituts, users):
         get_institut(eau.id, m1, instituts)
     assert list_instituts(m1, instituts, active_only=False) == [voirie]
     assert len(list_instituts(ADMIN, instituts, active_only=False)) == 2
-    assert (
-        list_instituts(Actor(user_id="c1", role=Role.CITIZEN), instituts, active_only=False) == []
-    )
+    assert [item.id for item in list_instituts(Actor(user_id="c1", role=Role.CITIZEN), instituts, active_only=False)] == [
+        voirie.id,
+        eau.id,
+    ]
 
 
 # ─── profils agents ───

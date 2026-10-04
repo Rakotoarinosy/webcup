@@ -7,6 +7,8 @@ from sqlalchemy.orm import Session
 
 from src.domain.citizen_request import RequestCategory
 from src.domain.institut import (
+    CitizenInstitutDashboard,
+    CitizenInstitutService,
     Institut,
     InstitutDashboard,
     InstitutRepository,
@@ -91,6 +93,23 @@ class SqlAlchemyInstitutRepository(InstitutRepository):
             services=tuple(self._service(row) for row in rows),
         )
 
+    def get_citizen_dashboard(
+        self, institut_id: str, citizen_id: str
+    ) -> CitizenInstitutDashboard | None:
+        institut = self.get_by_id(institut_id)
+        if institut is None or not institut.is_active:
+            return None
+        rows = self.db.scalars(
+            select(MunicipalServiceModel)
+            .where(MunicipalServiceModel.institut_id == institut_id)
+            .order_by(MunicipalServiceModel.display_order, MunicipalServiceModel.name)
+        ).all()
+        return CitizenInstitutDashboard(
+            institut=institut,
+            metrics=self._metrics(institut_id, citizen_id=citizen_id),
+            services=tuple(self._citizen_service(row, citizen_id) for row in rows),
+        )
+
     def get_service(self, institut_id: str, service_id: str) -> InstitutService | None:
         row = self.db.scalar(
             select(MunicipalServiceModel).where(
@@ -144,14 +163,30 @@ class SqlAlchemyInstitutRepository(InstitutRepository):
         self.db.commit()
         return self._service(row)
 
-    def _metrics(self, institut_id: str, category: RequestCategory | None = None) -> RequestMetrics:
+    def _metrics(
+        self, institut_id: str, category: RequestCategory | None = None,
+        citizen_id: str | None = None,
+    ) -> RequestMetrics:
         filters = [CitizenRequestModel.institut_id == institut_id]
+        if citizen_id is not None:
+            filters.append(CitizenRequestModel.citizen_id == citizen_id)
         if category is not None:
             filters.append(CitizenRequestModel.category == category.value)
         received = self.db.scalar(select(func.count()).select_from(CitizenRequestModel).where(*filters)) or 0
         in_progress = self.db.scalar(select(func.count()).select_from(CitizenRequestModel).where(*filters, CitizenRequestModel.status.in_(("Nouveau", "En cours", "En attente")))) or 0
         resolved = self.db.scalar(select(func.count()).select_from(CitizenRequestModel).where(*filters, CitizenRequestModel.status == "Résolu")) or 0
         return RequestMetrics(received=received, in_progress=in_progress, resolved=resolved)
+
+    def _citizen_service(
+        self, row: MunicipalServiceModel, citizen_id: str
+    ) -> CitizenInstitutService:
+        category = RequestCategory(row.request_category) if row.request_category else None
+        return CitizenInstitutService(
+            id=row.id, institut_id=row.institut_id, name=row.name, category=row.category,
+            description=row.description, contact_details=row.contact_details,
+            opening_hours=row.opening_hours, icon=row.icon, request_category=category,
+            metrics=self._metrics(row.institut_id, category, citizen_id),
+        )
 
     def _service(self, row: MunicipalServiceModel) -> InstitutService:
         category = RequestCategory(row.request_category) if row.request_category else None

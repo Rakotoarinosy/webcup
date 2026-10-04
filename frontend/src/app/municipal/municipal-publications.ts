@@ -1,4 +1,4 @@
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { LiveDataService } from '@/app/shared/live-data.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -32,8 +32,9 @@ export class MunicipalPublications implements OnInit {
     private readonly destroyRef = inject(DestroyRef);
     private readonly content = inject(MunicipalContentService);
     private readonly route = inject(ActivatedRoute);
+    private readonly router = inject(Router);
     private readonly reads = inject(PublicationReadService);
-    private readonly auth = inject(AuthService);
+    readonly auth = inject(AuthService);
     private readonly confirmation = inject(ConfirmationService);
     private readonly messages = inject(MessageService);
     readonly expandedPublication = signal<string | null>(null);
@@ -185,6 +186,11 @@ export class MunicipalPublications implements OnInit {
 
     likePublication(publication: MunicipalPublication, event: Event): void {
         event.stopPropagation();
+        if (!this.auth.isAuthenticated()) {
+            void this.router.navigate(['/auth/login'], { queryParams: { returnUrl: this.router.url } });
+            return;
+        }
+        if (!this.isCitizen()) return;
         this.content.likePublication(publication.id).subscribe({
             next: (result) => {
                 this.publications.update((items) => items.map((item) => item.id === publication.id ? { ...item, like_count: result.like_count } : item));
@@ -200,6 +206,10 @@ export class MunicipalPublications implements OnInit {
     }
 
     addComment(content: string): void {
+        if (!this.auth.isAuthenticated()) {
+            void this.router.navigate(['/auth/login'], { queryParams: { returnUrl: this.router.url } });
+            return;
+        }
         const publication = this.selectedPublication();
         const trimmed = content.trim();
         if (!publication || !trimmed || this.submittingComment()) return;

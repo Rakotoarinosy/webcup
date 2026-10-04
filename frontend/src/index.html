@@ -11,9 +11,9 @@
             // Applique le thème mémorisé avant le démarrage d'Angular (évite le flash clair au refresh).
             // Même clé et mêmes règles que LayoutService (src/app/layout/service/layout.service.ts).
             (function () {
-                var mode = 'system';
+                var mode = 'light';
                 try {
-                    mode = localStorage.getItem('theme-mode') || 'system';
+                    mode = localStorage.getItem('theme-mode') || 'light';
                 } catch (e) {}
                 var dark = mode === 'dark' || (mode !== 'light' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
                 if (dark) {

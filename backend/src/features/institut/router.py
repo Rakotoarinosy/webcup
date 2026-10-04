@@ -10,6 +10,7 @@ from src.domain.user import UserRepository
 from src.features.audit.recording import AuditTrail
 from src.features.audit.router import get_audit_trail
 from src.features.institut.schemas import (
+    CitizenInstitutDashboardOut,
     CreateInstitutIn,
     CreateInstitutServiceIn,
     InstitutDashboardOut,
@@ -23,18 +24,19 @@ from src.features.institut.schemas import (
 from src.features.institut.use_cases import (
     create_institut,
     create_institut_service,
+    get_citizen_institut_dashboard,
     get_institut,
     get_institut_dashboard,
     get_institut_service,
     list_instituts,
-    set_manager,
     set_institut_service_agents,
     set_institut_service_responsible,
+    set_manager,
     update_institut,
 )
+from src.infrastructure.persistence.agent_repository import SqlAlchemyAgentRepository
 from src.infrastructure.persistence.database import get_db
 from src.infrastructure.persistence.institut_repository import SqlAlchemyInstitutRepository
-from src.infrastructure.persistence.agent_repository import SqlAlchemyAgentRepository
 from src.infrastructure.persistence.user_repository import SqlAlchemyUserRepository
 from src.infrastructure.security.deps import get_current_actor
 
@@ -89,6 +91,29 @@ def get_institut_dashboard_endpoint(
     repo: InstitutRepository = Depends(get_institut_repo),
 ) -> InstitutDashboardOut:
     return _dashboard_out(get_institut_dashboard(institut_id, actor, repo))
+
+
+@router.get("/{institut_id}/citizen-dashboard", response_model=CitizenInstitutDashboardOut)
+def get_citizen_institut_dashboard_endpoint(
+    institut_id: str,
+    actor: Actor = Depends(get_current_actor),
+    repo: InstitutRepository = Depends(get_institut_repo),
+) -> CitizenInstitutDashboardOut:
+    dashboard = get_citizen_institut_dashboard(institut_id, actor, repo)
+    return CitizenInstitutDashboardOut(
+        institut=_out(dashboard.institut),
+        metrics=_metrics_out(dashboard.metrics),
+        services=[
+            {
+                "id": service.id, "institut_id": service.institut_id, "name": service.name,
+                "category": service.category, "description": service.description,
+                "contact_details": service.contact_details, "opening_hours": service.opening_hours,
+                "icon": service.icon, "request_category": service.request_category,
+                "metrics": _metrics_out(service.metrics),
+            }
+            for service in dashboard.services
+        ],
+    )
 
 
 @router.get("/{institut_id}/services/{service_id}", response_model=InstitutServiceOut)
