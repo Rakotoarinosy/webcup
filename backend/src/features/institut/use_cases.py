@@ -14,11 +14,22 @@ from src.domain.institut import (
     InstitutRepository,
     InvalidManagerError,
     ManagerConflictError,
+    InstitutDashboard,
+    InstitutService,
+    InvalidServiceAgentError,
     overlapping_categories,
 )
+from src.domain.agent import AgentRepository
 from src.domain.user import ForbiddenError, Role, UserRepository
 from src.features.audit.recording import AuditTrail, field_changes, record
-from src.features.institut.schemas import CreateInstitutIn, SetManagerIn, UpdateInstitutIn
+from src.features.institut.schemas import (
+    CreateInstitutIn,
+    CreateInstitutServiceIn,
+    SetManagerIn,
+    SetServiceAgentsIn,
+    SetServiceResponsibleIn,
+    UpdateInstitutIn,
+)
 
 
 def create_institut(
@@ -141,6 +152,72 @@ def list_instituts(actor: Actor, repo: InstitutRepository, *, active_only: bool)
     return []
 
 
+def get_institut_dashboard(institut_id: str, actor: Actor, repo: InstitutRepository) -> InstitutDashboard:
+    ensure_can_manage_institut(actor, institut_id)
+    dashboard = repo.get_dashboard(institut_id)
+    if dashboard is None:
+        raise InstitutNotFoundError(institut_id)
+    return dashboard
+
+
+def get_institut_service(
+    institut_id: str, service_id: str, actor: Actor, repo: InstitutRepository
+) -> InstitutService:
+    ensure_can_manage_institut(actor, institut_id)
+    service = repo.get_service(institut_id, service_id)
+    if service is None:
+        raise InstitutNotFoundError(service_id)
+    return service
+
+
+def create_institut_service(
+    institut_id: str,
+    dto: CreateInstitutServiceIn,
+    actor: Actor,
+    repo: InstitutRepository,
+    agents: AgentRepository,
+) -> InstitutService:
+    ensure_can_manage_institut(actor, institut_id)
+    _load(institut_id, repo)
+    agent_ids = set(dto.agent_ids)
+    if dto.responsible_agent_id:
+        agent_ids.add(dto.responsible_agent_id)
+    _ensure_service_agents(agent_ids, institut_id, agents)
+    return repo.add_service(
+        InstitutService(
+            id=str(uuid.uuid4()), institut_id=institut_id, name=dto.name.strip(), category=dto.category.strip(),
+            description=dto.description.strip(), contact_details=dto.contact_details.strip(), opening_hours=dto.opening_hours.strip(),
+            icon=dto.icon.strip(), request_category=dto.request_category, responsible_agent_id=dto.responsible_agent_id,
+        ),
+        frozenset(agent_ids),
+    )
+
+
+def set_institut_service_responsible(
+    institut_id: str, service_id: str, dto: SetServiceResponsibleIn, actor: Actor,
+    repo: InstitutRepository, agents: AgentRepository,
+) -> InstitutService:
+    ensure_can_manage_institut(actor, institut_id)
+    if dto.agent_id:
+        _ensure_service_agents({dto.agent_id}, institut_id, agents)
+    updated = repo.set_service_responsible(institut_id, service_id, dto.agent_id)
+    if updated is None:
+        raise InstitutNotFoundError(service_id)
+    return updated
+
+
+def set_institut_service_agents(
+    institut_id: str, service_id: str, dto: SetServiceAgentsIn, actor: Actor,
+    repo: InstitutRepository, agents: AgentRepository,
+) -> InstitutService:
+    ensure_can_manage_institut(actor, institut_id)
+    _ensure_service_agents(dto.agent_ids, institut_id, agents)
+    updated = repo.set_service_agents(institut_id, service_id, frozenset(dto.agent_ids))
+    if updated is None:
+        raise InstitutNotFoundError(service_id)
+    return updated
+
+
 def _load(institut_id: str, repo: InstitutRepository) -> Institut:
     institut = repo.get_by_id(institut_id)
     if institut is None:
@@ -175,3 +252,10 @@ def _ensure_manager_available(
     current = repo.get_by_manager(user_id)
     if current is not None and current.id != institut_id:
         raise ManagerConflictError(user_id)
+
+
+def _ensure_service_agents(agent_ids: set[str], institut_id: str, agents: AgentRepository) -> None:
+    for agent_id in agent_ids:
+        agent = agents.get_by_id(agent_id)
+        if agent is None or not agent.is_active or agent.institut_id != institut_id:
+            raise InvalidServiceAgentError(agent_id, institut_id)

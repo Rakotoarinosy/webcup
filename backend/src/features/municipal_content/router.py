@@ -1,6 +1,6 @@
 """Contenus d'information municipale et formulaire de contact publics."""
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, status
 from sqlalchemy.orm import Session
 
 from src.domain.municipal_content import (
@@ -47,6 +47,7 @@ from src.infrastructure.persistence.municipal_content_repository import (
     SqlAlchemyMunicipalContentRepository,
 )
 from src.infrastructure.security.deps import require_roles
+from src.infrastructure.storage import ImageRejected, ImageTooLarge, save_publication_image
 
 router = APIRouter(prefix="/municipal", tags=["municipal content"])
 
@@ -187,6 +188,21 @@ def create_publication_endpoint(
     _: User = Depends(require_roles(Role.ADMIN, Role.AGENT, Role.MANAGER)),
 ) -> MunicipalPublication:
     return create_municipal_publication(payload, repo)
+
+
+@router.post("/publications/images", status_code=status.HTTP_201_CREATED)
+def upload_publication_image_endpoint(
+    file: UploadFile,
+    _: User = Depends(require_roles(Role.ADMIN, Role.AGENT, Role.MANAGER)),
+) -> dict[str, str]:
+    """Reçoit l'image de couverture ; la publication enregistre ensuite l'URL renvoyée."""
+    try:
+        url = save_publication_image(file.file)
+    except ImageTooLarge as error:
+        raise HTTPException(status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, str(error)) from error
+    except ImageRejected as error:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(error)) from error
+    return {"url": url}
 
 
 @router.patch("/publications/{publication_id}", response_model=MunicipalPublicationOut)

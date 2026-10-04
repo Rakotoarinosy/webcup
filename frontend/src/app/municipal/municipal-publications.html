@@ -67,7 +67,7 @@
                 <p class="m-0 text-sm font-semibold text-primary">{{ publication.category }}</p>
                 <h2 class="mb-2 mt-2 text-2xl font-bold text-surface-900 dark:text-surface-0">{{ publication.title }}</h2>
                 <p class="mb-5 text-sm text-surface-500">Publication municipale · {{ publication.published_at | date: 'd MMM y, HH:mm' }} · {{ publication.view_count ?? 0 }} vue{{ (publication.view_count ?? 0) > 1 ? 's' : '' }} · {{ publication.like_count ?? 0 }} j’aime</p>
-                <p class="m-0 whitespace-pre-line leading-relaxed text-surface-700 dark:text-surface-200">{{ publication.content }}</p>
+                <div class="m-0 whitespace-pre-line leading-relaxed text-surface-700 dark:text-surface-200 [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_a]:text-primary [&_a]:underline" [innerHTML]="publication.content"></div>
                 @if (isCitizen()) {
                     <div class="mt-6 border-t border-surface-200 pt-4 dark:border-surface-700"><button type="button" class="publication-like" [class.publication-liked]="likedPublicationIds().has(publication.id)" (click)="likePublication(publication, $event)" [attr.aria-pressed]="likedPublicationIds().has(publication.id)"><i class="pi" [class.pi-heart]="!likedPublicationIds().has(publication.id)" [class.pi-heart-fill]="likedPublicationIds().has(publication.id)" aria-hidden="true"></i> J’aime ({{ publication.like_count ?? 0 }})</button></div>
                     <section class="mt-5 border-t border-surface-200 pt-5 dark:border-surface-700" aria-labelledby="comments-heading">
@@ -85,39 +85,8 @@
     }
 </p-dialog>
 
-<p-dialog [visible]="editorVisible()" (visibleChange)="editorVisible.set($event)" [modal]="true" [draggable]="false" [resizable]="false" [style]="{ width: 'min(94vw, 44rem)' }" [header]="editingId() ? 'Modifier la publication' : 'Nouvelle publication'">
-    <form class="publication-form" (ngSubmit)="save()">
-        <label>
-            Titre
-            <input pInputText name="title" [(ngModel)]="editor.title" required minlength="3" maxlength="255" />
-        </label>
-        <label>
-            Catégorie
-            <input pInputText name="category" [(ngModel)]="editor.category" required maxlength="80" placeholder="Ex. Vie municipale" />
-        </label>
-        <label class="form-wide">
-            Résumé
-            <textarea pTextarea name="summary" [(ngModel)]="editor.summary" required rows="3" maxlength="500"></textarea>
-        </label>
-        <label class="form-wide">
-            Contenu
-            <textarea pTextarea name="content" [(ngModel)]="editor.content" required rows="7" maxlength="10000"></textarea>
-        </label>
-        <label class="form-wide">
-            Image de couverture (URL facultative)
-            <input pInputText type="url" name="imageUrl" [(ngModel)]="editor.image_url" maxlength="2048" placeholder="https://…/image.jpg" />
-        </label>
-        <label>
-            Date de publication
-            <input pInputText type="datetime-local" name="publishedAt" [(ngModel)]="editor.published_at" required />
-        </label>
-        <label class="published-field">
-            <input type="checkbox" name="isPublished" [(ngModel)]="editor.is_published" />
-            Publier immédiatement
-        </label>
-        <div class="form-actions form-wide">
-            <button pButton type="button" severity="secondary" label="Annuler" [disabled]="saving()" (click)="editorVisible.set(false)"></button>
-            <button pButton type="submit" [label]="editingId() ? 'Enregistrer' : 'Créer la publication'" [loading]="saving()"></button>
-        </div>
-    </form>
+<p-dialog [visible]="editorVisible()" (visibleChange)="editorVisible.set($event)" [modal]="true" [draggable]="false" [resizable]="false" [showHeader]="false" [closeOnEscape]="!saving()" [style]="{ width: 'min(96vw, 72rem)' }" [contentStyle]="{ padding: '0' }">
+    @if (editorVisible()) {
+        <app-publication-editor [initial]="editorInitial()" [saving]="saving()" [saveError]="saveError()" (saved)="save($event)" (cancelled)="editorVisible.set(false)" />
+    }
 </p-dialog>

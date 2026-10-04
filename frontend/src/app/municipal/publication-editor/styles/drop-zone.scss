@@ -1,0 +1,72 @@
+.drop-zone {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 22px 14px;
+    border: 1px dashed var(--pe-border);
+    border-radius: 8px;
+    background: var(--pe-field);
+    transition:
+        border-color 0.15s,
+        background 0.15s;
+
+    > i {
+        font-size: 28px;
+        color: var(--pe-muted);
+    }
+
+    strong {
+        display: block;
+        margin-bottom: 4px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+
+    small {
+        display: block;
+    }
+
+    &.dragging {
+        border-color: var(--pe-accent);
+        background: var(--pe-accent-soft);
+    }
+}
+
+.selected-image {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    img {
+        width: 68px;
+        height: 46px;
+        border-radius: 6px;
+        object-fit: cover;
+    }
+
+    > span {
+        flex: 1;
+        min-width: 0;
+    }
+
+    strong {
+        display: block;
+        overflow: hidden;
+        font-size: 12px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    small {
+        display: block;
+        margin-top: 4px;
+    }
+}
+
+.edit-panel .url-label {
+    margin-top: 4px;
+    font-size: 11px;
+    color: var(--pe-muted);
+}

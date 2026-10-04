@@ -138,3 +138,40 @@ button:disabled {
         width: 100%;
     }
 }
+
+.profile-avatar-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    border: 1px solid var(--surface-border);
+    border-radius: 0.9rem;
+    background: linear-gradient(135deg, color-mix(in srgb, var(--surface-card) 88%, white), color-mix(in srgb, var(--surface-ground) 82%, black));
+}
+.profile-avatar {
+    display: grid;
+    place-items: center;
+    width: 5.25rem;
+    height: 5.25rem;
+    flex: 0 0 auto;
+    overflow: hidden;
+    border-radius: 50%;
+    border: 3px solid color-mix(in srgb, var(--p-primary-color) 42%, var(--surface-card));
+    background: color-mix(in srgb, var(--p-primary-color) 18%, var(--surface-card));
+    color: var(--p-primary-color);
+    font-weight: 800;
+    font-size: 1.55rem;
+}
+.profile-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.avatar-button {
+    width: 100%;
+    margin-top: 1rem;
+}
+.profile-avatar-help {
+    margin-top: 0.75rem;
+    text-align: center;
+}

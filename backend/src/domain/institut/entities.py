@@ -25,6 +25,43 @@ class Institut:
         return self.is_active and category in self.categories
 
 
+@dataclass(frozen=True)
+class RequestMetrics:
+    """Compteurs opérationnels calculés, jamais saisis par le client."""
+
+    received: int = 0
+    in_progress: int = 0
+    resolved: int = 0
+
+
+@dataclass(frozen=True)
+class InstitutService:
+    """Service rattaché à un institut, enrichi pour le pilotage administratif."""
+
+    id: str
+    institut_id: str
+    name: str
+    category: str
+    description: str
+    contact_details: str
+    opening_hours: str
+    icon: str
+    request_category: RequestCategory | None
+    responsible_agent_id: str | None = None
+    responsible_agent_name: str | None = None
+    associated_agents: int = 0
+    metrics: RequestMetrics = RequestMetrics()
+
+
+@dataclass(frozen=True)
+class InstitutDashboard:
+    institut: Institut
+    manager_name: str | None
+    associated_agents: int
+    metrics: RequestMetrics
+    services: tuple[InstitutService, ...]
+
+
 def overlapping_categories(
     candidate: Institut, others: list[Institut]
 ) -> frozenset[RequestCategory]:

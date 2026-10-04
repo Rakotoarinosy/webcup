@@ -24,3 +24,5 @@ wheels/
 .ruff_cache/
 .coverage
 htmlcov/
+
+uploads/

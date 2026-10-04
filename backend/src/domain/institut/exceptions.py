@@ -41,3 +41,8 @@ class InvalidManagerError(DomainError):  # → 400
 class InstitutInactiveError(DomainError):  # → 400
     def __init__(self, institut_id: str) -> None:
         super().__init__(f"Institut '{institut_id}' is deactivated")
+
+
+class InvalidServiceAgentError(DomainError):
+    def __init__(self, agent_id: str, institut_id: str) -> None:
+        super().__init__(f"Agent '{agent_id}' is not an active agent of institut '{institut_id}'")

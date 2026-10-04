@@ -3,7 +3,7 @@ import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { environment } from '@/environments/environment';
-import { CreateInstitutIn, Institut, UpdateInstitutIn } from './institut.model';
+import { CreateInstitutIn, CreateInstitutServiceIn, Institut, InstitutDashboard, InstitutService as InstitutServiceDashboard, UpdateInstitutIn } from './institut.model';
 
 /** Client HTTP des instituts : /api/v1/instituts (admin ; un manager ne lit que le sien). */
 @Injectable({ providedIn: 'root' })
@@ -30,5 +30,25 @@ export class InstitutService {
 
     setManager(id: string, managerId: string | null): Observable<Institut> {
         return this.http.put<Institut>(`${this.baseUrl}/${id}/manager`, { manager_id: managerId });
+    }
+
+    dashboard(id: string): Observable<InstitutDashboard> {
+        return this.http.get<InstitutDashboard>(`${this.baseUrl}/${id}/dashboard`);
+    }
+
+    service(id: string, serviceId: string): Observable<InstitutServiceDashboard> {
+        return this.http.get<InstitutServiceDashboard>(`${this.baseUrl}/${id}/services/${serviceId}`);
+    }
+
+    createService(id: string, payload: CreateInstitutServiceIn): Observable<InstitutServiceDashboard> {
+        return this.http.post<InstitutServiceDashboard>(`${this.baseUrl}/${id}/services`, payload);
+    }
+
+    setServiceResponsible(id: string, serviceId: string, agentId: string | null): Observable<InstitutServiceDashboard> {
+        return this.http.put<InstitutServiceDashboard>(`${this.baseUrl}/${id}/services/${serviceId}/responsible`, { agent_id: agentId });
+    }
+
+    setServiceAgents(id: string, serviceId: string, agentIds: string[]): Observable<InstitutServiceDashboard> {
+        return this.http.put<InstitutServiceDashboard>(`${this.baseUrl}/${id}/services/${serviceId}/agents`, { agent_ids: agentIds });
     }
 }

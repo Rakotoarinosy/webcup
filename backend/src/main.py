@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from scalar_fastapi import get_scalar_api_reference
 from starlette.responses import HTMLResponse
 
@@ -27,6 +28,7 @@ from src.features.user.router import router as user_router
 from src.features.user_export.router import router as user_export_router
 from src.features.virtual_assistant.router import router as virtual_assistant_router
 from src.infrastructure.config import configure_logging, get_settings
+from src.infrastructure.storage import MEDIA_URL_PREFIX, UPLOAD_ROOT
 from src.shared.errors import register_exception_handlers
 
 API_PREFIX = "/api/v1"
@@ -108,6 +110,11 @@ def create_app() -> FastAPI:
         api.include_router(feature_router)
 
     app.include_router(api)
+
+    # Images téléversées (couvertures de publications), servies sous /api/v1/media
+    # pour passer par le même proxy que l'API en développement.
+    UPLOAD_ROOT.mkdir(parents=True, exist_ok=True)
+    app.mount(MEDIA_URL_PREFIX, StaticFiles(directory=UPLOAD_ROOT), name="media")
 
     if show_docs:
 

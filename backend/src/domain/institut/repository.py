@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 
 from src.domain.citizen_request.entities import RequestCategory
-from src.domain.institut.entities import Institut
+from src.domain.institut.entities import Institut, InstitutDashboard, InstitutService
 
 
 class InstitutRepository(ABC):
@@ -29,3 +29,22 @@ class InstitutRepository(ABC):
 
     @abstractmethod
     def update(self, institut: Institut) -> Institut: ...
+
+    @abstractmethod
+    def get_dashboard(self, institut_id: str) -> InstitutDashboard | None: ...
+
+    @abstractmethod
+    def get_service(self, institut_id: str, service_id: str) -> InstitutService | None: ...
+
+    @abstractmethod
+    def add_service(self, service: InstitutService, agent_ids: frozenset[str]) -> InstitutService: ...
+
+    @abstractmethod
+    def set_service_responsible(
+        self, institut_id: str, service_id: str, agent_id: str | None
+    ) -> InstitutService | None: ...
+
+    @abstractmethod
+    def set_service_agents(
+        self, institut_id: str, service_id: str, agent_ids: frozenset[str]
+    ) -> InstitutService | None: ...

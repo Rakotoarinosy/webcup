@@ -1,0 +1,22 @@
+// Seul endroit où l'éditeur lit le thème PrimeNG (preset Aura, mode sombre via `.app-dark`).
+// Pour retoucher l'apparence, changez ces alias : le reste du dossier n'utilise que `--pe-*`.
+:host {
+    display: block;
+    --pe-bg: var(--surface-ground, var(--p-content-hover-background));
+    --pe-panel: var(--p-content-background);
+    --pe-border: var(--p-content-border-color);
+    --pe-text: var(--p-text-color);
+    --pe-muted: var(--p-text-muted-color);
+    --pe-field: var(--p-form-field-background);
+    --pe-accent: var(--p-primary-color);
+    --pe-accent-soft: color-mix(in srgb, var(--p-primary-color) 14%, transparent);
+    --pe-accent-strong: color-mix(in srgb, var(--p-primary-color) 55%, var(--p-text-color));
+    --pe-danger: var(--p-red-600);
+    --pe-shadow: 0 12px 32px color-mix(in srgb, #000 10%, transparent);
+    color: var(--pe-text);
+}
+
+:host-context(.app-dark) {
+    --pe-danger: var(--p-red-300);
+    --pe-shadow: 0 12px 32px color-mix(in srgb, #000 35%, transparent);
+}

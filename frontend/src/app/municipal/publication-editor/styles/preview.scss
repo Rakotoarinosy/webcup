@@ -1,0 +1,166 @@
+.preview-panel {
+    min-width: 0;
+}
+
+.preview-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin: 4px 0 16px;
+
+    h2 {
+        margin: 0;
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        color: var(--pe-text);
+    }
+
+    span {
+        font-size: 11px;
+        color: var(--pe-muted);
+    }
+
+    i {
+        margin-right: 4px;
+        font-size: 6px;
+        color: var(--pe-accent);
+    }
+}
+
+.preview-card {
+    position: sticky;
+    top: 20px;
+
+    h1 {
+        margin: 14px 0 12px;
+        font-size: 26px;
+        font-weight: 650;
+        line-height: 1.25;
+        letter-spacing: -0.025em;
+        color: var(--pe-text);
+    }
+
+    h3 {
+        margin: 20px 0 10px;
+        font-size: 14px;
+        color: var(--pe-text);
+    }
+}
+
+.cover-image {
+    display: block;
+    width: 100%;
+    aspect-ratio: 2.3;
+    object-fit: cover;
+}
+
+.cover-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    min-height: 180px;
+    background: var(--pe-field);
+    font-size: 12px;
+    color: var(--pe-muted);
+
+    i {
+        font-size: 26px;
+    }
+}
+
+.preview-body {
+    padding: 24px;
+    overflow-wrap: anywhere;
+}
+
+.category-badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    background: var(--pe-accent-soft);
+    font-size: 11px;
+    color: var(--pe-accent-strong);
+}
+
+.metadata {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--pe-border);
+    font-size: 11px;
+    color: var(--pe-muted);
+
+    i {
+        margin-right: 4px;
+    }
+}
+
+.summary-text,
+.rich-content,
+.empty-copy {
+    font-size: 13px;
+    line-height: 1.75;
+    color: var(--pe-text);
+}
+
+.summary-text {
+    white-space: pre-wrap;
+}
+
+.empty-copy {
+    color: var(--pe-muted);
+}
+
+// Le HTML vient de [innerHTML] : il n'a pas l'attribut d'encapsulation, d'où ::ng-deep.
+.rich-content {
+    ::ng-deep p {
+        margin: 0 0 12px;
+    }
+    ::ng-deep ul,
+    ::ng-deep ol {
+        margin: 0 0 12px;
+        padding-left: 1.4rem;
+    }
+    ::ng-deep img {
+        max-width: 100%;
+    }
+    ::ng-deep a {
+        color: var(--pe-accent);
+    }
+}
+
+.preview-note {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid var(--pe-border);
+    font-size: 11px;
+    color: var(--pe-muted);
+}
+
+@media (max-width: 1000px) {
+    .preview-heading span {
+        display: none;
+    }
+}
+
+@media (max-width: 760px) {
+    .preview-card {
+        position: static;
+    }
+    .preview-heading {
+        margin-top: 12px;
+    }
+    .preview-body {
+        padding: 18px;
+    }
+    .preview-card h1 {
+        font-size: 23px;
+    }
+}

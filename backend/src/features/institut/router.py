@@ -11,19 +11,30 @@ from src.features.audit.recording import AuditTrail
 from src.features.audit.router import get_audit_trail
 from src.features.institut.schemas import (
     CreateInstitutIn,
+    CreateInstitutServiceIn,
+    InstitutDashboardOut,
     InstitutOut,
+    InstitutServiceOut,
     SetManagerIn,
+    SetServiceAgentsIn,
+    SetServiceResponsibleIn,
     UpdateInstitutIn,
 )
 from src.features.institut.use_cases import (
     create_institut,
+    create_institut_service,
     get_institut,
+    get_institut_dashboard,
+    get_institut_service,
     list_instituts,
     set_manager,
+    set_institut_service_agents,
+    set_institut_service_responsible,
     update_institut,
 )
 from src.infrastructure.persistence.database import get_db
 from src.infrastructure.persistence.institut_repository import SqlAlchemyInstitutRepository
+from src.infrastructure.persistence.agent_repository import SqlAlchemyAgentRepository
 from src.infrastructure.persistence.user_repository import SqlAlchemyUserRepository
 from src.infrastructure.security.deps import get_current_actor
 
@@ -36,6 +47,10 @@ def get_institut_repo(db: Session = Depends(get_db)) -> InstitutRepository:
 
 def get_users_repo(db: Session = Depends(get_db)) -> UserRepository:
     return SqlAlchemyUserRepository(db)
+
+
+def get_agents_repo(db: Session = Depends(get_db)):
+    return SqlAlchemyAgentRepository(db)
 
 
 @router.post("", response_model=InstitutOut, status_code=http_status.HTTP_201_CREATED)
@@ -65,6 +80,60 @@ def get_institut_endpoint(
     repo: InstitutRepository = Depends(get_institut_repo),
 ) -> InstitutOut:
     return _out(get_institut(institut_id, actor, repo))
+
+
+@router.get("/{institut_id}/dashboard", response_model=InstitutDashboardOut)
+def get_institut_dashboard_endpoint(
+    institut_id: str,
+    actor: Actor = Depends(get_current_actor),
+    repo: InstitutRepository = Depends(get_institut_repo),
+) -> InstitutDashboardOut:
+    return _dashboard_out(get_institut_dashboard(institut_id, actor, repo))
+
+
+@router.get("/{institut_id}/services/{service_id}", response_model=InstitutServiceOut)
+def get_institut_service_endpoint(
+    institut_id: str,
+    service_id: str,
+    actor: Actor = Depends(get_current_actor),
+    repo: InstitutRepository = Depends(get_institut_repo),
+) -> InstitutServiceOut:
+    return _service_out(get_institut_service(institut_id, service_id, actor, repo))
+
+
+@router.post("/{institut_id}/services", response_model=InstitutServiceOut, status_code=http_status.HTTP_201_CREATED)
+def create_institut_service_endpoint(
+    institut_id: str,
+    payload: CreateInstitutServiceIn,
+    actor: Actor = Depends(get_current_actor),
+    repo: InstitutRepository = Depends(get_institut_repo),
+    agents=Depends(get_agents_repo),
+) -> InstitutServiceOut:
+    return _service_out(create_institut_service(institut_id, payload, actor, repo, agents))
+
+
+@router.put("/{institut_id}/services/{service_id}/responsible", response_model=InstitutServiceOut)
+def set_institut_service_responsible_endpoint(
+    institut_id: str,
+    service_id: str,
+    payload: SetServiceResponsibleIn,
+    actor: Actor = Depends(get_current_actor),
+    repo: InstitutRepository = Depends(get_institut_repo),
+    agents=Depends(get_agents_repo),
+) -> InstitutServiceOut:
+    return _service_out(set_institut_service_responsible(institut_id, service_id, payload, actor, repo, agents))
+
+
+@router.put("/{institut_id}/services/{service_id}/agents", response_model=InstitutServiceOut)
+def set_institut_service_agents_endpoint(
+    institut_id: str,
+    service_id: str,
+    payload: SetServiceAgentsIn,
+    actor: Actor = Depends(get_current_actor),
+    repo: InstitutRepository = Depends(get_institut_repo),
+    agents=Depends(get_agents_repo),
+) -> InstitutServiceOut:
+    return _service_out(set_institut_service_agents(institut_id, service_id, payload, actor, repo, agents))
 
 
 @router.patch("/{institut_id}", response_model=InstitutOut)
@@ -100,4 +169,26 @@ def _out(institut: Institut) -> InstitutOut:
         manager_id=institut.manager_id,
         is_active=institut.is_active,
         created_at=institut.created_at,
+    )
+
+
+def _metrics_out(metrics):
+    return {"received": metrics.received, "in_progress": metrics.in_progress, "resolved": metrics.resolved}
+
+
+def _service_out(service) -> InstitutServiceOut:
+    return InstitutServiceOut(
+        id=service.id, institut_id=service.institut_id, name=service.name, category=service.category,
+        description=service.description, contact_details=service.contact_details, opening_hours=service.opening_hours,
+        icon=service.icon, request_category=service.request_category, responsible_agent_id=service.responsible_agent_id,
+        responsible_agent_name=service.responsible_agent_name, associated_agents=service.associated_agents,
+        metrics=_metrics_out(service.metrics),
+    )
+
+
+def _dashboard_out(dashboard) -> InstitutDashboardOut:
+    return InstitutDashboardOut(
+        institut=_out(dashboard.institut), manager_name=dashboard.manager_name,
+        associated_agents=dashboard.associated_agents, metrics=_metrics_out(dashboard.metrics),
+        services=[_service_out(service) for service in dashboard.services],
     )

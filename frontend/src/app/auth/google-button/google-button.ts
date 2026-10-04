@@ -4,6 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { authErrorMessage } from '../auth-errors';
 import { GoogleIdentityService } from '../google-identity.service';
 import { VerificationService } from '../verification.service';
+import { safeReturnUrl } from '../return-url';
 
 /**
  * Bouton « Continuer avec Google ». Après l'ID token, l'API envoie un code par email :
@@ -41,7 +42,10 @@ export class GoogleButton implements AfterViewInit {
 
     private signIn(credential: string): void {
         this.verification.loginWithGoogle(credential).subscribe({
-            next: () => this.router.navigate(['/auth/verify-code'], { queryParams: { returnUrl: this.route.snapshot.queryParamMap.get('returnUrl') } }),
+            next: (outcome) =>
+                outcome === 'verification-required'
+                    ? this.router.navigate(['/auth/verify-code'], { queryParams: { returnUrl: this.route.snapshot.queryParamMap.get('returnUrl') } })
+                    : this.router.navigateByUrl(safeReturnUrl(this.route.snapshot.queryParamMap.get('returnUrl')) ?? '/home/account'),
             error: (error: unknown) => this.failed.emit(authErrorMessage(error))
         });
     }

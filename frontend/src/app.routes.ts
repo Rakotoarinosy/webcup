@@ -3,6 +3,7 @@ import { authGuard, publicSessionGuard, roleGuard } from './app/auth/auth.guard'
 import { AppLayout } from './app/layout/component/layout/app.layout';
 import { Landing } from './app/pages/landing/landing';
 import { Notfound } from './app/pages/notfound/notfound';
+import { institutBreadcrumbResolver } from './app/instituts/institut-breadcrumb.resolver';
 
 export const appRoutes: Routes = [
     {
@@ -39,7 +40,21 @@ export const appRoutes: Routes = [
                 ]
             },
             { path: 'data-concerns', data: { breadcrumb: 'Signalements sur les données', roles: ['admin'] }, loadComponent: () => import('./app/data-privacy/data-concerns-admin').then((m) => m.DataConcernsAdmin) },
-            { path: 'instituts', data: { breadcrumb: 'Instituts', roles: ['admin'] }, loadComponent: () => import('./app/instituts/instituts').then((m) => m.Instituts) },
+            {
+                path: 'instituts',
+                data: { breadcrumb: 'Instituts', roles: ['admin'] },
+                children: [
+                    { path: '', loadComponent: () => import('./app/instituts/instituts').then((m) => m.Instituts) },
+                    {
+                        path: ':id',
+                        resolve: { institutBreadcrumb: institutBreadcrumbResolver },
+                        children: [
+                            { path: '', data: { breadcrumb: 'Principal' }, loadComponent: () => import('./app/instituts/institut-dashboard').then((m) => m.InstitutDashboardPage) },
+                            { path: 'services/:serviceId', data: { breadcrumb: 'Service' }, loadComponent: () => import('./app/instituts/institut-dashboard').then((m) => m.InstitutDashboardPage) }
+                        ]
+                    }
+                ]
+            },
             { path: 'journal', data: { breadcrumb: 'Journal', roles: ['agent', 'manager', 'admin'] }, loadComponent: () => import('./app/journal/journal').then((m) => m.Journal) },
             { path: 'agent', data: { breadcrumb: 'Mes interventions', roles: ['agent'] }, loadComponent: () => import('./app/agent-workspace/agent-workspace').then((m) => m.AgentWorkspace) },
             { path: 'agents', data: { breadcrumb: 'Agents', roles: ['manager', 'admin'] }, loadComponent: () => import('./app/agents/agents').then((m) => m.Agents) },
