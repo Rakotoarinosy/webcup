@@ -1,5 +1,12 @@
 <div class="mx-auto max-w-[78rem]">
-    <p-toast />
+    <p-toast [breakpoints]="{ '639px': { width: 'calc(100vw - 2rem)', right: '1rem', left: '1rem' } }" />
+    @if (needsGoogle()) {
+        <section class="card mt-6" aria-label="Confirmation de votre identité">
+            <h2 class="text-lg font-semibold">Confirmer avec Google</h2>
+            <p>Confirmez votre identité avant de modifier vos informations, créer un mot de passe ou supprimer votre compte.</p>
+            <app-google-button [reauthenticate]="true" (credential)="acceptGoogleCredential($event)" (failed)="googleFailure($event)" />
+        </section>
+    }
 
     <div class="mt-6 flex flex-wrap gap-6">
         <div class="grid min-w-0 flex-[3_1_30rem] gap-6">
@@ -15,7 +22,15 @@
                         <div class="grid gap-5 sm:grid-cols-2">
                             <div>
                                 <label for="profile-name">Nom et prénom</label
-                                ><input id="profile-name" formControlName="name" autocomplete="name" maxlength="255" required [attr.aria-invalid]="profileForm.controls.name.touched && profileForm.controls.name.invalid" aria-describedby="name-help name-error" />
+                                ><input
+                                    id="profile-name"
+                                    formControlName="name"
+                                    autocomplete="name"
+                                    maxlength="255"
+                                    required
+                                    [attr.aria-invalid]="profileForm.controls.name.touched && profileForm.controls.name.invalid"
+                                    aria-describedby="name-help name-error"
+                                />
                                 <small id="name-help">De 1 à 255 caractères.</small>
                                 <p id="name-error" class="text-red-700 dark:text-red-300">
                                     @if (profileForm.controls.name.touched && profileForm.controls.name.invalid) {
@@ -31,7 +46,7 @@
                                     formControlName="email"
                                     autocomplete="email"
                                     maxlength="320"
-                                    required
+                                    [required]="!auth.user()?.phone"
                                     [attr.aria-invalid]="profileForm.controls.email.touched && profileForm.controls.email.invalid"
                                     aria-describedby="email-help email-error"
                                 />
@@ -43,9 +58,18 @@
                                 </p>
                             </div>
                         </div>
-                        <div class="mt-5">
+                        <div class="mt-5" [hidden]="needsGoogle()">
                             <label for="profile-password">Mot de passe actuel</label
-                            ><input id="profile-password" type="password" formControlName="current_password" autocomplete="current-password" maxlength="128" required aria-describedby="identity-password-help identity-password-error" [attr.aria-invalid]="profileForm.controls.current_password.touched && profileForm.controls.current_password.invalid" />
+                            ><input
+                                id="profile-password"
+                                type="password"
+                                formControlName="current_password"
+                                autocomplete="current-password"
+                                maxlength="128"
+                                [required]="!needsGoogle()"
+                                aria-describedby="identity-password-help identity-password-error"
+                                [attr.aria-invalid]="profileForm.controls.current_password.touched && profileForm.controls.current_password.invalid"
+                            />
                             <small id="identity-password-help">Pour confirmer que ces changements viennent bien de vous.</small>
                             <p id="identity-password-error" class="text-red-700 dark:text-red-300">
                                 @if (profileForm.controls.current_password.touched && profileForm.controls.current_password.invalid) {
@@ -69,8 +93,18 @@
                 </div>
                 <form [formGroup]="passwordForm" (ngSubmit)="savePassword()" novalidate>
                     <fieldset [disabled]="!!busy()" class="profile-fields">
-                        <div>
-                            <label for="security-current">Mot de passe actuel</label><input id="security-current" type="password" formControlName="current_password" autocomplete="current-password" maxlength="128" required aria-describedby="security-current-error" [attr.aria-invalid]="passwordForm.controls.current_password.touched && passwordForm.controls.current_password.invalid" />
+                        <div [hidden]="needsGoogle()">
+                            <label for="security-current">Mot de passe actuel</label
+                            ><input
+                                id="security-current"
+                                type="password"
+                                formControlName="current_password"
+                                autocomplete="current-password"
+                                maxlength="128"
+                                [required]="!needsGoogle()"
+                                aria-describedby="security-current-error"
+                                [attr.aria-invalid]="passwordForm.controls.current_password.touched && passwordForm.controls.current_password.invalid"
+                            />
                             <p id="security-current-error" class="text-red-700 dark:text-red-300">
                                 @if (passwordForm.controls.current_password.touched && passwordForm.controls.current_password.invalid) {
                                     Saisissez votre mot de passe actuel.
@@ -79,7 +113,17 @@
                         </div>
                         <div class="mt-5 grid gap-5 sm:grid-cols-2">
                             <div>
-                                <label for="security-new">Nouveau mot de passe</label><input id="security-new" type="password" formControlName="new_password" autocomplete="new-password" maxlength="128" required aria-describedby="password-help security-new-error" [attr.aria-invalid]="passwordForm.controls.new_password.touched && passwordForm.controls.new_password.invalid" />
+                                <label for="security-new">Nouveau mot de passe</label
+                                ><input
+                                    id="security-new"
+                                    type="password"
+                                    formControlName="new_password"
+                                    autocomplete="new-password"
+                                    maxlength="128"
+                                    required
+                                    aria-describedby="password-help security-new-error"
+                                    [attr.aria-invalid]="passwordForm.controls.new_password.touched && passwordForm.controls.new_password.invalid"
+                                />
                                 <p id="security-new-error" class="text-red-700 dark:text-red-300">
                                     @if (passwordForm.controls.new_password.touched && passwordForm.controls.new_password.invalid) {
                                         Le mot de passe doit respecter les critères ci-dessous.
@@ -87,7 +131,17 @@
                                 </p>
                             </div>
                             <div>
-                                <label for="security-confirm">Confirmer le nouveau mot de passe</label><input id="security-confirm" type="password" formControlName="confirmation" autocomplete="new-password" maxlength="128" required aria-describedby="security-confirm-error" [attr.aria-invalid]="passwordForm.controls.confirmation.touched && passwordForm.controls.confirmation.invalid" />
+                                <label for="security-confirm">Confirmer le nouveau mot de passe</label
+                                ><input
+                                    id="security-confirm"
+                                    type="password"
+                                    formControlName="confirmation"
+                                    autocomplete="new-password"
+                                    maxlength="128"
+                                    required
+                                    aria-describedby="security-confirm-error"
+                                    [attr.aria-invalid]="passwordForm.controls.confirmation.touched && passwordForm.controls.confirmation.invalid"
+                                />
                                 <p id="security-confirm-error" class="text-red-700 dark:text-red-300">
                                     @if (passwordForm.controls.confirmation.touched && passwordForm.controls.confirmation.invalid) {
                                         Confirmez votre nouveau mot de passe.
@@ -183,12 +237,24 @@
         }
         <form [formGroup]="deleteForm" (ngSubmit)="deleteAccount()" novalidate>
             <fieldset [disabled]="!!busy()" class="profile-fields">
-                <label for="delete-password">Votre mot de passe actuel</label><input id="delete-password" type="password" formControlName="current_password" autocomplete="current-password" maxlength="128" required aria-describedby="delete-password-error" [attr.aria-invalid]="deleteForm.controls.current_password.touched && deleteForm.controls.current_password.invalid" />
-                <p id="delete-password-error" class="text-red-700 dark:text-red-300">
-                    @if (deleteForm.controls.current_password.touched && deleteForm.controls.current_password.invalid) {
-                        Votre mot de passe est nécessaire pour supprimer le compte.
-                    }
-                </p>
+                @if (!needsGoogle()) {
+                    <label for="delete-password">Votre mot de passe actuel</label
+                    ><input
+                        id="delete-password"
+                        type="password"
+                        formControlName="current_password"
+                        autocomplete="current-password"
+                        maxlength="128"
+                        required
+                        aria-describedby="delete-password-error"
+                        [attr.aria-invalid]="deleteForm.controls.current_password.touched && deleteForm.controls.current_password.invalid"
+                    />
+                    <p id="delete-password-error" class="text-red-700 dark:text-red-300">
+                        @if (deleteForm.controls.current_password.touched && deleteForm.controls.current_password.invalid) {
+                            Votre mot de passe est nécessaire pour supprimer le compte.
+                        }
+                    </p>
+                }
                 <label class="mt-5 flex items-start gap-3"><input class="mt-1 shrink-0" type="checkbox" formControlName="confirmed" /><span>Je comprends que la suppression de mon compte est définitive.</span></label>
                 <div class="mt-6 flex flex-wrap justify-end gap-3">
                     <button type="button" class="profile-button secondary" (click)="closeDeletion()" autofocus>Garder mon compte</button>

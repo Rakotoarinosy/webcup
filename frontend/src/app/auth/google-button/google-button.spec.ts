@@ -25,7 +25,7 @@ describe('Google sign in', () => {
     });
 
     it('opens code verification after Google credentials are accepted', async () => {
-        const loginWithGoogle = jasmine.createSpy('loginWithGoogle').and.returnValue(of({}));
+        const loginWithGoogle = jasmine.createSpy('loginWithGoogle').and.returnValue(of('verification-required'));
         TestBed.configureTestingModule({
             imports: [GoogleButton],
             providers: [
@@ -43,5 +43,27 @@ describe('Google sign in', () => {
         await fixture.whenStable();
         expect(loginWithGoogle).toHaveBeenCalledWith('google-credential');
         expect(navigate).toHaveBeenCalledWith(['/auth/verify-code'], { queryParams: { returnUrl: null } });
+    });
+
+    it('returns the Google proof without replacing the session during reauthentication', async () => {
+        let callback: (credential: string) => void = () => {};
+        const loginWithGoogle = jasmine.createSpy('loginWithGoogle');
+        TestBed.configureTestingModule({
+            imports: [GoogleButton],
+            providers: [
+                provideRouter([]),
+                { provide: GoogleIdentityService, useValue: { renderButton: (_host: HTMLElement, receive: (credential: string) => void) => { callback = receive; return Promise.resolve(); } } },
+                { provide: VerificationService, useValue: { loginWithGoogle } }
+            ]
+        });
+        const fixture = TestBed.createComponent(GoogleButton);
+        fixture.componentRef.setInput('reauthenticate', true);
+        const received = jasmine.createSpy('credential');
+        fixture.componentInstance.credential.subscribe(received);
+        fixture.detectChanges();
+        await fixture.whenStable();
+        callback('fresh-google-proof');
+        expect(received).toHaveBeenCalledOnceWith('fresh-google-proof');
+        expect(loginWithGoogle).not.toHaveBeenCalled();
     });
 });

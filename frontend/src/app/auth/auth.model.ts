@@ -28,6 +28,8 @@ export interface AuthUser {
     phone_verified: boolean;
     /** Photo du compte Google, sinon null. */
     avatar_url: string | null;
+    has_password?: boolean;
+    google_linked?: boolean;
 }
 
 /** Réponse de /auth/login, /auth/refresh et /auth/verify-code (TokenOut). */

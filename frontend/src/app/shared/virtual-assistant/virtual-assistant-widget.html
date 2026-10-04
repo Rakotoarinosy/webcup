@@ -36,6 +36,7 @@
                             <div class="reply-heading">
                                 <strong>{{ message.content.title }}</strong>
                                 <span class="reply-format">{{ formatLabel(message.content.format) }}</span>
+                                <button class="reply-voice" type="button" (click)="speak(message.content)" aria-label="Écouter la réponse"><i class="pi pi-volume-up" aria-hidden="true"></i></button>
                             </div>
                             <p class="message-bubble">{{ message.content.message }}</p>
                             @if (message.content.steps.length) {
@@ -72,6 +73,11 @@
                             }
                             @if (message.content.follow_up) {
                                 <p class="reply-follow-up">{{ message.content.follow_up }}</p>
+                            }
+                            @if (message.content.navigation) {
+                                <button type="button" class="assistant-navigation" (click)="navigate(message.content.navigation.intent)">
+                                    {{ navigationLabel(message.content.navigation.intent) }} <i class="pi pi-arrow-right" aria-hidden="true"></i>
+                                </button>
                             }
                         </article>
                     } @else {
@@ -115,6 +121,7 @@
                     [disabled]="isSending()"
                     aria-describedby="assistant-disclaimer"
                 ></textarea>
+                <button class="voice-button" type="button" (click)="toggleRecording()" [class.is-recording]="isRecording()" [attr.aria-label]="isRecording() ? 'Arrêter l’enregistrement' : 'Envoyer un message vocal'" [disabled]="isSending()"><i [class]="isRecording() ? 'pi pi-stop' : 'pi pi-microphone'" aria-hidden="true"></i></button>
                 <button class="send-button" type="submit" aria-label="Envoyer le message" [disabled]="!draft.trim() || isSending() || draft.length > 1200">
                     <i class="pi pi-arrow-up" aria-hidden="true"></i>
                 </button>

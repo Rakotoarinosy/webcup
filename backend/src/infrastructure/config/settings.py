@@ -86,10 +86,16 @@ class Settings(BaseSettings):
     bootstrap_admin_password: str | None = None
     bootstrap_admin_name: str = "Administrateur"
 
-    # ─── IA (analyse des demandes) ───
-    # Sans clé, POST /requests/{id}/analyze répond 503 ; le reste de l'API fonctionne normalement.
-    gemini_api_key: str | None = None
-    gemini_model: str = "gemini-2.5-flash"
+    # ─── IA Groq (assistant et analyse des demandes) ───
+    # Sans clé, les fonctions IA répondent 503 ; le reste de l'API fonctionne normalement.
+    groq_api_key: str | None = None
+    groq_model: str = "openai/gpt-oss-120b"
+    groq_voice_api_key: str | None = None
+    groq_stt_model: str = "whisper-large-v3-turbo"
+    groq_tts_model: str = "canopylabs/orpheus-v1-english"
+    groq_tts_voice: str = "hannah"
+    # Compatibilité temporaire avec la variable mal orthographiée utilisée avant la migration.
+    grok_api_key: str | None = None
 
     # ─── API Terra Nova (demandes du concours) ───
     # Sans clé, la synchronisation échoue proprement (état « erreur » affiché dans le suivi).
@@ -141,6 +147,11 @@ class Settings(BaseSettings):
     @property
     def cookie_secure(self) -> bool:
         return self.is_production or self.cookie_samesite is CookieSameSite.NONE
+
+    @property
+    def resolved_groq_api_key(self) -> str | None:
+        """Clé Groq, avec repli temporaire pour les fichiers .env déjà existants."""
+        return self.groq_api_key or self.grok_api_key
 
 
 @lru_cache

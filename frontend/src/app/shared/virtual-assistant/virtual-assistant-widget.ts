@@ -1,9 +1,11 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
-import { Component, ElementRef, HostListener, inject, signal, viewChild } from '@angular/core';
+import { Component, ElementRef, HostListener, OnInit, inject, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { environment } from '@/environments/environment';
+import { AuthService } from '@/app/auth/auth.service';
+import { assistantDestination } from './assistant-navigation.registry';
 
 type ResponseFormat = 'auto' | 'concise' | 'steps' | 'checklist';
 type ReplyFormat = Exclude<ResponseFormat, 'auto'>;
@@ -16,6 +18,7 @@ interface AssistantReply {
     notes: string[];
     follow_up: string;
     recommended_services: RecommendedService[];
+    navigation: { intent: string } | null;
 }
 
 interface RecommendedService {
@@ -32,6 +35,9 @@ type ChatMessage =
     | { role: 'user'; content: string }
     | { role: 'assistant'; content: AssistantReply };
 
+const GUEST_HISTORY_KEY = 'terra-nova-assistant-history-v2';
+const LEGACY_GUEST_HISTORY_KEY = 'terra-nova-assistant-history';
+
 interface ChatResponse {
     response: AssistantReply;
 }
@@ -43,16 +49,26 @@ interface ChatResponse {
     templateUrl: './virtual-assistant-widget.html',
     styleUrl: './virtual-assistant-widget.scss'
 })
-export class VirtualAssistantWidget {
+export class VirtualAssistantWidget implements OnInit {
     private readonly http = inject(HttpClient);
+    private readonly host = inject(ElementRef<HTMLElement>);
+    private readonly auth = inject(AuthService);
+    private readonly router = inject(Router);
     private readonly messagesElement = viewChild<ElementRef<HTMLElement>>('messageLog');
 
     readonly isOpen = signal(false);
     readonly messages = signal<ChatMessage[]>([]);
     readonly isSending = signal(false);
+    readonly isRecording = signal(false);
     readonly errorMessage = signal('');
     responsePreference: ResponseFormat = 'auto';
     draft = '';
+    private recorder: MediaRecorder | null = null;
+    private audioChunks: Blob[] = [];
+
+    ngOnInit(): void {
+        this.restoreConversation();
+    }
 
     toggle(): void {
         this.isOpen.update((open) => !open);
@@ -87,6 +103,7 @@ export class VirtualAssistantWidget {
             .subscribe({
                 next: ({ response }) => {
                     this.messages.update((messages) => [...messages, { role: 'assistant', content: response }]);
+                    this.persistGuestConversation();
                     this.isSending.set(false);
                     this.scrollToBottom();
                 },
@@ -105,6 +122,69 @@ export class VirtualAssistantWidget {
     clearConversation(): void {
         this.messages.set([]);
         this.errorMessage.set('');
+        if (this.auth.isAuthenticated()) {
+            this.http.delete(`${environment.apiUrl}/assistant/history`).subscribe({ error: () => undefined });
+        } else {
+            localStorage.removeItem(GUEST_HISTORY_KEY);
+        }
+    }
+
+    navigate(intent: string): void {
+        const destination = assistantDestination(intent, this.auth.user()?.role, this.router.url);
+        if (!destination) {
+            this.errorMessage.set("Cette page n'est pas accessible depuis votre compte.");
+            return;
+        }
+        this.router.navigateByUrl(destination.path).then((navigated) => {
+            if (navigated) {
+                this.isOpen.set(false);
+                return;
+            }
+            this.errorMessage.set("Cette page n'est pas accessible depuis votre compte.");
+        }).catch(() => this.errorMessage.set("La redirection n'a pas pu être effectuée."));
+    }
+
+    navigationLabel(intent: string): string {
+        return assistantDestination(intent, this.auth.user()?.role, this.router.url)?.label ?? 'Accéder à cette page';
+    }
+
+    async toggleRecording(): Promise<void> {
+        if (this.isRecording()) {
+            this.recorder?.stop();
+            return;
+        }
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            this.audioChunks = [];
+            this.recorder = new MediaRecorder(stream);
+            this.recorder.ondataavailable = (event) => this.audioChunks.push(event.data);
+            this.recorder.onstop = () => {
+                stream.getTracks().forEach((track) => track.stop());
+                this.isRecording.set(false);
+                const body = new FormData();
+                body.append('audio', new Blob(this.audioChunks, { type: this.recorder?.mimeType || 'audio/webm' }), 'message.webm');
+                this.http.post<{ text: string }>(`${environment.apiUrl}/assistant/transcribe`, body).subscribe({
+                    next: ({ text }) => { this.draft = text; this.sendMessage(); },
+                    error: () => this.errorMessage.set("Impossible de transcrire votre message vocal.")
+                });
+            };
+            this.recorder.start();
+            this.isRecording.set(true);
+        } catch {
+            this.errorMessage.set("L'accès au microphone est nécessaire pour envoyer un message vocal.");
+        }
+    }
+
+    speak(reply: AssistantReply): void {
+        const text = [reply.title, reply.message, ...reply.steps, reply.follow_up].filter(Boolean).join('. ').slice(0, 4000);
+        this.http.post(`${environment.apiUrl}/assistant/speech`, { text }, { responseType: 'blob' }).subscribe({
+            next: (audio) => new Audio(URL.createObjectURL(audio)).play(),
+            error: (error: HttpErrorResponse) => this.errorMessage.set(
+                error.status === 409
+                    ? "Activez d’abord le modèle vocal dans la console Groq, puis réessayez."
+                    : "Impossible de lire la réponse vocale."
+            )
+        });
     }
 
     formatLabel(format: ReplyFormat): string {
@@ -138,10 +218,40 @@ export class VirtualAssistantWidget {
         this.isOpen.set(false);
     }
 
+    @HostListener('document:click', ['$event'])
+    closeOnOutsideClick(event: MouseEvent): void {
+        if (this.isOpen() && event.target instanceof Node && !this.host.nativeElement.contains(event.target)) {
+            this.isOpen.set(false);
+        }
+    }
+
     private scrollToBottom(): void {
         requestAnimationFrame(() => {
             const element = this.messagesElement()?.nativeElement;
             if (element) element.scrollTop = element.scrollHeight;
         });
+    }
+
+    private restoreConversation(): void {
+        if (this.auth.isAuthenticated()) {
+            this.http.get<ChatMessage[]>(`${environment.apiUrl}/assistant/history`).subscribe({
+                next: (messages) => this.messages.set(messages),
+                error: () => this.messages.set([])
+            });
+            return;
+        }
+        try {
+            localStorage.removeItem(LEGACY_GUEST_HISTORY_KEY);
+            const saved = localStorage.getItem(GUEST_HISTORY_KEY);
+            if (saved) this.messages.set(JSON.parse(saved) as ChatMessage[]);
+        } catch {
+            localStorage.removeItem(GUEST_HISTORY_KEY);
+        }
+    }
+
+    private persistGuestConversation(): void {
+        if (!this.auth.isAuthenticated()) {
+            localStorage.setItem(GUEST_HISTORY_KEY, JSON.stringify(this.messages().slice(-40)));
+        }
     }
 }

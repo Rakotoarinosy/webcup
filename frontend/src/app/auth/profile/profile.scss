@@ -20,7 +20,7 @@ label {
     font-weight: 600;
     margin-bottom: 0.5rem;
 }
-input:not([type='checkbox']) {
+input:not([type='checkbox']):not([type='file']) {
     display: block;
     width: 100%;
     min-width: 0;

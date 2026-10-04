@@ -1,6 +1,6 @@
 import { DatePipe } from '@angular/common';
 import { HttpErrorResponse, HttpResponse } from '@angular/common/http';
-import { Component, DestroyRef, ElementRef, Injector, afterNextRender, computed, inject, signal, viewChild } from '@angular/core';
+import { Component, DestroyRef, ElementRef, Injector, afterNextRender, computed, effect, inject, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -12,10 +12,11 @@ import { AuthService } from '../auth.service';
 import { NAME_VALIDATORS, PASSWORD_VALIDATORS } from '../auth.validators';
 import { apiErrorMessage } from '@/app/users/user.service';
 import { ProfileExportService, UserExportFormat } from './profile-export.service';
+import { GoogleButton } from '../google-button/google-button';
 
 @Component({
     selector: 'app-profile',
-    imports: [DatePipe, ReactiveFormsModule, ToastModule],
+    imports: [DatePipe, ReactiveFormsModule, ToastModule, GoogleButton],
     templateUrl: './profile.html',
     styleUrl: './profile.scss',
     providers: [MessageService]
@@ -34,6 +35,8 @@ export class Profile {
     readonly busy = signal<'avatar' | 'profile' | 'password' | 'delete' | 'export' | null>(null);
     readonly deleteError = signal<string | null>(null);
     readonly exportFormat = signal<UserExportFormat>('pdf');
+    readonly needsGoogle = computed(() => this.auth.user()?.has_password === false);
+    readonly googleCredential = signal<string | undefined>(undefined);
     readonly initials = computed(() =>
         (
             this.auth
@@ -60,6 +63,35 @@ export class Profile {
         current_password: ['', [Validators.required, Validators.maxLength(128)]],
         confirmed: [false, Validators.requiredTrue]
     });
+
+    constructor() {
+        effect(() => {
+            const validators = this.needsGoogle() ? [Validators.maxLength(128)] : [Validators.required, Validators.maxLength(128)];
+            for (const form of [this.profileForm, this.passwordForm, this.deleteForm]) {
+                form.controls.current_password.setValidators(validators);
+                form.controls.current_password.updateValueAndValidity({ emitEvent: false });
+            }
+            const emailValidators = [Validators.email, Validators.maxLength(320)];
+            if (!this.auth.user()?.phone) emailValidators.push(Validators.required);
+            this.profileForm.controls.email.setValidators(emailValidators);
+            this.profileForm.controls.email.updateValueAndValidity({ emitEvent: false });
+        });
+    }
+
+    acceptGoogleCredential(credential: string): void {
+        this.googleCredential.set(credential);
+        this.success('Identité confirmée', 'Vous pouvez maintenant enregistrer votre modification.');
+    }
+
+    googleFailure(message: string): void {
+        this.messages.add({ severity: 'error', summary: 'Confirmation impossible', detail: message });
+    }
+
+    private hasIdentityProof(): boolean {
+        if (!this.needsGoogle() || this.googleCredential()) return true;
+        this.googleFailure('Confirmez votre identité avec Google avant de continuer.');
+        return false;
+    }
 
     chooseAvatar(): void {
         if (this.busy()) return;
@@ -98,11 +130,13 @@ export class Profile {
     saveProfile(): void {
         if (this.busy()) return;
         this.profileForm.markAllAsTouched();
-        if (this.profileForm.invalid) return;
+        if (this.profileForm.invalid || !this.hasIdentityProof()) return;
         const value = this.profileForm.getRawValue();
+        const email = value.email.trim().toLowerCase() || undefined;
+        const emailChanged = email !== undefined && email !== this.auth.user()?.email;
         this.start('profile');
         this.auth
-            .updateProfile(value.name.trim(), value.email.trim().toLowerCase(), value.current_password)
+            .updateProfile(value.name.trim(), email, value.current_password, this.needsGoogle() ? this.googleCredential() : undefined)
             .pipe(
                 takeUntilDestroyed(this.destroyRef),
                 finalize(() => this.busy.set(null))
@@ -110,7 +144,8 @@ export class Profile {
             .subscribe({
                 next: (user) => {
                     this.profileForm.reset({ name: user.name, email: user.email ?? '', current_password: '' });
-                    this.success('Informations enregistrées', 'Utilisez cette adresse email lors de votre prochaine connexion.');
+                    this.googleCredential.set(undefined);
+                    this.success('Informations enregistrées', emailChanged && user.email && !user.email_verified ? 'Votre nouvelle adresse devra être confirmée par code lors de votre prochaine connexion.' : 'Votre profil a été mis à jour.');
                 },
                 error: (error: unknown) => {
                     this.profileForm.controls.current_password.reset();
@@ -122,7 +157,7 @@ export class Profile {
     savePassword(): void {
         if (this.busy()) return;
         this.passwordForm.markAllAsTouched();
-        if (this.passwordForm.invalid) return;
+        if (this.passwordForm.invalid || !this.hasIdentityProof()) return;
         const value = this.passwordForm.getRawValue();
         if (value.new_password !== value.confirmation) {
             this.messages.add({ severity: 'warn', summary: 'Vérifiez le mot de passe', detail: 'Les deux nouveaux mots de passe doivent être identiques.', life: 5000 });
@@ -130,7 +165,7 @@ export class Profile {
         }
         this.start('password');
         this.auth
-            .changePassword(value.current_password, value.new_password)
+            .changePassword(value.current_password, value.new_password, this.needsGoogle() ? this.googleCredential() : undefined)
             .pipe(
                 takeUntilDestroyed(this.destroyRef),
                 finalize(() => this.busy.set(null))
@@ -138,7 +173,8 @@ export class Profile {
             .subscribe({
                 next: () => {
                     this.passwordForm.reset();
-                    this.success('Mot de passe modifié', 'Les sessions des autres appareils ne pourront plus être renouvelées.');
+                    this.googleCredential.set(undefined);
+                    this.success('Mot de passe modifié', 'Les autres sessions ont été déconnectées.');
                 },
                 error: (error: unknown) => {
                     this.passwordForm.controls.current_password.reset();
@@ -167,11 +203,11 @@ export class Profile {
     deleteAccount(): void {
         if (this.busy() || !this.auth.hasRole('citizen')) return;
         this.deleteForm.markAllAsTouched();
-        if (this.deleteForm.invalid) return;
+        if (this.deleteForm.invalid || !this.hasIdentityProof()) return;
         this.start('delete');
         this.deleteError.set(null);
         this.auth
-            .deleteAccount(this.deleteForm.getRawValue().current_password)
+            .deleteAccount(this.deleteForm.getRawValue().current_password, this.needsGoogle() ? this.googleCredential() : undefined)
             .pipe(
                 takeUntilDestroyed(this.destroyRef),
                 finalize(() => this.busy.set(null))

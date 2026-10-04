@@ -74,7 +74,7 @@ from src.features.citizen_request.use_cases import (
 from src.features.citizen_request.use_cases.insights import DEFAULT_DAYS
 from src.infrastructure.config import get_settings
 from src.infrastructure.config.settings import Settings
-from src.infrastructure.external.gemini_analyzer import GeminiRequestAnalyzer
+from src.infrastructure.external.groq_analyzer import GroqRequestAnalyzer
 from src.infrastructure.persistence.agent_repository import SqlAlchemyAgentRepository
 from src.infrastructure.persistence.citizen_request_analytics import (
     SqlAlchemyCitizenRequestAnalytics,
@@ -132,16 +132,17 @@ def get_priority_repo(db: Session = Depends(get_db)) -> PriorityRepository:
 
 
 @lru_cache
-def _gemini_analyzer(api_key: str, model: str) -> RequestAnalyzer:
-    return GeminiRequestAnalyzer(api_key, model)
+def _groq_analyzer(api_key: str, model: str) -> RequestAnalyzer:
+    return GroqRequestAnalyzer(api_key, model)
 
 
 def get_request_analyzer() -> RequestAnalyzer:
     settings = get_settings()
-    if not settings.gemini_api_key:
-        raise AnalysisUnavailableError("AI analysis is not configured (GEMINI_API_KEY is missing)")
+    api_key = settings.resolved_groq_api_key
+    if not api_key:
+        raise AnalysisUnavailableError("AI analysis is not configured (GROQ_API_KEY is missing)")
 
-    return _gemini_analyzer(settings.gemini_api_key, settings.gemini_model)
+    return _groq_analyzer(api_key, settings.groq_model)
 
 
 # ─── Création / lecture ─────────────────────────────────────────────

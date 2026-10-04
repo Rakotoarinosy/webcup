@@ -5,15 +5,20 @@ import { Role } from '@/app/auth/auth.model';
 import { NotificationService } from '@/app/notifications/notification.service';
 import { PublicationReadService } from '@/app/municipal/publication-read.service';
 import { AppMenu } from './app.menu';
+import { InstitutService } from '@/app/instituts/institut.service';
+import { of } from 'rxjs';
 
 describe('Menu follows the authenticated role', () => {
     const role = signal<Role>('citizen');
     beforeEach(() => {
-        TestBed.configureTestingModule({ providers: [
-            { provide: AuthService, useValue: { hasRole: (...allowed: Role[]) => allowed.includes(role()) } },
-            { provide: NotificationService, useValue: { unreadCount: signal(0) } },
-            { provide: PublicationReadService, useValue: { unreadCount: signal(0) } }
-        ] });
+        TestBed.configureTestingModule({
+            providers: [
+                { provide: AuthService, useValue: { hasRole: (...allowed: Role[]) => allowed.includes(role()) } },
+                { provide: NotificationService, useValue: { unreadCount: signal(0) } },
+                { provide: PublicationReadService, useValue: { unreadCount: signal(0) } },
+                { provide: InstitutService, useValue: { list: () => of([]) } }
+            ]
+        });
     });
     it('updates immediately when the current role changes', () => {
         const menu = TestBed.runInInjectionContext(() => new AppMenu());
@@ -30,19 +35,7 @@ describe('Menu follows the authenticated role', () => {
             expect(labels).not.toContain('Transaction');
             expect(menu.model().some((group) => group.label === 'API Terra Nova')).toBe(value !== 'citizen');
             const municipal = menu.model().find((group) => group.label === 'La mairie')!;
-            expect(municipal.items!.map((item) => item.label)).toEqual([
-                'Accueil municipal',
-                'Accueil et démarches administratives',
-                'Service de la voirie',
-                'Service de l’eau et assainissement',
-                'Propreté urbaine et déchets',
-                'Éclairage public',
-                'Espaces verts et environnement',
-                'Sécurité civile et tranquillité publique',
-                'Services municipaux',
-                'Publications',
-                'Contacter la mairie'
-            ]);
+            expect(municipal.items!.map((item) => item.label)).toEqual(['Accueil municipal', 'Services municipaux', 'Publications', 'Contacter la mairie', 'Par où commencer ?']);
             expect(municipal.items!.map((item) => item.routerLink?.[0] ?? null)).toContain('/home/municipal/services');
         }
     });

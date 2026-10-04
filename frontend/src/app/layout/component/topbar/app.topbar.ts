@@ -17,6 +17,8 @@ import { Notifications } from './widget/notifications/notifications';
 
 type SearchSuggestion = { label: string; detail: string; icon: string; url: string; roles?: readonly string[] };
 
+const normalizeSearch = (value: string): string => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLocaleLowerCase('fr-FR');
+
 const SEARCH_SUGGESTIONS: readonly SearchSuggestion[] = [
     { label: 'Mon espace', detail: 'Votre tableau personnel', icon: 'pi-home', url: '/home/account' },
     { label: 'Mon profil', detail: 'Informations de votre compte', icon: 'pi-id-card', url: '/home/profile' },
@@ -66,11 +68,11 @@ export class AppTopbar {
     });
     readonly roleLabel = this.auth.roleLabel;
     readonly searchSuggestions = computed(() => {
-        const query = this.searchQuery().trim().toLocaleLowerCase('fr-FR');
+        const query = normalizeSearch(this.searchQuery());
         if (!query) return [];
         return SEARCH_SUGGESTIONS.filter((item) => {
             const allowed = !item.roles || this.auth.hasRole(...item.roles as ('admin' | 'manager' | 'agent' | 'citizen')[]);
-            return allowed && `${item.label} ${item.detail}`.toLocaleLowerCase('fr-FR').includes(query);
+            return allowed && normalizeSearch(`${item.label} ${item.detail}`).includes(query);
         }).slice(0, 7);
     });
 

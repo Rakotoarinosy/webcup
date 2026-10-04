@@ -5,6 +5,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from src.domain.virtual_assistant import (
+    AssistantNavigation,
     AssistantReply,
     AssistantReplyFormat,
     AssistantResponsePreference,
@@ -54,9 +55,12 @@ class AssistantReplyOut(BaseModel):
     notes: list[str]
     follow_up: str
     recommended_services: list[ServiceRecommendationOut]
+    navigation: "NavigationOut | None" = None
 
     @classmethod
-    def from_domain(cls, reply: AssistantReply) -> "AssistantReplyOut":
+    def from_domain(
+        cls, reply: AssistantReply, navigation: AssistantNavigation | None = None
+    ) -> "AssistantReplyOut":
         return cls(
             format=reply.format,
             title=reply.title,
@@ -68,7 +72,14 @@ class AssistantReplyOut(BaseModel):
                 ServiceRecommendationOut.from_domain(service)
                 for service in reply.recommended_services
             ],
+            navigation=NavigationOut(intent=reply.navigation_key)
+            if navigation and reply.navigation_key
+            else None,
         )
+
+
+class NavigationOut(BaseModel):
+    intent: str
 
 
 class ChatOut(BaseModel):
@@ -99,3 +110,12 @@ class PlainExplanationOut(BaseModel):
                 for term in explanation.terms
             ],
         )
+
+
+class ConversationMessageOut(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str | AssistantReplyOut
+
+
+class SpeechIn(BaseModel):
+    text: str = Field(min_length=1, max_length=4000)

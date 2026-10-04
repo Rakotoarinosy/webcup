@@ -189,24 +189,28 @@ export class AuthService {
         );
     }
 
-    updateProfile(name: string, email: string | null, current_password: string): Observable<AuthUser> {
-        return this.http.patch<TokenResponse>(`${AUTH_URL}/me`, { name, email: email || null, current_password }, { withCredentials: true }).pipe(
+    updateProfile(name: string, email: string | null | undefined, current_password: string, google_credential?: string): Observable<AuthUser> {
+        const proof = google_credential ? { google_credential } : { current_password };
+        const contact = email === undefined ? {} : { email: email || null };
+        return this.http.patch<TokenResponse>(`${AUTH_URL}/me`, { name, ...contact, ...proof }, { withCredentials: true }).pipe(
             takeUntil(this.sessionEnded),
             tap((response) => this.acceptSession(response)),
             map((response) => response.user)
         );
     }
 
-    changePassword(current_password: string, new_password: string): Observable<AuthUser> {
-        return this.http.post<TokenResponse>(`${AUTH_URL}/change-password`, { current_password, new_password }, { withCredentials: true }).pipe(
+    changePassword(current_password: string, new_password: string, google_credential?: string): Observable<AuthUser> {
+        const proof = google_credential ? { google_credential } : { current_password };
+        return this.http.post<TokenResponse>(`${AUTH_URL}/change-password`, { ...proof, new_password }, { withCredentials: true }).pipe(
             takeUntil(this.sessionEnded),
             tap((response) => this.acceptSession(response)),
             map((response) => response.user)
         );
     }
 
-    deleteAccount(current_password: string): Observable<void> {
-        return this.http.delete<void>(`${AUTH_URL}/me`, { body: { current_password }, withCredentials: true }).pipe(
+    deleteAccount(current_password: string, google_credential?: string): Observable<void> {
+        const proof = google_credential ? { google_credential } : { current_password };
+        return this.http.delete<void>(`${AUTH_URL}/me`, { body: proof, withCredentials: true }).pipe(
             tap(() => {
                 this.sessionEnded.next();
                 this.clearSession();

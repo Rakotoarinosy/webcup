@@ -24,11 +24,14 @@ describe('MunicipalHome', () => {
         usage_count,
         address: null,
         latitude: null,
-        longitude: null
+        longitude: null,
+        language: 'fr',
+        translation_available: false
     });
 
     async function createComponent(popular: MunicipalService[]): Promise<void> {
-        content = jasmine.createSpyObj<MunicipalContentService>('MunicipalContentService', ['popularServices', 'publications', 'startService']);
+        content = jasmine.createSpyObj<MunicipalContentService>('MunicipalContentService', ['featuredServices', 'popularServices', 'publications', 'startService']);
+        content.featuredServices.and.returnValue(of([]));
         content.popularServices.and.returnValue(of(popular));
         content.publications.and.returnValue(of([]));
 
@@ -73,11 +76,28 @@ describe('MunicipalHome', () => {
 describe('MunicipalHome cards', () => {
     let fixture: ComponentFixture<MunicipalHome>;
     let api: jasmine.SpyObj<MunicipalContentService>;
-    const service = { id: 'roads', name: 'Voirie', category: 'Travaux', description: 'Routes', contact_details: 'Mairie', opening_hours: '8h-16h', icon: 'pi-building', display_order: 1, is_featured: true, usage_count: 2, address: null, latitude: null, longitude: null };
+    const service = {
+        id: 'roads',
+        name: 'Voirie',
+        category: 'Travaux',
+        description: 'Routes',
+        contact_details: 'Mairie',
+        opening_hours: '8h-16h',
+        icon: 'pi-building',
+        display_order: 1,
+        is_featured: true,
+        usage_count: 2,
+        address: null,
+        latitude: null,
+        longitude: null,
+        language: 'fr',
+        translation_available: false
+    };
     beforeEach(async () => {
-        api = jasmine.createSpyObj('MunicipalContentService', ['popularServices', 'publications', 'startService']);
+        api = jasmine.createSpyObj('MunicipalContentService', ['featuredServices', 'popularServices', 'publications', 'startService']);
+        api.featuredServices.and.returnValue(of([]));
         api.popularServices.and.returnValue(of([service]));
-        api.publications.and.returnValue(of([{ id: 'p1', title: 'Travaux', summary: 'Annonce', content: 'Contenu', category: 'Voirie', published_at: '2026-10-03T10:00:00Z' }]));
+        api.publications.and.returnValue(of([{ id: 'p1', title: 'Travaux', summary: 'Annonce', content: 'Contenu', category: 'Voirie', published_at: '2026-10-03T10:00:00Z', language: 'fr' }]));
         await TestBed.configureTestingModule({ imports: [MunicipalHome], providers: [provideRouter([]), { provide: MunicipalContentService, useValue: api }, { provide: LiveDataService, useValue: { watch: () => {} } }] }).compileComponents();
         fixture = TestBed.createComponent(MunicipalHome);
         fixture.detectChanges();

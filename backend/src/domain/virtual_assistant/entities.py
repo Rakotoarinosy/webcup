@@ -1,6 +1,7 @@
-"""Objets métier indépendants de FastAPI, Gemini et des schémas réseau."""
+"""Objets métier indépendants de FastAPI, du fournisseur IA et des schémas réseau."""
 
 from dataclasses import dataclass
+from datetime import datetime
 from enum import StrEnum
 
 from src.domain.municipal_content.entities import MunicipalService
@@ -36,6 +37,7 @@ class AssistantQuery:
     history: tuple[AssistantTurn, ...] = ()
     response_preference: AssistantResponsePreference = AssistantResponsePreference.AUTO
     available_services: tuple[MunicipalService, ...] = ()
+    navigation_keys: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -59,6 +61,23 @@ class AssistantReply:
     follow_up: str = ""
     service_ids: tuple[str, ...] = ()
     recommended_services: tuple[AssistantServiceRecommendation, ...] = ()
+    navigation_key: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class AssistantNavigation:
+    label: str
+    path: str
+
+
+@dataclass(frozen=True, slots=True)
+class AssistantMessage:
+    id: str
+    user_id: str
+    role: AssistantTurnRole
+    content: str
+    created_at: datetime
+    reply: AssistantReply | None = None
 
 
 @dataclass(frozen=True, slots=True)

@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRouteSnapshot, CanActivateFn, Router, RouterStateSnapshot, UrlTree, provideRouter } from '@angular/router';
 import { Observable, firstValueFrom, of } from 'rxjs';
-import { authGuard, guestGuard } from './auth.guard';
+import { authGuard, guestGuard, landingGuard } from './auth.guard';
 import { AuthService } from './auth.service';
 import { AuthUser, Role } from './auth.model';
 
@@ -49,5 +49,9 @@ describe('Route access by role', () => {
     it('redirects an authenticated visitor away from login', async () => {
         auth.validateSession.and.returnValue(of(user));
         expect(TestBed.inject(Router).serializeUrl((await run(guestGuard)) as UrlTree)).toBe('/home/account');
+    });
+    it('redirects an authenticated visitor from the landing page to /home', async () => {
+        auth.validateSession.and.returnValue(of(user));
+        expect(TestBed.inject(Router).serializeUrl((await run(landingGuard)) as UrlTree)).toBe('/home');
     });
 });

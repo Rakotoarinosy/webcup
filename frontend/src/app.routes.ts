@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard, publicSessionGuard, roleGuard } from './app/auth/auth.guard';
+import { authGuard, landingGuard, publicSessionGuard, roleGuard } from './app/auth/auth.guard';
 import { AppLayout } from './app/layout/component/layout/app.layout';
 import { Landing } from './app/pages/landing/landing';
 import { Notfound } from './app/pages/notfound/notfound';
@@ -78,7 +78,7 @@ export const appRoutes: Routes = [
             { path: 'orientation', loadComponent: () => import('./app/orientation/orientation').then((m) => m.Orientation) }
         ]
     },
-    { path: '', component: Landing, canActivate: [publicSessionGuard] },
+    { path: '', component: Landing, canActivate: [landingGuard] },
     { path: 'notfound', component: Notfound },
     { path: 'auth', loadChildren: () => import('./app/auth/auth.routes') },
     { path: '**', redirectTo: '/notfound' }

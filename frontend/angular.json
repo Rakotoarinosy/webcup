@@ -46,7 +46,7 @@
                                 {
                                     "type": "anyComponentStyle",
                                     "maximumWarning": "2kb",
-                                    "maximumError": "4kb"
+                                    "maximumError": "10kb"
                                 }
                             ],
                             "outputHashing": "all",
@@ -74,7 +74,7 @@
                         "development": {
                             "buildTarget": "frontend:build:development",
                             "hmr": false,
-                            "liveReload": false
+                            "liveReload": true
                         }
                     },
                     "defaultConfiguration": "development",

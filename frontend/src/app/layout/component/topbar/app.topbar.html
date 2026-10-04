@@ -26,7 +26,7 @@
                 [attr.aria-expanded]="searchOpen() && searchSuggestions().length > 0"
                 aria-autocomplete="list"
                 aria-controls="global-search-suggestions"
-                aria-activedescendant="activeSuggestion() >= 0 ? 'search-suggestion-' + activeSuggestion() : null"
+                [attr.aria-activedescendant]="activeSuggestion() >= 0 ? 'search-suggestion-' + activeSuggestion() : null"
                 (focus)="searchOpen.set(true)"
                 (input)="updateSearch(globalSearch.value)"
                 (keydown)="onSearchKeydown($event)"
