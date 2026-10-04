@@ -3,7 +3,6 @@ import { authGuard, publicSessionGuard, roleGuard } from './app/auth/auth.guard'
 import { AppLayout } from './app/layout/component/layout/app.layout';
 import { Landing } from './app/pages/landing/landing';
 import { Notfound } from './app/pages/notfound/notfound';
-import { Dashboard } from './app/dashboard/dashboard';
 
 export const appRoutes: Routes = [
     {
@@ -25,7 +24,6 @@ export const appRoutes: Routes = [
                     { path: ':id', data: { breadcrumb: 'Détail' }, loadComponent: () => import('./app/requests/my-requests').then((m) => m.MyRequests) }
                 ]
             },
-            { path: 'dashboard', data: { breadcrumb: 'Tableau de bord', roles: ['manager', 'admin'] }, component: Dashboard },
             { path: 'users', data: { breadcrumb: 'Comptes citoyens', roles: ['agent', 'manager', 'admin'] }, loadComponent: () => import('./app/users/users').then((m) => m.Users) },
             { path: 'requests', data: { breadcrumb: 'Demandes citoyennes', roles: ['manager', 'admin'] }, loadComponent: () => import('./app/requests/requests').then((m) => m.Requests) },
             {

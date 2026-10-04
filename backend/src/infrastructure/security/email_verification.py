@@ -1,4 +1,4 @@
-"""Dépendances FastAPI propres à la confirmation par email et à la connexion Google."""
+"""Dépendances FastAPI propres à la confirmation par email / SMS et à la connexion Google."""
 
 from functools import lru_cache
 
@@ -9,6 +9,7 @@ from src.domain.user.ports import (
     CodeHasher,
     EmailSender,
     GoogleIdentityVerifier,
+    SmsSender,
     VerificationPolicy,
 )
 from src.domain.user.repository import VerificationCodeRepository
@@ -16,6 +17,7 @@ from src.features.auth.verification import EmailVerifier
 from src.infrastructure.config import get_settings
 from src.infrastructure.external.email_sender import ConsoleEmailSender, SmtpEmailSender
 from src.infrastructure.external.google_identity import GoogleIdTokenVerifier
+from src.infrastructure.external.sms_sender import ConsoleSmsSender, HttpSmsSender
 from src.infrastructure.persistence.database import get_db
 from src.infrastructure.persistence.verification_code_repository import (
     SqlAlchemyVerificationCodeRepository,
@@ -46,7 +48,21 @@ def get_email_sender() -> EmailSender:
             timeout=settings.smtp_timeout_seconds,
         )
 
-    return ConsoleEmailSender(allow_logging_code=False)
+    return ConsoleEmailSender(allow_logging_code=settings.environment == "development")
+
+
+@lru_cache
+def get_sms_sender() -> SmsSender:
+    settings = get_settings()
+    if settings.sms_gateway_api_key and settings.sms_gateway_from:
+        return HttpSmsSender(
+            url=settings.sms_gateway_url,
+            api_key=settings.sms_gateway_api_key,
+            from_number=settings.sms_gateway_from,
+            timeout=settings.sms_gateway_timeout_seconds,
+        )
+
+    return ConsoleSmsSender(allow_logging_code=settings.environment == "development")
 
 
 @lru_cache
@@ -68,6 +84,7 @@ def get_email_verifier(
     codes: VerificationCodeRepository = Depends(get_verification_code_repo),
     hasher: CodeHasher = Depends(get_code_hasher),
     sender: EmailSender = Depends(get_email_sender),
+    sms: SmsSender = Depends(get_sms_sender),
     policy: VerificationPolicy = Depends(get_verification_policy),
 ) -> EmailVerifier:
-    return EmailVerifier(codes, hasher, sender, policy)
+    return EmailVerifier(codes, hasher, sender, sms, policy)

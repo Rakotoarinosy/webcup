@@ -15,6 +15,9 @@ class UserRepository(ABC):
     def get_by_email(self, email: str) -> User | None: ...
 
     @abstractmethod
+    def get_by_phone(self, phone: str) -> User | None: ...
+
+    @abstractmethod
     def get_by_google_id(self, google_id: str) -> User | None: ...
 
     @abstractmethod

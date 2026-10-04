@@ -5,7 +5,7 @@ import { Observable, Subject, catchError, finalize, map, of, shareReplay, switch
 
 import { environment } from '@/environments/environment';
 import { PreferencesService } from '@/app/preferences/preferences.service';
-import { AuthUser, LoginOutcome, ROLE_LABELS, Role, TokenResponse, VerificationChallenge, isChallenge } from './auth.model';
+import { AuthUser, LoginOutcome, ROLE_LABELS, RegisterContact, Role, TokenResponse, VerificationChallenge, isChallenge } from './auth.model';
 import { ChallengeStore } from './challenge.store';
 
 export const AUTH_URL = `${environment.apiUrl}/auth`;
@@ -39,7 +39,7 @@ export class AuthService {
     readonly user = signal<AuthUser | null>(null);
     readonly isAuthenticated = computed(() => this.user() !== null && this.token() !== null);
     readonly roleLabel = computed(() => (this.user() ? ROLE_LABELS[this.user()!.role] : ''));
-    readonly homeUrl = computed(() => (this.hasRole('admin', 'manager') ? '/home/dashboard' : '/home/account'));
+    readonly homeUrl = computed(() => '/home/account');
 
     hasRole(...roles: Role[]): boolean {
         const user = this.user();
@@ -62,8 +62,8 @@ export class AuthService {
      * `'authenticated'` : session ouverte.
      * `'verification-required'` : code de connexion requis, un code vient d'être envoyé (challenge dans le store).
      */
-    login(email: string, password: string): Observable<LoginOutcome> {
-        return this.http.post<TokenResponse | VerificationChallenge>(`${AUTH_URL}/login`, { email, password }, { withCredentials: true }).pipe(
+    login(identifier: string, password: string): Observable<LoginOutcome> {
+        return this.http.post<TokenResponse | VerificationChallenge>(`${AUTH_URL}/login`, { identifier, password }, { withCredentials: true }).pipe(
             takeUntil(this.sessionEnded),
             map((body): LoginOutcome => {
                 if (isChallenge(body)) {
@@ -77,8 +77,8 @@ export class AuthService {
     }
 
     /** Crée le compte non confirmé et envoie le code. Pas de session avant la saisie du code. */
-    register(name: string, email: string, password: string): Observable<LoginOutcome> {
-        return this.http.post<AuthUser | VerificationChallenge>(`${AUTH_URL}/register`, { name, email, password }, { withCredentials: true }).pipe(
+    register(name: string, contact: RegisterContact, password: string): Observable<LoginOutcome> {
+        return this.http.post<AuthUser | VerificationChallenge>(`${AUTH_URL}/register`, { name, ...contact, password }, { withCredentials: true }).pipe(
             takeUntil(this.sessionEnded),
             map((body): LoginOutcome => {
                 if (!isChallenge(body)) {
@@ -173,8 +173,8 @@ export class AuthService {
         );
     }
 
-    updateProfile(name: string, email: string, current_password: string): Observable<AuthUser> {
-        return this.http.patch<TokenResponse>(`${AUTH_URL}/me`, { name, email, current_password }, { withCredentials: true }).pipe(
+    updateProfile(name: string, email: string | null, current_password: string): Observable<AuthUser> {
+        return this.http.patch<TokenResponse>(`${AUTH_URL}/me`, { name, email: email || null, current_password }, { withCredentials: true }).pipe(
             takeUntil(this.sessionEnded),
             tap((response) => this.acceptSession(response)),
             map((response) => response.user)

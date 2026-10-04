@@ -22,8 +22,8 @@ class UserNotFoundError(DomainError):
 
 
 class UserAlreadyExistsError(DomainError):
-    def __init__(self, email: str) -> None:
-        super().__init__(f"A user with email '{email}' already exists")
+    def __init__(self, identifier: str) -> None:
+        super().__init__(f"A user with '{identifier}' already exists")
 
 
 class UserConflictError(DomainError):
@@ -97,6 +97,16 @@ class CodeResendLockedError(DomainError):
 class EmailDeliveryUnavailableError(DomainError):
     def __init__(self) -> None:
         super().__init__("The verification email could not be sent, try again later")
+
+
+class SmsDeliveryUnavailableError(DomainError):
+    def __init__(self) -> None:
+        super().__init__("The verification SMS could not be sent, try again later")
+
+
+class MissingContactError(DomainError):
+    def __init__(self) -> None:
+        super().__init__("This account has no contact for the requested channel")
 
 
 # ─── Google ─────────────────────────────────────────────────────────

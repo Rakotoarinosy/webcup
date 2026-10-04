@@ -1,10 +1,11 @@
 import { HttpClient } from '@angular/common/http';
 import { computed, effect, inject, Injectable, signal } from '@angular/core';
-import { EMPTY, catchError, switchMap, timer } from 'rxjs';
+import { EMPTY, catchError, exhaustMap, startWith, switchMap } from 'rxjs';
 
 import { AuthService } from '@/app/auth/auth.service';
 import { NotificationKind } from '@/app/shared/api-enums';
 import { environment } from '@/environments/environment';
+import { RealtimeService } from '../shared/realtime.service';
 
 export interface PlatformNotification {
     key: string;
@@ -22,6 +23,7 @@ interface NotificationList { items: PlatformNotification[]; unread_count: number
 export class NotificationService {
     private readonly http = inject(HttpClient);
     private readonly auth = inject(AuthService);
+    private readonly realtime = inject(RealtimeService);
     private readonly baseUrl = `${environment.apiUrl}/notifications`;
 
     readonly items = signal<PlatformNotification[]>([]);
@@ -36,7 +38,9 @@ export class NotificationService {
                 this.unreadCount.set(0);
                 return;
             }
-            const subscription = timer(0, 10_000).pipe(switchMap(() => this.fetch().pipe(catchError(() => EMPTY)))).subscribe();
+            const subscription = this.realtime.changes$
+                .pipe(startWith(null), exhaustMap(() => this.fetch().pipe(catchError(() => EMPTY))))
+                .subscribe();
             onCleanup(() => subscription.unsubscribe());
         });
     }

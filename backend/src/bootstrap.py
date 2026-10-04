@@ -10,7 +10,9 @@ import logging
 import threading
 from datetime import UTC, datetime, timedelta
 
+from src.domain.realtime import RealtimeEvent
 from src.domain.user import Role
+from src.features.realtime.router import get_realtime_broker
 from src.features.terra_request.use_cases import refresh_terra_if_stale
 from src.features.user.schemas import CreateUserIn
 from src.features.user.use_cases import create_user
@@ -66,12 +68,16 @@ def run_terra_sync_loop(stop: threading.Event) -> None:
         try:
             with SessionLocal() as db:
                 # Marge d'une seconde : le tick suivant n'est jamais jugé « trop récent ».
-                refresh_terra_if_stale(
+                report = refresh_terra_if_stale(
                     feed,
                     SqlAlchemyTerraRequestRepository(db),
                     datetime.now(UTC),
                     timedelta(seconds=max(1, interval - 1)),
                 )
+                if report and (report.new_codes or report.updated_codes):
+                    get_realtime_broker().publish_from_thread(
+                        RealtimeEvent(type="data.changed", occurred_at=datetime.now(UTC))
+                    )
         except Exception:
             # Ne tue jamais la boucle (ex. migrations pas encore appliquées).
             logger.exception("terra nova sync failed")

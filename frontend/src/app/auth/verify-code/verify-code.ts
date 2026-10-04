@@ -36,11 +36,19 @@ export class VerifyCode {
     readonly notice = signal<string | null>(null);
     readonly secondsBeforeResend = computed(() => Math.max(0, Math.ceil((this.store.resendAt() - this.now()) / 1000)));
     readonly expiresInMinutes = computed(() => Math.max(1, Math.round((this.challenge()?.expires_in ?? 0) / 60)));
+    readonly isSms = computed(() => this.challenge()?.channel === 'sms');
+    readonly title = computed(() => (this.isSms() ? 'Vérifiez votre téléphone' : 'Vérifiez votre email'));
+    /** Email, ou numéro masqué (+261•••••67) pour un SMS. */
+    readonly destination = computed(() => {
+        const challenge = this.challenge();
+        return challenge ? challenge.destination || challenge.email || '' : '';
+    });
 
     constructor() {
-        // Pas de challenge (rechargement de page, accès direct) : retour à la connexion.
+        // Pas de challenge (rechargement de page, accès direct) : ne jamais laisser un
+        // utilisateur connecté revenir vers l'écran de connexion.
         if (!this.store.challenge()) {
-            this.router.navigate(['/auth/login']);
+            this.router.navigateByUrl(this.auth.isAuthenticated() ? this.auth.homeUrl() : '/auth/login');
         }
         interval(1000)
             .pipe(takeUntilDestroyed())

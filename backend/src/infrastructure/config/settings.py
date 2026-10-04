@@ -70,6 +70,13 @@ class Settings(BaseSettings):
     smtp_use_ssl: bool = False
     smtp_timeout_seconds: float = 10.0
 
+    # ─── SMS gateway httpSMS (code de confirmation par téléphone) ───
+    # Sans clé API, l'envoi de SMS échoue (503) sauf en développement, où le code est écrit dans les logs.
+    sms_gateway_url: str = "https://api.httpsms.com/v1/messages/send"
+    sms_gateway_api_key: str | None = None  # httpsms.com/settings
+    sms_gateway_from: str | None = None  # numéro de la SIM du téléphone, en E.164 (+261341254338)
+    sms_gateway_timeout_seconds: float = 10.0
+
     # ─── Connexion Google ───
     # « Client ID » OAuth 2.0 (type Web) de Google Cloud Console. Sans lui, POST /auth/google répond 503.
     google_client_id: str | None = None

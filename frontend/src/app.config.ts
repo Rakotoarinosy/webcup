@@ -7,7 +7,7 @@ import Aura from '@primeuix/themes/aura';
 import { providePrimeNG } from 'primeng/config';
 import { AuthService } from './app/auth/auth.service';
 import { authInterceptor } from './app/auth/auth.interceptor';
-import { liveDataInterceptor } from './app/shared/live-data.interceptor';
+import { RealtimeService } from './app/shared/realtime.service';
 import { appRoutes } from './app.routes';
 
 registerLocaleData(localeFr);
@@ -16,8 +16,11 @@ export const appConfig: ApplicationConfig = {
     providers: [
         { provide: LOCALE_ID, useValue: 'fr-FR' },
         provideAppInitializer(() => inject(AuthService).restoreSession()),
+        provideAppInitializer(() => {
+            inject(RealtimeService);
+        }),
         provideRouter(appRoutes, withInMemoryScrolling({ anchorScrolling: 'enabled', scrollPositionRestoration: 'enabled' }), withEnabledBlockingInitialNavigation()),
-        provideHttpClient(withFetch(), withInterceptors([authInterceptor, liveDataInterceptor])),
+        provideHttpClient(withFetch(), withInterceptors([authInterceptor])),
         provideZonelessChangeDetection(),
         providePrimeNG({ theme: { preset: Aura, options: { darkModeSelector: '.app-dark' } } })
     ]

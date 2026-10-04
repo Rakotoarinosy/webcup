@@ -27,13 +27,33 @@
         </div>
 
         <!-- Même rangée de cartes que le tableau de bord, sur le périmètre de l'utilisateur -->
-        <app-stats class="contents" [stats]="cards()" [links]="statLinks()" />
+        @if (auth.hasRole('agent')) {
+            <section class="col-span-12" aria-labelledby="agent-dashboard-title">
+                <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+                    <h2 id="agent-dashboard-title" class="m-0 text-xl font-semibold">Tableau de bord de mes interventions</h2>
+                    <a routerLink="/home/agent" class="font-semibold text-primary">Voir mes interventions</a>
+                </div>
+                @if (stats(); as s) {
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+                        <article class="card mb-0" aria-live="polite">
+                            <span class="text-muted-color">Demandes à traiter</span>
+                            <strong class="mt-2 block text-3xl">{{ (s.by_status['En cours'] || 0) + (s.by_status['En attente'] || 0) }}</strong>
+                        </article>
+                        <article class="card mb-0"><span class="text-muted-color">Total attribué</span><strong class="mt-2 block text-3xl">{{ s.total }}</strong></article>
+                        <article class="card mb-0"><span class="text-muted-color">En cours</span><strong class="mt-2 block text-3xl">{{ s.by_status['En cours'] || 0 }}</strong></article>
+                        <article class="card mb-0"><span class="text-muted-color">En attente</span><strong class="mt-2 block text-3xl">{{ s.by_status['En attente'] || 0 }}</strong></article>
+                        <article class="card mb-0"><span class="text-muted-color">Résolues</span><strong class="mt-2 block text-3xl">{{ s.by_status['Résolu'] || 0 }}</strong></article>
+                    </div>
+                } @else if (loading()) {
+                    <p role="status">Chargement du tableau de bord…</p>
+                }
+            </section>
+        } @else {
+            <app-account-stats class="contents" [stats]="cards()" [links]="statLinks()" />
+        }
 
-        <div class="col-span-12 xl:col-span-8">
-            <app-trend-chart [trendData]="trend()" />
-        </div>
-        <div class="col-span-12 xl:col-span-4">
-            <app-category-chart [categoryData]="categories()" />
+        <div class="col-span-12">
+            <app-account-map [requests]="mapRequests()" />
         </div>
 
         <section class="card col-span-12 mb-0" aria-labelledby="recent-title">

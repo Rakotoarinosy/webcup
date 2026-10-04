@@ -12,6 +12,7 @@ from typing import Any
 from sqlalchemy import (
     JSON,
     Boolean,
+    CheckConstraint,
     DateTime,
     Float,
     ForeignKey,
@@ -42,9 +43,15 @@ def utc_now() -> datetime:
 
 class UserModel(Base):
     __tablename__ = "users"
+    __table_args__ = (
+        CheckConstraint("email IS NOT NULL OR phone IS NOT NULL", name="ck_users_contact"),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
-    email: Mapped[str] = mapped_column(String(320), unique=True, index=True)
+    # NULL autorisé : un compte peut n'avoir qu'un numéro de téléphone (unicité ignorée pour NULL).
+    email: Mapped[str | None] = mapped_column(String(320), unique=True, index=True, nullable=True)
+    phone: Mapped[str | None] = mapped_column(String(20), unique=True, index=True, nullable=True)
+    phone_verified: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
     name: Mapped[str] = mapped_column(String(255))
     password_hash: Mapped[str] = mapped_column(String(255), default="", server_default="")
     role: Mapped[str] = mapped_column(
@@ -87,6 +94,7 @@ class VerificationCodeModel(Base):
         String(36), ForeignKey("users.id", ondelete="CASCADE"), unique=True, index=True
     )
     code_hash: Mapped[str] = mapped_column(String(64))
+    channel: Mapped[str] = mapped_column(String(10), default="email", server_default="email")
     attempts: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
@@ -260,6 +268,28 @@ class MunicipalPublicationModel(Base):
     is_published: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=True, server_default=true()
     )
+    image_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
+    view_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    like_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+
+
+class MunicipalPublicationLikeModel(Base):
+    __tablename__ = "municipal_publication_likes"
+
+    publication_id: Mapped[str] = mapped_column(String(36), ForeignKey("municipal_publications.id", ondelete="CASCADE"), primary_key=True)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class MunicipalPublicationCommentModel(Base):
+    __tablename__ = "municipal_publication_comments"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    publication_id: Mapped[str] = mapped_column(String(36), ForeignKey("municipal_publications.id", ondelete="CASCADE"), index=True)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    author_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
 
 
 class DataConcernModel(Base):

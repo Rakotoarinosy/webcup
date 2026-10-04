@@ -4,7 +4,6 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { RouterModule, provideRouter } from '@angular/router';
 
 import { BreadcrumbComponent } from '../breadcrumb/breadcrumb';
-import { AppFooter } from '../footer/app.footer';
 import { AppSidebar } from '../sidebar/app.sidebar';
 import { AppTopbar } from '../topbar/app.topbar';
 import { AppLayout } from './app.layout';
@@ -15,7 +14,7 @@ describe('AppLayout accessibility', () => {
     beforeEach(async () => {
         await TestBed.configureTestingModule({ imports: [AppLayout], providers: [provideRouter([])] })
             .overrideComponent(AppLayout, {
-                remove: { imports: [AppTopbar, AppSidebar, AppFooter, BreadcrumbComponent] },
+                remove: { imports: [AppTopbar, AppSidebar, BreadcrumbComponent] },
                 add: { imports: [CommonModule, RouterModule], schemas: [CUSTOM_ELEMENTS_SCHEMA] }
             })
             .compileComponents();

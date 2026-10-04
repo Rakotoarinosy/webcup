@@ -48,7 +48,9 @@ async def challenge(client: httpx.AsyncClient) -> dict[str, object]:
     response = await client.post(f"{AUTH}/register", json=PAYLOAD)
     assert response.status_code == 201, response.text
     body = response.json()
-    assert set(body) == {"challenge_id", "email", "expires_in", "resend_after"}
+    assert body["channel"] == "email"
+    assert body["destination"] == PAYLOAD["email"]
+    assert set(body) == {"challenge_id", "channel", "destination", "email", "expires_in", "resend_after"}
     assert "set-cookie" not in response.headers
     assert response.headers["cache-control"] == "no-store"
     return body

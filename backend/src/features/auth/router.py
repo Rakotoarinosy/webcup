@@ -14,6 +14,7 @@ from src.domain.user import (
     User,
     UserRepository,
 )
+from src.domain.user.entities import Channel
 from src.domain.user.ports import GoogleIdentityVerifier
 from src.features.auth.schemas import (
     ChallengeOut,
@@ -99,12 +100,14 @@ def _profile(user: User, resolve: ActorResolver) -> ProfileOut:
     return ProfileOut(
         id=user.id,
         email=user.email,
+        phone=user.phone,
         name=user.name,
         role=user.role,
         created_at=user.created_at,
         agent_id=actor.agent_id,
         institut_id=actor.institut_id,
         email_verified=user.email_verified,
+        phone_verified=user.phone_verified,
         avatar_url=user.avatar_url,
     )
 
@@ -127,7 +130,9 @@ def _challenge_out(challenge: VerificationChallenge, response: Response) -> Chal
 
     return ChallengeOut(
         challenge_id=challenge.challenge_id,
-        email=challenge.email,
+        channel=challenge.channel.value,
+        destination=challenge.destination,
+        email=challenge.destination if challenge.channel is Channel.EMAIL else None,
         expires_in=challenge.expires_in,
         resend_after=challenge.resend_after,
     )

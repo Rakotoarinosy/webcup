@@ -56,27 +56,31 @@
             }
             <form [formGroup]="loginForm" (ngSubmit)="submit()" novalidate class="space-y-4" aria-labelledby="login-title" [attr.aria-busy]="loading()">
                 <p id="login-required-hint" class="m-0 text-sm text-emerald-950/60 dark:text-emerald-50/65">Tous les champs sont obligatoires.</p>
+                <div role="group" aria-label="Méthode de connexion" class="grid grid-cols-2 gap-1 rounded-xl bg-emerald-50 p-1 dark:bg-emerald-900/60">
+                    <button type="button" [class]="tabClass('email')" [attr.aria-pressed]="method() === 'email'" (click)="setMethod('email')"><i class="pi pi-envelope mr-2" aria-hidden="true"></i>Email</button>
+                    <button type="button" [class]="tabClass('phone')" [attr.aria-pressed]="method() === 'phone'" (click)="setMethod('phone')"><i class="pi pi-phone mr-2" aria-hidden="true"></i>Téléphone</button>
+                </div>
                 <div>
-                    <label for="email" class="mb-2 inline-block text-sm font-semibold">Adresse email</label
+                    <label for="identifier" class="mb-2 inline-block text-sm font-semibold">{{ method() === 'phone' ? 'Numéro de téléphone' : 'Adresse email' }}</label
                     ><span class="relative block"
-                        ><i class="pi pi-envelope absolute left-4 top-1/2 z-10 -translate-y-1/2 text-emerald-950/45 dark:text-emerald-50/50" aria-hidden="true"></i
+                        ><i [class]="method() === 'phone' ? 'pi pi-phone' : 'pi pi-envelope'" class="absolute left-4 top-1/2 z-10 -translate-y-1/2 text-emerald-950/45 dark:text-emerald-50/50" aria-hidden="true"></i
                         ><input
                             pInputText
-                            #emailInput
-                            id="email"
-                            type="email"
-                            autocomplete="username"
-                            inputmode="email"
-                            placeholder="vous@exemple.mg"
+                            #identifierInput
+                            id="identifier"
+                            [type]="method() === 'phone' ? 'tel' : 'email'"
+                            [attr.inputmode]="method() === 'phone' ? 'tel' : 'email'"
+                            [attr.autocomplete]="method() === 'phone' ? 'tel' : 'username'"
+                            [attr.placeholder]="method() === 'phone' ? '034 12 345 67' : 'vous@exemple.mg'"
                             required
-                            aria-describedby="email-error"
-                            [attr.aria-invalid]="loginForm.controls.email.invalid && loginForm.controls.email.touched"
+                            aria-describedby="identifier-error"
+                            [attr.aria-invalid]="loginForm.controls.identifier.invalid && loginForm.controls.identifier.touched"
                             class="w-full rounded-xl border-emerald-200 py-3 !pl-11 text-[.95rem] shadow-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/15 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-50"
-                            formControlName="email"
-                            [invalid]="loginForm.controls.email.invalid && loginForm.controls.email.touched" /></span
-                    ><small id="email-error" class="field-error block min-h-4 pt-1 text-xs text-red-600 dark:text-red-300">
-                        @if (loginForm.controls.email.invalid && loginForm.controls.email.touched) {
-                            {{ emailError() }}
+                            formControlName="identifier"
+                            [invalid]="loginForm.controls.identifier.invalid && loginForm.controls.identifier.touched" /></span
+                    ><small id="identifier-error" class="field-error block min-h-4 pt-1 text-xs text-red-600 dark:text-red-300">
+                        @if (loginForm.controls.identifier.invalid && loginForm.controls.identifier.touched) {
+                            {{ identifierError() }}
                         }
                     </small>
                 </div>

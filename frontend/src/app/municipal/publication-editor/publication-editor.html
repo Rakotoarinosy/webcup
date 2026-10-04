@@ -1,0 +1,35 @@
+<div class="publication-editor">
+    <form class="edit-panel" (ngSubmit)="submit()">
+        <header class="panel-header"><div><span class="eyebrow">PUBLICATIONS MUNICIPALES</span><h2>Modifier la publication</h2></div><p-button icon="pi pi-times" [text]="true" [rounded]="true" ariaLabel="Fermer l’éditeur" (onClick)="cancelled.emit()" [disabled]="saving()" /></header>
+        <fieldset [disabled]="saving()">
+            <div class="field-row">
+                <div class="field"><label for="publication-title">Titre <span>*</span></label><input pInputText id="publication-title" name="title" [ngModel]="title()" (ngModelChange)="title.set($event)" maxlength="200" placeholder="Le titre de votre publication" required /></div>
+                <div class="field"><label for="publication-category">Catégorie <span>*</span></label><p-select inputId="publication-category" name="category" [options]="categories" [editable]="true" [ngModel]="category()" (ngModelChange)="category.set($event ?? '')" [disabled]="saving()" /></div>
+            </div>
+            <div class="field"><div class="label-row"><label for="publication-summary">Résumé <span>*</span></label><small>{{ summary().length }}/500</small></div><textarea pTextarea id="publication-summary" name="summary" rows="3" maxlength="500" [ngModel]="summary()" (ngModelChange)="summary.set($event)" placeholder="L’essentiel en quelques mots…" required></textarea></div>
+            <div class="field"><label id="publication-content-label">Contenu <span>*</span></label><p-editor name="content" [ngModel]="content()" (ngModelChange)="content.set($event ?? '')" [readonly]="saving()" [style]="{ height: '150px' }">
+                <ng-template #header><span class="ql-formats"><button type="button" class="ql-bold" aria-label="Gras"></button><button type="button" class="ql-italic" aria-label="Italique"></button><button type="button" class="ql-underline" aria-label="Souligner"></button></span><span class="ql-formats"><button type="button" class="ql-list" value="ordered" aria-label="Liste numérotée"></button><button type="button" class="ql-list" value="bullet" aria-label="Liste à puces"></button><button type="button" class="ql-link" aria-label="Insérer un lien"></button><button type="button" class="ql-clean" aria-label="Effacer la mise en forme"></button></span></ng-template>
+            </p-editor></div>
+            <div class="field"><label for="publication-cover">Image de couverture</label>
+                <div class="drop-zone" [class.dragging]="dragging()" (dragover)="dragOver($event)" (dragleave)="dragging.set(false)" (drop)="drop($event)">
+                    <i class="pi pi-cloud-upload" aria-hidden="true"></i><div><strong>Glissez-déposez votre image</strong><small>JPG, PNG ou WebP · 5 Mo maximum</small></div><p-button label="Parcourir" severity="secondary" [outlined]="true" (onClick)="fileInput.click()" [disabled]="saving()" />
+                    <input #fileInput id="publication-cover" type="file" accept="image/jpeg,image/png,image/webp" (change)="selectFile($event)" hidden />
+                </div>
+                @if (coverFile(); as file) { <div class="selected-image"><img [src]="previewImage()" alt="Image sélectionnée" /><span><strong>{{ file.name }}</strong><small>{{ (file.size / 1024).toFixed(0) }} Ko</small></span><p-button icon="pi pi-trash" [text]="true" severity="secondary" ariaLabel="Retirer l’image" (onClick)="removeFile()" [disabled]="saving()" /></div> }
+                @if (imageLoading()) { <small role="status">Lecture de l’image…</small> }
+                <label class="url-label" for="publication-cover-url">Ou utiliser une URL</label><input pInputText id="publication-cover-url" name="coverUrl" type="url" placeholder="https://exemple.fr/image.jpg" [ngModel]="coverUrl()" (ngModelChange)="coverUrl.set($event)" [disabled]="!!coverFile() || saving()" />
+                @if (imageError()) { <p class="error" role="alert">{{ imageError() }}</p> }
+            </div>
+            <div class="field-row schedule"><div class="field"><label for="publication-date">Date de publication</label><p-datepicker inputId="publication-date" name="publishedAt" [ngModel]="publishedAt()" (ngModelChange)="publishedAt.set($event)" [showTime]="true" [showIcon]="true" dateFormat="dd/mm/yy" hourFormat="24" appendTo="body" [disabled]="publishImmediately() || saving()" /></div><div class="immediate"><p-checkbox inputId="publication-now" name="publishImmediately" [binary]="true" [ngModel]="publishImmediately()" (ngModelChange)="publishImmediately.set($event)" [disabled]="saving()" /><label for="publication-now">Publier immédiatement</label></div></div>
+        </fieldset>
+        @if (attempted() && !valid()) { <p class="error" role="alert">Complétez le titre, la catégorie, le résumé, le contenu et la date de publication.</p> }
+        @if (saveError()) { <p class="error" role="alert">{{ saveError() }}</p> }
+        <footer class="editor-actions"><span><i class="pi pi-lock" aria-hidden="true"></i> Vos modifications ne sont pas encore publiées</span><p-button label="Annuler" severity="secondary" [text]="true" (onClick)="cancelled.emit()" [disabled]="saving()" /><p-button label="Enregistrer" icon="pi pi-check" iconPos="right" type="submit" [loading]="saving()" [disabled]="imageLoading()" /></footer>
+    </form>
+    <aside class="preview-panel" aria-label="Aperçu de la publication"><div class="preview-heading"><h2>Aperçu en direct</h2><span><i class="pi pi-circle-fill" aria-hidden="true"></i> Mis à jour en temps réel</span></div>
+        <article class="preview-card">
+            @if (previewImage() && !imageFailed()) { <img class="cover-image" [src]="previewImage()" alt="Couverture de la publication" (error)="imageFailed.set(true)" /> } @else { <div class="cover-empty"><i class="pi pi-image" aria-hidden="true"></i><span>{{ imageFailed() ? 'Impossible de charger cette image' : 'Votre image de couverture apparaîtra ici' }}</span></div> }
+            <div class="preview-body"><span class="category-badge">{{ category() || 'Catégorie' }}</span><h1>{{ title() || 'Le titre de votre publication' }}</h1><p class="metadata"><span><i class="pi pi-user" aria-hidden="true"></i> {{ author() }}</span><span><i class="pi pi-calendar" aria-hidden="true"></i> {{ publishImmediately() ? 'Publication immédiate' : (publishedAt() | date: 'dd/MM/yyyy à HH:mm') }}</span></p><section><h3>Résumé</h3><p class="summary-text">{{ summary() || 'Le résumé de votre publication s’affichera ici.' }}</p></section><section><h3>Contenu</h3><div class="rich-content" [innerHTML]="content()"></div>@if (!content()) { <p class="empty-copy">Commencez à rédiger pour voir votre publication prendre forme.</p> }</section><div class="preview-note"><i class="pi pi-eye" aria-hidden="true"></i> Aperçu avant enregistrement</div></div>
+        </article>
+    </aside>
+</div>

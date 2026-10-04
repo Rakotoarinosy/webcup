@@ -12,6 +12,38 @@
 
     <!-- Actions -->
     <div class="layout-topbar-actions">
+        <div class="topbar-search" (focusout)="onSearchFocusOut()">
+            <i class="pi pi-search topbar-search-icon" aria-hidden="true"></i>
+            <label class="sr-only" for="global-search">Rechercher une page ou un service</label>
+            <input
+                #globalSearch
+                id="global-search"
+                type="search"
+                role="combobox"
+                autocomplete="off"
+                placeholder="Rechercher"
+                [value]="searchQuery()"
+                [attr.aria-expanded]="searchOpen() && searchSuggestions().length > 0"
+                aria-autocomplete="list"
+                aria-controls="global-search-suggestions"
+                aria-activedescendant="activeSuggestion() >= 0 ? 'search-suggestion-' + activeSuggestion() : null"
+                (focus)="searchOpen.set(true)"
+                (input)="updateSearch(globalSearch.value)"
+                (keydown)="onSearchKeydown($event)"
+            />
+            <kbd class="topbar-search-shortcut" aria-label="Raccourci clavier Contrôle K">Ctrl K</kbd>
+            @if (searchOpen() && searchQuery()) {
+                <div id="global-search-suggestions" class="topbar-search-suggestions" role="listbox" aria-label="Suggestions de recherche">
+                    @for (suggestion of searchSuggestions(); track suggestion.url; let index = $index) {
+                        <button type="button" [id]="'search-suggestion-' + index" role="option" [attr.aria-selected]="index === activeSuggestion()" [class.is-active]="index === activeSuggestion()" (mousedown)="$event.preventDefault()" (click)="selectSuggestion(suggestion)">
+                            <i class="pi" [ngClass]="suggestion.icon" aria-hidden="true"></i><span><strong>{{ suggestion.label }}</strong><small>{{ suggestion.detail }}</small></span>
+                        </button>
+                    } @empty {
+                        <p role="status">Aucun résultat accessible pour « {{ searchQuery() }} ».</p>
+                    }
+                </div>
+            }
+        </div>
         @if (user(); as profile) {
             <a routerLink="/home/account" class="mr-3 grid max-w-40 gap-0.5 text-sm" data-testid="session-identity">
                 <strong class="truncate">{{ profile.name }}</strong>
