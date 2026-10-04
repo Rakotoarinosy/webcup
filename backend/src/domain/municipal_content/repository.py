@@ -1,11 +1,14 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
 
+from src.domain.i18n import Language
 from src.domain.municipal_content.entities import (
     ContactMessage,
+    ContentTranslation,
     MunicipalPublication,
     MunicipalPublicationComment,
     MunicipalService,
+    TranslatableContent,
 )
 
 
@@ -101,3 +104,25 @@ class MunicipalContentRepository(ABC):
 
     @abstractmethod
     def add_contact_message(self, message: ContactMessage) -> ContactMessage: ...
+
+    # ─── traductions (F27) ───
+
+    @abstractmethod
+    def translations_for(
+        self, content_type: TranslatableContent, content_ids: list[str], language: Language
+    ) -> dict[str, ContentTranslation]:
+        """Traductions dans `language` des contenus demandés, indexées par identifiant."""
+
+    @abstractmethod
+    def list_translations(
+        self, content_type: TranslatableContent, content_id: str
+    ) -> list[ContentTranslation]: ...
+
+    @abstractmethod
+    def save_translation(self, translation: ContentTranslation) -> ContentTranslation:
+        """Crée ou remplace la traduction (contenu, langue)."""
+
+    @abstractmethod
+    def delete_translation(
+        self, content_type: TranslatableContent, content_id: str, language: Language
+    ) -> bool: ...

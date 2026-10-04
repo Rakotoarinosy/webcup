@@ -1,0 +1,72 @@
+@if (progress(); as p) {
+    @if (p.dismissed) {
+        <div class="flex justify-end">
+            <button type="button" class="text-sm font-semibold text-primary underline" [disabled]="busy()" (click)="setDismissed(false)"><i class="pi pi-list-check mr-1" aria-hidden="true"></i>{{ 'onboarding.show' | t }}</button>
+        </div>
+    } @else {
+        <section class="card mb-0" aria-labelledby="getting-started-title" data-testid="getting-started">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                    <h2 id="getting-started-title" class="m-0 text-xl font-semibold">{{ 'onboarding.title' | t }}</h2>
+                    <p class="mb-0 mt-1 text-muted-color">{{ 'onboarding.intro' | t }}</p>
+                </div>
+                <button type="button" class="rounded border border-surface px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2" [disabled]="busy()" (click)="setDismissed(true)">{{ 'onboarding.hide' | t }}</button>
+            </div>
+
+            <div class="mt-4">
+                <p id="getting-started-progress" class="mb-1 text-sm font-medium" role="status">{{ 'onboarding.progress' | t: { done: p.completed_count, total: p.total } }}</p>
+                <div class="h-2 w-full overflow-hidden rounded-full bg-emphasis" role="progressbar" aria-labelledby="getting-started-progress" [attr.aria-valuenow]="p.completed_count" aria-valuemin="0" [attr.aria-valuemax]="p.total">
+                    <div class="h-full bg-primary transition-all" [style.width.%]="percent()"></div>
+                </div>
+            </div>
+
+            @if (actionError()) {
+                <p class="mb-0 mt-3 text-red-600" role="alert">{{ 'onboarding.error' | t }}</p>
+            }
+            @if (p.is_complete) {
+                <p class="mb-0 mt-3 font-semibold" role="status"><i class="pi pi-check-circle mr-1 text-primary" aria-hidden="true"></i>{{ 'onboarding.complete' | t }}</p>
+            }
+
+            <ol class="mt-4 grid list-none gap-3 p-0 md:grid-cols-2">
+                @for (item of p.steps; track item.step; let i = $index) {
+                    <li class="rounded-xl border border-surface p-4" [class.opacity-80]="item.done">
+                        <div class="flex items-start gap-3">
+                            <span class="grid size-8 shrink-0 place-items-center rounded-full font-bold" [class.bg-primary]="item.done" [class.text-primary-contrast]="item.done" [class.bg-emphasis]="!item.done" aria-hidden="true">
+                                @if (item.done) {
+                                    <i class="pi pi-check"></i>
+                                } @else {
+                                    {{ i + 1 }}
+                                }
+                            </span>
+                            <div class="min-w-0 flex-1">
+                                <h3 class="m-0 text-base font-semibold">
+                                    {{ stepKey(item.step) | t }}
+                                    <span class="ml-1 text-sm font-normal text-muted-color">({{ (item.done ? 'onboarding.done' : 'onboarding.todo') | t }})</span>
+                                </h3>
+                                <p class="mb-2 mt-1 text-sm text-muted-color">{{ stepKey(item.step, '.help') | t }}</p>
+                                @if (!item.done) {
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        @if (item.step === 'language') {
+                                            <app-language-switcher />
+                                            <button type="button" class="rounded bg-primary px-3 py-2 text-sm text-primary-contrast" [disabled]="busy()" (click)="keepLanguage()">{{ stepKey(item.step, '.action') | t }}</button>
+                                        } @else {
+                                            @if (links[item.step]; as link) {
+                                                <a class="rounded bg-primary px-3 py-2 text-sm font-semibold text-primary-contrast" [routerLink]="link.route" [queryParams]="link.queryParams">{{ stepKey(item.step, '.action') | t }}</a>
+                                            }
+                                            @if (item.step === 'find_service') {
+                                                <a class="text-sm font-semibold text-primary underline" routerLink="/home/orientation">{{ 'menu.orientation' | t }}</a>
+                                            }
+                                            @if (item.step === 'profile' || item.step === 'find_service') {
+                                                <button type="button" class="text-sm underline" [disabled]="busy()" (click)="markDone(item.step)">{{ 'onboarding.markDone' | t }}<span class="sr-only"> : {{ stepKey(item.step) | t }}</span></button>
+                                            }
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </li>
+                }
+            </ol>
+        </section>
+    }
+}

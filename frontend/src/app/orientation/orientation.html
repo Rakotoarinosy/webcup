@@ -1,0 +1,103 @@
+<section class="municipal-page mx-auto max-w-4xl px-4" aria-labelledby="orientation-title">
+    <h1 id="orientation-title" tabindex="-1" class="text-3xl font-bold">{{ 'orientation.title' | t }}</h1>
+    <p class="intro">{{ 'orientation.intro' | t }}</p>
+
+    @if (!result()) {
+        <form class="mt-6 grid gap-6" novalidate (ngSubmit)="submit()" [attr.aria-busy]="loading()">
+            <fieldset class="rounded-xl border border-surface p-4" [attr.aria-invalid]="attempted() && !situation()" aria-describedby="orientation-situation-error">
+                <legend class="px-1 text-lg font-semibold">{{ 'orientation.q1' | t }}</legend>
+                <div class="grid gap-2 sm:grid-cols-2">
+                    @for (option of situations; track option) {
+                        <label class="flex cursor-pointer items-center gap-3 rounded-lg border border-surface p-3 has-[:checked]:border-primary has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-primary">
+                            <input type="radio" name="orientation-situation" [value]="option" [checked]="situation() === option" (change)="situation.set(option)" required />
+                            <span>{{ 'orientation.situation.' + option | t }}</span>
+                        </label>
+                    }
+                </div>
+                <p id="orientation-situation-error" class="mb-0 mt-2 min-h-5 text-sm text-red-600" [attr.role]="attempted() && !situation() ? 'alert' : null">
+                    @if (attempted() && !situation()) {
+                        {{ 'orientation.situationRequired' | t }}
+                    }
+                </p>
+            </fieldset>
+
+            <fieldset class="rounded-xl border border-surface p-4" aria-describedby="orientation-needs-help">
+                <legend class="px-1 text-lg font-semibold">{{ 'orientation.q2' | t }}</legend>
+                <p id="orientation-needs-help" class="mb-3 mt-0 text-sm text-muted-color">{{ 'orientation.q2.help' | t }}</p>
+                <div class="grid gap-2 sm:grid-cols-3">
+                    @for (need of needOptions; track need) {
+                        <label class="flex cursor-pointer items-center gap-2 rounded-lg border border-surface p-2 has-[:checked]:border-primary has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-primary">
+                            <input type="checkbox" [name]="'orientation-need-' + need" [checked]="needs().has(need)" (change)="toggleNeed(need, $any($event.target).checked)" />
+                            <span>{{ 'orientation.need.' + need | t }}</span>
+                        </label>
+                    }
+                </div>
+            </fieldset>
+
+            <fieldset class="rounded-xl border border-surface p-4">
+                <legend class="px-1 text-lg font-semibold">{{ 'orientation.q3' | t }}</legend>
+                <div class="grid gap-2 sm:grid-cols-2">
+                    @for (option of channels; track option) {
+                        <label class="flex cursor-pointer items-center gap-3 rounded-lg border border-surface p-3 has-[:checked]:border-primary has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-primary">
+                            <input type="radio" name="orientation-channel" [value]="option" [checked]="channel() === option" (change)="channel.set(option)" />
+                            <span>{{ 'orientation.channel.' + option | t }}</span>
+                        </label>
+                    }
+                </div>
+            </fieldset>
+
+            @if (error()) {
+                <p role="alert" class="m-0 text-red-600">{{ 'orientation.error' | t }}</p>
+            }
+            @if (loading()) {
+                <p role="status" class="m-0">{{ 'orientation.loading' | t }}</p>
+            }
+            <div>
+                <button type="submit" class="rounded-lg bg-primary px-5 py-3 font-semibold text-primary-contrast focus-visible:outline-2 focus-visible:outline-offset-2" [disabled]="loading()">
+                    {{ 'orientation.submit' | t }} <i class="pi pi-arrow-right ml-1" aria-hidden="true"></i>
+                </button>
+            </div>
+        </form>
+    } @else {
+        @if (result(); as r) {
+            <section class="mt-6" aria-labelledby="orientation-results-title">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <h2 id="orientation-results-title" tabindex="-1" class="m-0 text-2xl font-semibold">{{ 'orientation.results' | t }}</h2>
+                    <button type="button" class="rounded border border-surface px-3 py-2" (click)="restart()"><i class="pi pi-refresh mr-1" aria-hidden="true"></i>{{ 'orientation.restart' | t }}</button>
+                </div>
+                <p role="status" class="text-muted-color">{{ 'orientation.resultsCount' | t: { services: r.services.length, actions: actionLinks().length } }}</p>
+
+                <h3 class="mt-6 text-xl font-semibold">{{ 'orientation.actionsTitle' | t }}</h3>
+                <ol class="grid list-none gap-2 p-0">
+                    @for (link of actionLinks(); track $index) {
+                        <li>
+                            <a class="flex items-center gap-3 rounded-lg border border-surface p-3 font-medium hover:border-primary focus-visible:outline-2 focus-visible:outline-primary" [routerLink]="link.route" [queryParams]="link.queryParams">
+                                <i class="pi text-primary" [class]="'pi ' + link.icon" aria-hidden="true"></i><span class="flex-1">{{ link.label }}</span><i class="pi pi-arrow-right" aria-hidden="true"></i>
+                            </a>
+                        </li>
+                    }
+                </ol>
+
+                <h3 class="mt-6 text-xl font-semibold">{{ 'orientation.servicesTitle' | t }}</h3>
+                <div class="grid gap-3 md:grid-cols-2">
+                    @for (item of r.services; track item.service.id) {
+                        <article class="rounded-xl border border-surface p-4" [attr.aria-labelledby]="'orientation-service-' + item.service.id">
+                            <h4 [id]="'orientation-service-' + item.service.id" class="m-0 text-lg font-semibold" [attr.lang]="item.service.language"><i [class]="'pi ' + item.service.icon" aria-hidden="true"></i> {{ item.service.name }}</h4>
+                            @if (!item.service.translation_available) {
+                                <p class="mb-0 mt-1 text-xs text-muted-color"><i class="pi pi-info-circle mr-1" aria-hidden="true"></i>{{ 'common.translationUnavailable' | t }}</p>
+                            }
+                            <p class="mb-2 mt-2" [attr.lang]="item.service.language">{{ item.service.description }}</p>
+                            <p class="m-0 text-sm text-muted-color">{{ 'orientation.because' | t: { needs: needsLabel(item.needs) } }}</p>
+                            <p class="m-0 text-sm"><strong>{{ 'services.hours' | t }} :</strong> <span [attr.lang]="item.service.language">{{ item.service.opening_hours }}</span></p>
+                            @if (item.service.address) {
+                                <p class="m-0 text-sm"><strong>{{ 'services.address' | t }} :</strong> {{ item.service.address }}</p>
+                            }
+                        </article>
+                    } @empty {
+                        <p>{{ 'orientation.noService' | t }}</p>
+                    }
+                </div>
+            </section>
+        }
+    }
+</section>

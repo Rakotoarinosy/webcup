@@ -8,6 +8,8 @@ import { MessageModule } from 'primeng/message';
 import { AppFloatingConfigurator } from '../../layout/component/floatingconfigurator/app.floatingconfigurator';
 
 import { AuthService } from '@/app/auth/auth.service';
+import { I18nService } from '@/app/i18n/i18n.service';
+import { TranslatePipe } from '@/app/i18n/t.pipe';
 import { authErrorMessage } from '../auth-errors';
 import { ContactMethod } from '../auth.model';
 import { normalizePhone, phoneValidator } from '../auth.validators';
@@ -16,7 +18,7 @@ import { safeReturnUrl } from '../return-url';
 
 @Component({
     selector: 'app-login',
-    imports: [ButtonModule, InputTextModule, MessageModule, ReactiveFormsModule, RouterModule, AppFloatingConfigurator, GoogleButton],
+    imports: [ButtonModule, InputTextModule, MessageModule, ReactiveFormsModule, RouterModule, AppFloatingConfigurator, GoogleButton, TranslatePipe],
     templateUrl: './login.html'
 })
 export class Login implements AfterViewInit {
@@ -25,6 +27,7 @@ export class Login implements AfterViewInit {
     private readonly route = inject(ActivatedRoute);
     private readonly fb = inject(FormBuilder);
     private readonly injector = inject(Injector);
+    private readonly i18n = inject(I18nService);
     private readonly identifierInput = viewChild<ElementRef<HTMLInputElement>>('identifierInput');
     private readonly errorSummary = viewChild<ElementRef<HTMLElement>>('errorSummary');
 
@@ -95,7 +98,7 @@ export class Login implements AfterViewInit {
                 this.loading.set(false);
                 this.loginForm.enable();
                 this.loginForm.patchValue({ password: '' });
-                this.errorMessage.set(loginErrorMessage(error));
+                this.errorMessage.set(loginErrorMessage(error, this.i18n));
             }
         });
     }
@@ -103,9 +106,9 @@ export class Login implements AfterViewInit {
     identifierError(): string {
         const phone = this.method() === 'phone';
         if (this.loginForm.controls.identifier.hasError('required')) {
-            return phone ? 'Le numéro de téléphone est obligatoire.' : 'L’email est obligatoire.';
+            return this.i18n.t(phone ? 'auth.error.phoneRequired' : 'auth.error.emailRequired');
         }
-        return phone ? 'Saisissez un numéro valide, par exemple 034 12 345 67 ou +261 34 12 345 67.' : 'Saisissez une adresse email valide.';
+        return this.i18n.t(phone ? 'auth.error.phoneInvalid' : 'auth.error.emailInvalid');
     }
 
     /** Erreurs du formulaire, dans l’ordre des champs, pour le récapitulatif. */
@@ -113,7 +116,7 @@ export class Login implements AfterViewInit {
         const { identifier, password } = this.loginForm.controls;
         const errors: { field: string; message: string }[] = [];
         if (identifier.invalid) errors.push({ field: 'identifier', message: this.identifierError() });
-        if (password.invalid) errors.push({ field: 'password', message: 'Le mot de passe est obligatoire.' });
+        if (password.invalid) errors.push({ field: 'password', message: this.i18n.t('auth.error.passwordRequired') });
         return errors;
     }
 
@@ -129,9 +132,9 @@ export class Login implements AfterViewInit {
     }
 }
 
-function loginErrorMessage(error: unknown): string {
+function loginErrorMessage(error: unknown, i18n: I18nService): string {
     if (!(error instanceof HttpErrorResponse)) {
-        return 'Erreur inattendue, veuillez réessayer.';
+        return i18n.t('common.error.unexpected');
     }
 
     // 429 peut aussi venir du délai anti-spam des codes (ex. email puis téléphone à quelques secondes d'intervalle).
@@ -141,13 +144,13 @@ function loginErrorMessage(error: unknown): string {
 
     switch (error.status) {
         case 401:
-            return 'Identifiant ou mot de passe incorrect.';
+            return i18n.t('auth.error.credentials');
         case 403:
-            return 'Ce compte est désactivé. Contactez un administrateur.';
+            return i18n.t('auth.error.disabled');
         case 429:
-            return 'Trop de tentatives échouées : le compte est temporairement verrouillé. Réessayez dans quelques minutes.';
+            return i18n.t('auth.error.locked');
         case 422:
-            return 'Vérifiez le format de votre email ou de votre numéro de téléphone.';
+            return i18n.t('auth.error.format');
         default:
             return authErrorMessage(error);
     }

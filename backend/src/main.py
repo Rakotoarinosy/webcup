@@ -17,6 +17,8 @@ from src.features.data_concern.router import router as data_concern_router
 from src.features.institut.router import router as institut_router
 from src.features.municipal_content.router import router as municipal_content_router
 from src.features.notification.router import router as notification_router
+from src.features.onboarding.router import router as onboarding_router
+from src.features.orientation.router import router as orientation_router
 from src.features.preferences.router import router as preferences_router
 from src.features.realtime.router import get_realtime_broker
 from src.features.realtime.router import router as realtime_router
@@ -46,6 +48,8 @@ FEATURE_ROUTERS: list[APIRouter] = [
     audit_router,
     terra_request_router,
     realtime_router,
+    onboarding_router,
+    orientation_router,
 ]
 
 
@@ -78,7 +82,7 @@ def create_app() -> FastAPI:
         allow_origins=settings.cors_origins,  # jamais "*" : les cookies (credentials) sont activés
         allow_credentials=True,
         allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
-        allow_headers=["Authorization", "Content-Type"],
+        allow_headers=["Authorization", "Content-Type", "Accept-Language"],
     )
     register_exception_handlers(app)
 

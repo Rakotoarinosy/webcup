@@ -15,6 +15,7 @@ from src.infrastructure.persistence.models import (
     CitizenRequestModel,
     DataConcernModel,
     NotificationReadModel,
+    OnboardingProgressModel,
     RefreshTokenModel,
     TerraRequestReadModel,
     UserModel,
@@ -119,6 +120,7 @@ class SqlAlchemyUserRepository(UserRepository):
                 NotificationReadModel,
                 TerraRequestReadModel,
                 UserPreferenceModel,
+                OnboardingProgressModel,
                 VerificationCodeModel,
             ):
                 self.db.execute(delete(session_table).where(session_table.user_id == user_id))

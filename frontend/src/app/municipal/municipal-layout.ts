@@ -2,10 +2,12 @@ import { AppFontSize } from '../layout/component/fontsize/app.fontsize';
 import { Component, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../auth/auth.service';
+import { LanguageSwitcher } from '../i18n/language-switcher';
+import { TranslatePipe } from '../i18n/t.pipe';
 
 @Component({
     selector: 'app-municipal-layout',
-    imports: [RouterLink, RouterLinkActive, RouterOutlet, AppFontSize],
+    imports: [RouterLink, RouterLinkActive, RouterOutlet, AppFontSize, LanguageSwitcher, TranslatePipe],
     templateUrl: './municipal-layout.html',
     styles: [
         `

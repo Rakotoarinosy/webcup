@@ -1,34 +1,40 @@
 <section class="municipal-home">
     @if (loading()) {
-        <p role="status">Actualisation des informations…</p>
+        <p role="status">{{ 'municipal.refreshing' | t }}</p>
     }
     @if (loadError(); as message) {
-        <p role="alert">{{ message }} <button type="button" (click)="load()">Réessayer</button></p>
+        <p role="alert">{{ message }} <button type="button" (click)="load()">{{ 'common.retry' | t }}</button></p>
     }
+
+    <aside class="orientation-callout" aria-labelledby="home-orientation-title">
+        <h2 id="home-orientation-title"><i class="pi pi-compass" aria-hidden="true"></i> {{ 'landing.newcomer.title' | t }}</h2>
+        <p>{{ 'landing.newcomer.text' | t }}</p>
+        <a [routerLink]="navigation.path('orientation')">{{ 'landing.start' | t }} <i class="pi pi-arrow-right" aria-hidden="true"></i></a>
+    </aside>
 
     <section>
         <div class="section-heading">
             <div>
-                <p class="eyebrow">Les plus demandés</p>
-                <h2>Services les plus utilisés</h2>
+                <p class="eyebrow">{{ 'municipal.mostUsed' | t }}</p>
+                <h2>{{ 'municipal.mostUsedTitle' | t }}</h2>
             </div>
-            <a [routerLink]="navigation.path('services')">Tous les services</a>
+            <a [routerLink]="navigation.path('services')">{{ 'municipal.allServices' | t }}</a>
         </div>
         @if (startError(); as message) {
             <p role="alert">{{ message }}</p>
         }
         <div class="cards">
             @for (service of popularServices(); track service.id) {
-                <button type="button" class="card-link" [attr.aria-label]="'Contacter le service ' + service.name" [disabled]="openingService() !== null" (click)="startService(service)">
+                <button type="button" class="card-link" [attr.aria-label]="'municipal.contactServiceNamed' | t: { name: service.name }" [disabled]="openingService() !== null" (click)="startService(service)">
                     <p-card
                         ><ng-template #title><i [class]="'pi ' + service.icon" aria-hidden="true"></i> {{ service.name }}</ng-template>
-                        <p>{{ service.description }}</p>
-                        <small>{{ service.opening_hours }}</small
-                        ><span class="card-cta">Contacter ce service <i class="pi pi-arrow-right" aria-hidden="true"></i></span
+                        <p [attr.lang]="service.language">{{ service.description }}</p>
+                        <small [attr.lang]="service.language">{{ service.opening_hours }}</small
+                        ><span class="card-cta">{{ 'municipal.contactService' | t }} <i class="pi pi-arrow-right" aria-hidden="true"></i></span
                     ></p-card>
                 </button>
             } @empty {
-                <p>Les services les plus utilisés seront affichés dès que des démarches auront été ouvertes.</p>
+                <p>{{ 'municipal.noPopular' | t }}</p>
             }
         </div>
     </section>
@@ -36,23 +42,23 @@
     <section>
         <div class="section-heading">
             <div>
-                <p class="eyebrow">Actualités</p>
-                <h2>Informations municipales</h2>
+                <p class="eyebrow">{{ 'municipal.news' | t }}</p>
+                <h2>{{ 'municipal.newsTitle' | t }}</h2>
             </div>
-            <a [routerLink]="navigation.path('publications')">Toutes les publications</a>
+            <a [routerLink]="navigation.path('publications')">{{ 'landing.allPublications' | t }}</a>
         </div>
         <div class="cards publications">
             @for (publication of publications(); track publication.id) {
-                <a class="card-link" [routerLink]="navigation.path('publications')" [queryParams]="{ publication: publication.id }" [attr.aria-label]="'Lire la publication : ' + publication.title">
+                <a class="card-link" [routerLink]="navigation.path('publications')" [queryParams]="{ publication: publication.id }" [attr.aria-label]="'landing.readPublication' | t: { title: publication.title }">
                     <p-card
                         ><ng-template #title>{{ publication.title }}</ng-template>
-                        <p>{{ publication.summary }}</p>
-                        <small>{{ publication.category }} · {{ publication.published_at | date: 'longDate' }}</small>
-                        <span class="card-cta">Lire la publication <i class="pi pi-arrow-right" aria-hidden="true"></i></span>
+                        <p [attr.lang]="publication.language">{{ publication.summary }}</p>
+                        <small>{{ publication.category }} · {{ publication.published_at | ldate: 'longDate' }}</small>
+                        <span class="card-cta">{{ 'municipal.read' | t }} <i class="pi pi-arrow-right" aria-hidden="true"></i></span>
                     </p-card>
                 </a>
             } @empty {
-                <p>Aucune publication pour le moment.</p>
+                <p>{{ 'landing.noPublication' | t }}</p>
             }
         </div>
     </section>

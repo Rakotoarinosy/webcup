@@ -26,7 +26,16 @@ from src.domain.citizen_request import (  # noqa: E402
     SortOrder,
 )
 from src.domain.data_concern import ConcernStatus, ConcernTopic  # noqa: E402
+from src.domain.i18n import Language  # noqa: E402
+from src.domain.municipal_content import TranslatableContent  # noqa: E402
 from src.domain.notification import NotificationKind  # noqa: E402
+from src.domain.onboarding import OnboardingHint, OnboardingStep  # noqa: E402
+from src.domain.orientation import (  # noqa: E402
+    OrientationAction,
+    OrientationChannel,
+    OrientationNeed,
+    OrientationSituation,
+)
 from src.domain.preferences import FontFamily, FontSize, Theme  # noqa: E402
 from src.domain.search.entities import SearchKind  # noqa: E402
 from src.domain.terra_request import PipelineStatus, TerraNotificationKind  # noqa: E402
@@ -57,6 +66,14 @@ ENUMS: tuple[type[StrEnum], ...] = (
     SearchKind,
     PipelineStatus,
     TerraNotificationKind,
+    Language,
+    TranslatableContent,
+    OnboardingStep,
+    OnboardingHint,
+    OrientationSituation,
+    OrientationNeed,
+    OrientationChannel,
+    OrientationAction,
 )
 
 HEADER = """\

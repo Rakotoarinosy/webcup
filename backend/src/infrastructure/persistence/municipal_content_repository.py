@@ -2,18 +2,22 @@
 
 from datetime import UTC, datetime
 
-from sqlalchemy import select, update
+from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
 
+from src.domain.i18n import Language
 from src.domain.municipal_content import (
     ContactMessage,
+    ContentTranslation,
     MunicipalContentRepository,
     MunicipalPublication,
     MunicipalPublicationComment,
     MunicipalService,
+    TranslatableContent,
 )
 from src.infrastructure.persistence.models import (
     ContactMessageModel,
+    MunicipalContentTranslationModel,
     MunicipalPublicationCommentModel,
     MunicipalPublicationLikeModel,
     MunicipalPublicationModel,
@@ -279,6 +283,12 @@ class SqlAlchemyMunicipalContentRepository(MunicipalContentRepository):
         row = self.db.get(MunicipalPublicationModel, publication_id)
         if row is None:
             return False
+        self.db.execute(
+            delete(MunicipalContentTranslationModel).where(
+                MunicipalContentTranslationModel.content_type == TranslatableContent.PUBLICATION,
+                MunicipalContentTranslationModel.content_id == publication_id,
+            )
+        )
         self.db.delete(row)
         self.db.commit()
         return True
@@ -298,6 +308,76 @@ class SqlAlchemyMunicipalContentRepository(MunicipalContentRepository):
         )
         self.db.commit()
         return message
+
+    def translations_for(
+        self, content_type: TranslatableContent, content_ids: list[str], language: Language
+    ) -> dict[str, ContentTranslation]:
+        if not content_ids:
+            return {}
+        rows = self.db.scalars(
+            select(MunicipalContentTranslationModel).where(
+                MunicipalContentTranslationModel.content_type == content_type,
+                MunicipalContentTranslationModel.language == language,
+                MunicipalContentTranslationModel.content_id.in_(content_ids),
+            )
+        )
+        return {row.content_id: self._translation(row) for row in rows}
+
+    def list_translations(
+        self, content_type: TranslatableContent, content_id: str
+    ) -> list[ContentTranslation]:
+        rows = self.db.scalars(
+            select(MunicipalContentTranslationModel)
+            .where(
+                MunicipalContentTranslationModel.content_type == content_type,
+                MunicipalContentTranslationModel.content_id == content_id,
+            )
+            .order_by(MunicipalContentTranslationModel.language)
+        )
+        return [self._translation(row) for row in rows]
+
+    def save_translation(self, translation: ContentTranslation) -> ContentTranslation:
+        row = self.db.scalars(
+            select(MunicipalContentTranslationModel).where(
+                MunicipalContentTranslationModel.content_type == translation.content_type,
+                MunicipalContentTranslationModel.content_id == translation.content_id,
+                MunicipalContentTranslationModel.language == translation.language,
+            )
+        ).one_or_none()
+        if row is None:
+            row = MunicipalContentTranslationModel(
+                content_type=translation.content_type,
+                content_id=translation.content_id,
+                language=translation.language,
+            )
+            self.db.add(row)
+        row.fields = dict(translation.fields)
+        row.updated_at = translation.updated_at or datetime.now(UTC)
+        self.db.commit()
+        self.db.refresh(row)
+        return self._translation(row)
+
+    def delete_translation(
+        self, content_type: TranslatableContent, content_id: str, language: Language
+    ) -> bool:
+        result = self.db.execute(
+            delete(MunicipalContentTranslationModel).where(
+                MunicipalContentTranslationModel.content_type == content_type,
+                MunicipalContentTranslationModel.content_id == content_id,
+                MunicipalContentTranslationModel.language == language,
+            )
+        )
+        self.db.commit()
+        return bool(getattr(result, "rowcount", 0))
+
+    def _translation(self, row: MunicipalContentTranslationModel) -> ContentTranslation:
+        return ContentTranslation(
+            content_type=TranslatableContent(row.content_type),
+            content_id=row.content_id,
+            language=Language(row.language),
+            fields={str(k): str(v) for k, v in (row.fields or {}).items()},
+            updated_at=self._utc(row.updated_at) if row.updated_at else None,
+        )
 
     @staticmethod
     def _utc(value: datetime) -> datetime:

@@ -2,23 +2,28 @@
     <topbar-widget class="relative mx-auto flex max-w-7xl items-center justify-between px-6 py-5 lg:px-10" />
     <section class="mx-auto grid max-w-7xl items-center gap-14 px-6 pb-24 pt-14 lg:grid-cols-2 lg:px-10 lg:py-24">
         <div>
-            <h1 class="m-0 max-w-xl !text-5xl font-bold leading-[.98] tracking-[-.06em] text-emerald-950 dark:!text-white md:!text-7xl">Chaque demande mérite une réponse.</h1>
+            <h1 class="m-0 max-w-xl !text-5xl font-bold leading-[.98] tracking-[-.06em] text-emerald-950 dark:!text-white md:!text-7xl">{{ 'landing.title' | t }}</h1>
             <p class="mt-7 max-w-xl text-lg leading-8 text-emerald-950/65 dark:text-emerald-50/70">
-                Terra Nova aide les collectivités à centraliser, traiter et suivre les demandes des citoyens, pour des services publics plus réactifs et plus proches du terrain.
+                {{ 'landing.lead' | t }}
             </p>
             <div class="mt-9 flex flex-wrap gap-5">
                 <a [routerLink]="auth.isAuthenticated() ? auth.homeUrl() : '/auth/login'" class="rounded-xl bg-emerald-600 px-6 py-3.5 font-bold text-white shadow-xl shadow-emerald-600/20"
-                    >{{ auth.isAuthenticated() ? 'Retrouver mon espace' : 'Accéder à Terra Nova' }} <i class="pi pi-arrow-right ml-2"></i></a
-                ><a href="#process" class="py-3.5 font-semibold text-emerald-700 dark:text-emerald-300">Découvrir le fonctionnement</a>
+                    >{{ (auth.isAuthenticated() ? 'landing.mySpace' : 'landing.access') | t }} <i class="pi pi-arrow-right ml-2" aria-hidden="true"></i></a
+                ><a href="#process" class="py-3.5 font-semibold text-emerald-700 dark:text-emerald-300">{{ 'landing.discover' | t }}</a>
             </div>
+            <aside class="mt-9 max-w-xl rounded-2xl border border-emerald-200 p-5 dark:border-emerald-800" aria-labelledby="newcomer-title" data-testid="newcomer-cta">
+                <h2 id="newcomer-title" class="m-0 !text-xl font-bold dark:!text-white"><i class="pi pi-compass mr-2 text-emerald-600" aria-hidden="true"></i>{{ 'landing.newcomer.title' | t }}</h2>
+                <p class="mb-3 mt-2 text-emerald-950/70 dark:text-emerald-50/75">{{ 'landing.newcomer.text' | t }}</p>
+                <a routerLink="/municipal/orientation" class="inline-block rounded-xl border-2 border-emerald-600 px-4 py-2.5 font-bold text-emerald-700 hover:bg-emerald-50 dark:text-emerald-200 dark:hover:bg-emerald-900">{{ 'landing.start' | t }} <i class="pi pi-arrow-right ml-1" aria-hidden="true"></i></a>
+            </aside>
         </div>
         <section class="rounded-2xl border border-emerald-100 bg-emerald-50 p-6 shadow-2xl shadow-emerald-950/10 dark:border-emerald-800 dark:bg-emerald-900" aria-labelledby="commune-activity-title" [attr.aria-busy]="loading()">
             <div class="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                    <p class="m-0 text-sm text-emerald-700 dark:text-emerald-300">Dans votre commune</p>
-                    <h2 id="commune-activity-title" class="m-0 !text-2xl font-bold dark:!text-white">L'activité en direct</h2>
+                    <p class="m-0 text-sm text-emerald-700 dark:text-emerald-300">{{ 'landing.inYourTown' | t }}</p>
+                    <h2 id="commune-activity-title" class="m-0 !text-2xl font-bold dark:!text-white">{{ 'landing.liveActivity' | t }}</h2>
                 </div>
-                <button type="button" (click)="load()" [disabled]="loading()" aria-label="Actualiser les informations municipales" class="rounded-xl border border-emerald-200 px-3 py-2 disabled:opacity-50 dark:border-emerald-700">
+                <button type="button" (click)="load()" [disabled]="loading()" [attr.aria-label]="'landing.refresh' | t" class="rounded-xl border border-emerald-200 px-3 py-2 disabled:opacity-50 dark:border-emerald-700">
                     <i class="pi pi-refresh" aria-hidden="true"></i>
                 </button>
             </div>
@@ -28,41 +33,41 @@
             @if (!loading()) {
                 <div class="my-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div class="rounded-xl bg-white p-4 dark:bg-emerald-950">
-                        <strong class="block text-3xl">{{ services().length }}</strong><span>Services disponibles</span>
+                        <strong class="block text-3xl">{{ services().length }}</strong><span>{{ 'landing.services' | t }}</span>
                     </div>
                     <div class="rounded-xl bg-white p-4 dark:bg-emerald-950">
-                        <strong class="block text-3xl">{{ publications().length }}</strong><span>Informations récentes</span>
+                        <strong class="block text-3xl">{{ publications().length }}</strong><span>{{ 'landing.recent' | t }}</span>
                     </div>
                     <div class="rounded-xl bg-white p-4 dark:bg-emerald-950">
-                        <strong class="block text-3xl">24 h</strong><span>Mise à jour des actualités</span>
+                        <strong class="block text-3xl">24 h</strong><span>{{ 'landing.updates' | t }}</span>
                     </div>
                     <div class="rounded-xl bg-white p-4 dark:bg-emerald-950">
-                        <strong class="block text-3xl">En ligne</strong><span>Plateforme municipale</span>
+                        <strong class="block text-3xl">{{ 'landing.online' | t }}</strong><span>{{ 'landing.platform' | t }}</span>
                     </div>
                 </div>
-                <p class="mb-0 text-sm text-emerald-700 dark:text-emerald-300">Actualisé à {{ updatedAt() | date: 'HH:mm:ss' }} · mise à jour automatique</p>
+                <p class="mb-0 text-sm text-emerald-700 dark:text-emerald-300">{{ 'landing.updatedAt' | t: { time: updatedAt() | ldate: 'HH:mm:ss' } }}</p>
             } @else if (loading()) {
-                <p role="status" class="my-6">Chargement de l'activité municipale…</p>
+                <p role="status" class="my-6">{{ 'landing.loadingActivity' | t }}</p>
             }
         </section>
     </section>
     <section class="mx-auto max-w-7xl px-6 pb-20 lg:px-10" aria-labelledby="public-news-title">
         <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
-            <h2 id="public-news-title" class="m-0 !text-3xl font-bold">Les informations de votre mairie</h2>
-            <a routerLink="/municipal/publications" class="font-semibold text-emerald-700 dark:text-emerald-300">Toutes les publications</a>
+            <h2 id="public-news-title" class="m-0 !text-3xl font-bold">{{ 'landing.news' | t }}</h2>
+            <a routerLink="/municipal/publications" class="font-semibold text-emerald-700 dark:text-emerald-300">{{ 'landing.allPublications' | t }}</a>
         </div>
         <div class="grid gap-6 md:grid-cols-3">
             @for (publication of publications(); track publication.id) {
-                <a class="block" routerLink="/municipal/publications" [queryParams]="{ publication: publication.id }" [attr.aria-label]="'Lire la publication : ' + publication.title"
+                <a class="block" routerLink="/municipal/publications" [queryParams]="{ publication: publication.id }" [attr.aria-label]="'landing.readPublication' | t: { title: publication.title }"
                     ><article class="rounded-2xl border border-emerald-100 p-6 dark:border-emerald-800">
-                        <p class="text-sm text-emerald-700 dark:text-emerald-300">{{ publication.category }} · {{ publication.published_at | date: 'dd/MM/yyyy' }}</p>
-                        <h3 class="!text-xl font-semibold">{{ publication.title }}</h3>
-                        <p>{{ publication.summary }}</p>
+                        <p class="text-sm text-emerald-700 dark:text-emerald-300">{{ publication.category }} · {{ publication.published_at | ldate: 'shortDate' }}</p>
+                        <h3 class="!text-xl font-semibold" [attr.lang]="publication.language">{{ publication.title }}</h3>
+                        <p [attr.lang]="publication.language">{{ publication.summary }}</p>
                     </article></a
                 >
             } @empty {
                 @if (!loading() && !error()) {
-                    <p>Aucune publication pour le moment.</p>
+                    <p>{{ 'landing.noPublication' | t }}</p>
                 }
             }
         </div>
@@ -106,15 +111,15 @@
         </div>
     </section>
     <section id="securite" class="mx-auto max-w-4xl px-6 py-24 text-center">
-        <h2 class="m-0 !text-4xl font-bold leading-tight dark:!text-white">Prêt à simplifier la gestion des demandes citoyennes ?</h2>
-        <p class="mt-5 text-lg text-emerald-950/65 dark:text-emerald-50/70">Des services publics plus réactifs, plus transparents et plus proches des citoyens.</p>
+        <h2 class="m-0 !text-4xl font-bold leading-tight dark:!text-white">{{ 'landing.ready' | t }}</h2>
+        <p class="mt-5 text-lg text-emerald-950/65 dark:text-emerald-50/70">{{ 'landing.readyText' | t }}</p>
         <a [routerLink]="auth.isAuthenticated() ? auth.homeUrl() : '/auth/register'" class="mt-8 inline-block rounded-xl bg-emerald-600 px-6 py-3.5 font-bold text-white shadow-xl shadow-emerald-600/20"
-            >{{ auth.isAuthenticated() ? 'Retrouver mon espace' : 'Créer un compte' }} <i class="pi pi-arrow-right ml-2"></i
+            >{{ (auth.isAuthenticated() ? 'landing.mySpace' : 'landing.createAccount') | t }} <i class="pi pi-arrow-right ml-2"></i
         ></a>
     </section>
     <footer class="border-t border-emerald-100 px-6 py-8 dark:border-emerald-900">
         <div class="mx-auto flex max-w-7xl flex-col justify-between gap-4 text-sm text-emerald-950/55 dark:text-emerald-50/55 sm:flex-row">
-            <b class="text-emerald-950 dark:text-white">Terra Nova</b><span>© {{ year }} Terra Nova · Une gestion publique plus proche.</span><a routerLink="/municipal/contact">Contacter la mairie</a>
+            <b class="text-emerald-950 dark:text-white">Terra Nova</b><span>© {{ year }} Terra Nova · Une gestion publique plus proche.</span><a routerLink="/municipal/contact">{{ 'menu.contact' | t }}</a>
         </div>
     </footer>
 </main>

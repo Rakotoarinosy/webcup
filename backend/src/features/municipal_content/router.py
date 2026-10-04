@@ -3,15 +3,21 @@
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
+from src.domain.i18n import Language
 from src.domain.municipal_content import (
+    ContentTranslation,
     MunicipalContentRepository,
     MunicipalPublication,
     MunicipalPublicationComment,
     MunicipalService,
+    TranslatableContent,
 )
 from src.domain.user import Role, User
+from src.features.audit.recording import AuditTrail
+from src.features.audit.router import get_audit_trail
 from src.features.municipal_content.schemas import (
     ContactReceiptOut,
+    ContentTranslationOut,
     CreateContactMessageIn,
     CreateMunicipalPublicationIn,
     CreatePublicationCommentIn,
@@ -19,6 +25,8 @@ from src.features.municipal_content.schemas import (
     MunicipalPublicationOut,
     MunicipalServiceOut,
     PublicationLikeOut,
+    PublicationTranslationIn,
+    ServiceTranslationIn,
     UpdateMunicipalPublicationIn,
     UpdateMunicipalServiceCatalogIn,
     UpdateServiceLocationIn,
@@ -26,8 +34,10 @@ from src.features.municipal_content.schemas import (
 from src.features.municipal_content.use_cases import (
     create_municipal_publication,
     create_publication_comment,
+    delete_content_translation,
     delete_municipal_publication,
     get_municipal_publication,
+    list_content_translations,
     list_featured_municipal_services,
     list_municipal_publications,
     list_municipal_services,
@@ -35,6 +45,7 @@ from src.features.municipal_content.use_cases import (
     list_publication_comments,
     list_publications_for_management,
     register_publication_view,
+    save_content_translation,
     send_contact_message,
     start_municipal_service,
     toggle_publication_like,
@@ -47,6 +58,7 @@ from src.infrastructure.persistence.municipal_content_repository import (
     SqlAlchemyMunicipalContentRepository,
 )
 from src.infrastructure.security.deps import require_roles
+from src.shared.language import get_content_language
 
 router = APIRouter(prefix="/municipal", tags=["municipal content"])
 
@@ -58,23 +70,26 @@ def get_municipal_content_repo(db: Session = Depends(get_db)) -> MunicipalConten
 @router.get("/services", response_model=list[MunicipalServiceOut])
 def list_services_endpoint(
     repo: MunicipalContentRepository = Depends(get_municipal_content_repo),
+    language: Language = Depends(get_content_language),
 ) -> list[MunicipalService]:
-    return list_municipal_services(repo)
+    return list_municipal_services(repo, language)
 
 
 @router.get("/services/featured", response_model=list[MunicipalServiceOut])
 def list_featured_services_endpoint(
     repo: MunicipalContentRepository = Depends(get_municipal_content_repo),
+    language: Language = Depends(get_content_language),
 ) -> list[MunicipalService]:
-    return list_featured_municipal_services(repo)
+    return list_featured_municipal_services(repo, language)
 
 
 @router.get("/services/popular", response_model=list[MunicipalServiceOut])
 def list_popular_services_endpoint(
     limit: int = Query(default=6, ge=1, le=6),
     repo: MunicipalContentRepository = Depends(get_municipal_content_repo),
+    language: Language = Depends(get_content_language),
 ) -> list[MunicipalService]:
-    return list_popular_municipal_services(limit, repo)
+    return list_popular_municipal_services(limit, repo, language)
 
 
 @router.post("/services/{service_id}/start", response_model=MunicipalServiceOut)
@@ -110,8 +125,9 @@ def list_publications_endpoint(
     category: str | None = Query(default=None, min_length=1, max_length=80),
     limit: int = Query(default=20, ge=1, le=100),
     repo: MunicipalContentRepository = Depends(get_municipal_content_repo),
+    language: Language = Depends(get_content_language),
 ) -> list[MunicipalPublication]:
-    return list_municipal_publications(category, limit, repo)
+    return list_municipal_publications(category, limit, repo, language)
 
 
 @router.get(
@@ -130,8 +146,9 @@ def list_publications_for_management_endpoint(
 def get_publication_endpoint(
     publication_id: str,
     repo: MunicipalContentRepository = Depends(get_municipal_content_repo),
+    language: Language = Depends(get_content_language),
 ) -> MunicipalPublication:
-    return get_municipal_publication(publication_id, repo)
+    return get_municipal_publication(publication_id, repo, language)
 
 
 @router.post("/publications/{publication_id}/view", response_model=MunicipalPublicationOut)
@@ -215,3 +232,94 @@ def contact_endpoint(
 ) -> ContactReceiptOut:
     contact = send_contact_message(payload, repo)
     return ContactReceiptOut(receipt_number=contact.receipt_number, created_at=contact.created_at)
+
+
+# ─── traductions (F27) : saisie par la mairie ───
+
+_SERVICE_EDITORS = require_roles(Role.MANAGER)  # admin inclus (User.has_role)
+_PUBLICATION_EDITORS = require_roles(Role.ADMIN, Role.AGENT, Role.MANAGER)
+
+
+@router.get("/services/{service_id}/translations", response_model=list[ContentTranslationOut])
+def list_service_translations_endpoint(
+    service_id: str,
+    repo: MunicipalContentRepository = Depends(get_municipal_content_repo),
+    _: User = Depends(_SERVICE_EDITORS),
+) -> list[ContentTranslation]:
+    return list_content_translations(TranslatableContent.SERVICE, service_id, repo)
+
+
+@router.put("/services/{service_id}/translations/{language}", response_model=ContentTranslationOut)
+def save_service_translation_endpoint(
+    service_id: str,
+    language: Language,
+    payload: ServiceTranslationIn,
+    repo: MunicipalContentRepository = Depends(get_municipal_content_repo),
+    _: User = Depends(_SERVICE_EDITORS),
+    audit: AuditTrail = Depends(get_audit_trail),
+) -> ContentTranslation:
+    return save_content_translation(
+        TranslatableContent.SERVICE, service_id, language, payload.model_dump(), repo, audit
+    )
+
+
+@router.delete(
+    "/services/{service_id}/translations/{language}", status_code=status.HTTP_204_NO_CONTENT
+)
+def delete_service_translation_endpoint(
+    service_id: str,
+    language: Language,
+    repo: MunicipalContentRepository = Depends(get_municipal_content_repo),
+    _: User = Depends(_SERVICE_EDITORS),
+    audit: AuditTrail = Depends(get_audit_trail),
+) -> None:
+    delete_content_translation(TranslatableContent.SERVICE, service_id, language, repo, audit)
+
+
+@router.get(
+    "/publications/{publication_id}/translations", response_model=list[ContentTranslationOut]
+)
+def list_publication_translations_endpoint(
+    publication_id: str,
+    repo: MunicipalContentRepository = Depends(get_municipal_content_repo),
+    _: User = Depends(_PUBLICATION_EDITORS),
+) -> list[ContentTranslation]:
+    return list_content_translations(TranslatableContent.PUBLICATION, publication_id, repo)
+
+
+@router.put(
+    "/publications/{publication_id}/translations/{language}",
+    response_model=ContentTranslationOut,
+)
+def save_publication_translation_endpoint(
+    publication_id: str,
+    language: Language,
+    payload: PublicationTranslationIn,
+    repo: MunicipalContentRepository = Depends(get_municipal_content_repo),
+    _: User = Depends(_PUBLICATION_EDITORS),
+    audit: AuditTrail = Depends(get_audit_trail),
+) -> ContentTranslation:
+    return save_content_translation(
+        TranslatableContent.PUBLICATION,
+        publication_id,
+        language,
+        payload.model_dump(),
+        repo,
+        audit,
+    )
+
+
+@router.delete(
+    "/publications/{publication_id}/translations/{language}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_publication_translation_endpoint(
+    publication_id: str,
+    language: Language,
+    repo: MunicipalContentRepository = Depends(get_municipal_content_repo),
+    _: User = Depends(_PUBLICATION_EDITORS),
+    audit: AuditTrail = Depends(get_audit_trail),
+) -> None:
+    delete_content_translation(
+        TranslatableContent.PUBLICATION, publication_id, language, repo, audit
+    )
