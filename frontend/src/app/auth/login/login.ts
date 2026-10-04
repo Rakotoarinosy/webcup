@@ -5,6 +5,7 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
+import { AppFloatingConfigurator } from '../../layout/component/floatingconfigurator/app.floatingconfigurator';
 
 import { AuthService } from '@/app/auth/auth.service';
 import { authErrorMessage } from '../auth-errors';
@@ -15,7 +16,7 @@ import { safeReturnUrl } from '../return-url';
 
 @Component({
     selector: 'app-login',
-    imports: [ButtonModule, InputTextModule, MessageModule, ReactiveFormsModule, RouterModule, GoogleButton],
+    imports: [ButtonModule, InputTextModule, MessageModule, ReactiveFormsModule, RouterModule, AppFloatingConfigurator, GoogleButton],
     templateUrl: './login.html'
 })
 export class Login implements AfterViewInit {
