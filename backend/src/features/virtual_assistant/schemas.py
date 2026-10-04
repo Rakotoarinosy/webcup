@@ -69,13 +69,14 @@ class AssistantReplyOut(BaseModel):
                 ServiceRecommendationOut.from_domain(service)
                 for service in reply.recommended_services
             ],
-            navigation=NavigationOut(label=navigation.label, path=navigation.path) if navigation else None,
+            navigation=NavigationOut(intent=reply.navigation_key)
+            if navigation and reply.navigation_key
+            else None,
         )
 
 
 class NavigationOut(BaseModel):
-    label: str
-    path: str
+    intent: str
 
 
 class ChatOut(BaseModel):

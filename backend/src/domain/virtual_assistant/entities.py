@@ -37,6 +37,7 @@ class AssistantQuery:
     history: tuple[AssistantTurn, ...] = ()
     response_preference: AssistantResponsePreference = AssistantResponsePreference.AUTO
     available_services: tuple[MunicipalService, ...] = ()
+    navigation_keys: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)

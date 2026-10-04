@@ -1,5 +1,6 @@
 """Cas d'usage de réponse aux questions des utilisateurs Terra Nova."""
 
+import re
 from dataclasses import replace
 
 from src.domain.virtual_assistant import (
@@ -43,4 +44,11 @@ def answer_user(
         for service_id in reply.service_ids
         if (service := services_by_id.get(service_id)) is not None
     )[:3]
-    return replace(reply, recommended_services=recommendations)
+    return replace(reply, recommended_services=recommendations, message=_safe_reply_text(reply.message), steps=tuple(_safe_reply_text(step) for step in reply.steps), notes=tuple(_safe_reply_text(note) for note in reply.notes), follow_up=_safe_reply_text(reply.follow_up))
+
+
+def _safe_reply_text(text: str) -> str:
+    """Une réponse IA ne doit jamais devenir une source de liens ou de routes non contrôlés."""
+    text = re.sub(r"https?://\S+|(?<!\w)/(?:home|municipal|auth)\S*", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"\b(page|route|lien|onglet)\s+(manager|gestionnaire)\b", "espace approprié", text, flags=re.IGNORECASE)
+    return re.sub(r"\s{2,}", " ", text).strip()

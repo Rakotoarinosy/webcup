@@ -64,7 +64,6 @@ def get_conversations(db: Session = Depends(get_db)) -> SqlAlchemyAssistantConve
 
 
 def navigation_for(key: str | None, user: User | None) -> AssistantNavigation | None:
-    role = user.role if user else None
     routes = {
         "services": AssistantNavigation("Voir les services municipaux", "/municipal/services"),
         "publications": AssistantNavigation("Voir les publications", "/municipal/publications"),
@@ -75,16 +74,22 @@ def navigation_for(key: str | None, user: User | None) -> AssistantNavigation | 
         "requests": AssistantNavigation("Demandes citoyennes", "/home/requests"),
         "journal": AssistantNavigation("Ouvrir le journal", "/home/journal"),
     }
+    allowed = available_navigation_keys(user)
+    return routes.get(key) if key in allowed else None
+
+
+def available_navigation_keys(user: User | None) -> set[str]:
+    role = user.role if user else None
     allowed = {"services", "publications", "contact"}
     if user:
-        allowed |= {"account"}
+        allowed.add("account")
     if role is Role.CITIZEN:
         allowed |= {"my_requests", "new_request"}
     if role in {Role.MANAGER, Role.ADMIN}:
-        allowed |= {"requests"}
+        allowed.add("requests")
     if role in {Role.AGENT, Role.MANAGER, Role.ADMIN}:
-        allowed |= {"journal"}
-    return routes.get(key) if key in allowed else None
+        allowed.add("journal")
+    return allowed
 
 
 @router.post("/chat", response_model=ChatOut)
@@ -109,6 +114,7 @@ def chat(
         message=payload.message.strip(),
         history=tuple(history[-8:]),
         response_preference=AssistantResponsePreference(payload.response_preference),
+        navigation_keys=tuple(sorted(available_navigation_keys(user))),
     )
 
     try:
@@ -166,6 +172,11 @@ def speech(payload: SpeechIn, settings: Settings = Depends(get_settings)) -> Res
         response = httpx.post(GROQ_SPEECH_URL, headers={"Authorization": f"Bearer {_voice_key(settings)}"}, json={"model": settings.groq_tts_model, "voice": settings.groq_tts_voice, "input": payload.text, "response_format": "mp3"}, timeout=45)
         response.raise_for_status()
         return Response(content=response.content, media_type="audio/mpeg")
+    except httpx.HTTPStatusError as error:
+        logger.warning("assistant speech failed (%s)", type(error).__name__)
+        if "model_terms_required" in error.response.text:
+            raise HTTPException(status_code=409, detail="Les conditions du modèle vocal doivent être acceptées dans la console Groq.") from error
+        raise HTTPException(status_code=502, detail="La synthèse vocale a échoué.") from error
     except httpx.HTTPError as error:
         logger.warning("assistant speech failed (%s)", type(error).__name__)
         raise HTTPException(status_code=502, detail="La synthèse vocale a échoué.") from error

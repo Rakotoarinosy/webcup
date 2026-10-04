@@ -75,8 +75,8 @@
                                 <p class="reply-follow-up">{{ message.content.follow_up }}</p>
                             }
                             @if (message.content.navigation) {
-                                <button type="button" class="assistant-navigation" (click)="navigate(message.content.navigation.path)">
-                                    {{ message.content.navigation.label }} <i class="pi pi-arrow-right" aria-hidden="true"></i>
+                                <button type="button" class="assistant-navigation" (click)="navigate(message.content.navigation.intent)">
+                                    {{ navigationLabel(message.content.navigation.intent) }} <i class="pi pi-arrow-right" aria-hidden="true"></i>
                                 </button>
                             }
                         </article>
