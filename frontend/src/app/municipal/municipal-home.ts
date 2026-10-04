@@ -27,6 +27,7 @@ export class MunicipalHome implements OnInit {
     readonly openingService = signal<string | null>(null);
     readonly loading = signal(false);
     readonly loadError = signal<string | null>(null);
+    readonly featuredServices = signal<MunicipalService[]>([]);
     readonly popularServices = signal<MunicipalService[]>([]);
     readonly publications = signal<MunicipalPublication[]>([]);
     readonly startError = signal<string | null>(null);
@@ -43,13 +44,14 @@ export class MunicipalHome implements OnInit {
         if (this.loading()) return;
         this.loading.set(true);
         this.loadError.set(null);
-        forkJoin({ popular: this.content.popularServices(6), publications: this.content.publications() })
+        forkJoin({ featured: this.content.featuredServices(), popular: this.content.popularServices(6), publications: this.content.publications() })
             .pipe(
                 takeUntilDestroyed(this.destroyRef),
                 finalize(() => this.loading.set(false))
             )
             .subscribe({
-                next: ({ popular, publications }) => {
+                next: ({ featured, popular, publications }) => {
+                    this.featuredServices.set(featured.slice(0, 6));
                     this.popularServices.set(popular.slice(0, 6));
                     this.publications.set(publications.slice(0, 2));
                 },

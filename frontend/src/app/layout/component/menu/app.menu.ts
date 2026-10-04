@@ -60,15 +60,96 @@ export class AppMenu {
 
         const groups: MenuItem[] = [{ label: 'Kotrana', items }];
 
-        groups.push({
+        const mairieGroup: MenuItem = {
             label: 'La mairie',
+            path: '__institution/mairie',
+            icon: 'pi pi-fw pi-building',
+            dropdownOnly: true,
             items: [
-                { label: 'Accueil municipal', icon: 'pi pi-fw pi-building', routerLink: ['/home/municipal'], routerLinkActiveOptions: { exact: true } },
-                { label: 'Services municipaux', icon: 'pi pi-fw pi-map-marker', routerLink: ['/home/municipal/services'] },
-                { label: 'Publications', icon: 'pi pi-fw pi-megaphone', routerLink: ['/home/municipal/publications'], badge: this.publicationBadge() },
-                { label: 'Contacter la mairie', icon: 'pi pi-fw pi-envelope', routerLink: ['/home/municipal/contact'] }
+                { label: 'Accueil municipal', routerLink: ['/home/municipal'], routerLinkActiveOptions: { exact: true } },
+                { label: 'Services municipaux', routerLink: ['/home/municipal/services'] },
+                { label: 'Publications', routerLink: ['/home/municipal/publications'], badge: this.publicationBadge() },
+                { label: 'Contacter la mairie', routerLink: ['/home/municipal/contact'] }
             ]
-        });
+        };
+
+        const institutionGroups: MenuItem[] = [
+            {
+                label: 'Accueil & démarches',
+                path: '__institution/accueil',
+                icon: 'pi pi-fw pi-id-card',
+                dropdownOnly: true,
+                items: [
+                    { label: 'État civil et documents administratifs', routerLink: ['/home/municipal/services'] },
+                    { label: 'Aide sociale et famille', routerLink: ['/home/municipal/services'] },
+                    { label: 'Santé et prévention', routerLink: ['/home/municipal/services'] }
+                ]
+            },
+            {
+                label: 'Voirie',
+                path: '__institution/voirie',
+                icon: 'pi pi-fw pi-directions',
+                dropdownOnly: true,
+                items: [
+                    { label: 'Voirie et circulation', routerLink: ['/home/municipal/services'] },
+                    { label: 'Travaux et signalisation', routerLink: ['/home/municipal/services'] }
+                ]
+            },
+            {
+                label: 'Eau & assainissement',
+                path: '__institution/eau',
+                icon: 'pi pi-fw pi-droplet',
+                dropdownOnly: true,
+                items: [
+                    { label: 'Eau et réseau', routerLink: ['/home/municipal/services'] },
+                    { label: 'Assainissement', routerLink: ['/home/municipal/services'] }
+                ]
+            },
+            {
+                label: 'Propreté urbaine',
+                path: '__institution/proprete',
+                icon: 'pi pi-fw pi-trash',
+                dropdownOnly: true,
+                items: [
+                    { label: 'Collecte et tri', routerLink: ['/home/municipal/services'] },
+                    { label: 'Nettoyage et propreté', routerLink: ['/home/municipal/services'] }
+                ]
+            },
+            {
+                label: 'Éclairage public',
+                path: '__institution/eclairage',
+                icon: 'pi pi-fw pi-bolt',
+                dropdownOnly: true,
+                items: [
+                    { label: 'Éclairage public', routerLink: ['/home/municipal/services'] },
+                    { label: 'Signalement d’éclairage', routerLink: ['/home/municipal/services'] }
+                ]
+            },
+            {
+                label: 'Espaces verts',
+                path: '__institution/environnement',
+                icon: 'pi pi-fw pi-tree',
+                dropdownOnly: true,
+                items: [
+                    { label: 'Espaces verts', routerLink: ['/home/municipal/services'] },
+                    { label: 'Environnement et arbres', routerLink: ['/home/municipal/services'] }
+                ]
+            },
+            {
+                label: 'Sécurité civile',
+                path: '__institution/securite',
+                icon: 'pi pi-fw pi-shield',
+                dropdownOnly: true,
+                items: [
+                    { label: 'Tranquillité publique', routerLink: ['/home/municipal/services'] },
+                    { label: 'Prévention et sécurité', routerLink: ['/home/municipal/services'] }
+                ]
+            }
+        ];
+
+        // Même niveau que « Utilisateurs » : l'institution est un parent du menu Kotrana,
+        // ses services deviennent les enfants indentés et seul le chevron indique le dropdown.
+        items.push(mairieGroup, ...institutionGroups);
 
         if (this.auth.hasRole('agent', 'manager', 'admin')) {
             groups.push({
