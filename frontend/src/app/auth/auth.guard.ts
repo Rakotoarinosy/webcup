@@ -39,3 +39,10 @@ export const guestGuard: CanActivateFn = () => {
     const router = inject(Router);
     return auth.validateSession().pipe(map((user) => (user ? router.parseUrl(auth.homeUrl()) : true)));
 };
+
+/** La page d'accueil publique n'est jamais affichée à une session déjà ouverte. */
+export const landingGuard: CanActivateFn = () => {
+    const auth = inject(AuthService);
+    const router = inject(Router);
+    return auth.validateSession().pipe(map((user) => (user ? router.parseUrl('/home') : true)));
+};

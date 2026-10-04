@@ -87,6 +87,19 @@ def get_current_user(
     return user
 
 
+def get_optional_current_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    users: UserRepository = Depends(get_user_repo),
+    tokens: AccessTokenService = Depends(get_token_service),
+) -> User | None:
+    if credentials is None:
+        return None
+    user = users.get_by_id(tokens.decode(credentials.credentials))
+    if user is None or not user.is_active:
+        raise InvalidTokenError()
+    return user
+
+
 def require_roles(*roles: Role) -> Callable[..., User]:
     def dependency(user: User = Depends(get_current_user)) -> User:
         if not user.has_role(*roles):

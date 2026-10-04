@@ -77,15 +77,15 @@ Toutes les variables sont dans [.env.example](.env.example) :
 | `BOOTSTRAP_ADMIN_EMAIL` | — | Email du premier administrateur ; création au démarrage avec un mot de passe défini |
 | `BOOTSTRAP_ADMIN_PASSWORD` | — | Mot de passe initial du premier administrateur ; à retirer après sa création |
 | `BOOTSTRAP_ADMIN_NAME` | `Administrateur` | Nom du premier administrateur |
-| `GEMINI_API_KEY` | — | Clé Gemini ; sans clé, l'analyse IA est désactivée |
-| `GEMINI_MODEL` | `gemini-2.5-flash` | Modèle Gemini pour l'analyse des demandes |
+| `GROQ_API_KEY` | — | Clé Groq ; sans clé, l'assistant et l'analyse IA sont désactivés |
+| `GROQ_MODEL` | `openai/gpt-oss-120b` | Modèle Groq utilisé par l'assistant et l'analyse des demandes |
 | `TERRA_NOVA_API_URL` | URL de l'API WebCup | URL des demandes Terra Nova |
 | `TERRA_NOVA_API_KEY` | — | Clé de l'équipe pour l'API Terra Nova (suivi `/home/terra-nova`) |
 | `TERRA_NOVA_SYNC_SECONDS` | `30` | Intervalle d'interrogation de l'API Terra Nova |
 | `TERRA_NOVA_TIMEOUT_SECONDS` | `15` | Délai maximal d'attente de la réponse Terra Nova |
 | `TERRA_NOVA_BACKGROUND_SYNC` | `true` | `false` : pas de boucle de fond, synchro à la lecture seulement |
 
-Les clés Gemini et Terra Nova sont facultatives, mais les fonctions associées ne seront pas
+Les clés Groq et Terra Nova sont facultatives, mais les fonctions associées ne seront pas
 disponibles sans elles. Ne partagez et ne commitez jamais un vrai fichier `.env`.
 
 ## Authentification et gestion des comptes

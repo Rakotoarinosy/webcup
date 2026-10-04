@@ -1,6 +1,8 @@
 """Modèle métier et ports de l'assistante virtuelle."""
 
 from src.domain.virtual_assistant.entities import (
+    AssistantMessage,
+    AssistantNavigation,
     AssistantQuery,
     AssistantReply,
     AssistantReplyFormat,
@@ -12,12 +14,16 @@ from src.domain.virtual_assistant.entities import (
     PlainExplanation,
 )
 from src.domain.virtual_assistant.repository import (
+    AssistantConversationRepository,
     AssistantResponder,
     AssistantServiceCatalog,
     TextSimplifier,
 )
 
 __all__ = [
+    "AssistantConversationRepository",
+    "AssistantMessage",
+    "AssistantNavigation",
     "AssistantQuery",
     "AssistantReply",
     "AssistantReplyFormat",
