@@ -85,3 +85,7 @@ class ChatOut(BaseModel):
 class ConversationMessageOut(BaseModel):
     role: Literal["user", "assistant"]
     content: str | AssistantReplyOut
+
+
+class SpeechIn(BaseModel):
+    text: str = Field(min_length=1, max_length=4000)

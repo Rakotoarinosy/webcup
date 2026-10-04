@@ -4,7 +4,9 @@ import logging
 import uuid
 from datetime import UTC, datetime
 
-from fastapi import APIRouter, Depends, HTTPException, status
+import httpx
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
 from src.domain.user import Role, User
@@ -23,6 +25,7 @@ from src.features.virtual_assistant.schemas import (
     ChatIn,
     ChatOut,
     ConversationMessageOut,
+    SpeechIn,
 )
 from src.features.virtual_assistant.use_cases import answer_user
 from src.infrastructure.config.settings import Settings, get_settings
@@ -38,6 +41,8 @@ from src.infrastructure.security.deps import get_current_user, get_optional_curr
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/assistant", tags=["assistant"])
+GROQ_TRANSCRIPT_URL = "https://api.groq.com/openai/v1/audio/transcriptions"
+GROQ_SPEECH_URL = "https://api.groq.com/openai/v1/audio/speech"
 
 
 def get_assistant_responder(settings: Settings = Depends(get_settings)) -> AssistantResponder:
@@ -130,3 +135,37 @@ def history(user: User = Depends(get_current_user), conversations: SqlAlchemyAss
 @router.delete("/history", status_code=status.HTTP_204_NO_CONTENT)
 def clear_history(user: User = Depends(get_current_user), conversations: SqlAlchemyAssistantConversationRepository = Depends(get_conversations)) -> None:
     conversations.clear(user.id)
+
+
+def _voice_key(settings: Settings) -> str:
+    if not settings.groq_voice_api_key:
+        raise HTTPException(status_code=503, detail="La fonction vocale est indisponible.")
+    return settings.groq_voice_api_key
+
+
+@router.post("/transcribe")
+def transcribe(audio: UploadFile = File(...), settings: Settings = Depends(get_settings)) -> dict[str, str]:
+    content = audio.file.read()
+    if not content or len(content) > 25 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="Audio invalide ou trop volumineux.")
+    try:
+        response = httpx.post(GROQ_TRANSCRIPT_URL, headers={"Authorization": f"Bearer {_voice_key(settings)}"}, files={"file": (audio.filename or "voice.webm", content, audio.content_type or "audio/webm")}, data={"model": settings.groq_stt_model, "response_format": "json"}, timeout=45)
+        response.raise_for_status()
+        text = str(response.json().get("text", "")).strip()
+        if not text:
+            raise ValueError("empty transcript")
+        return {"text": text}
+    except (httpx.HTTPError, ValueError, TypeError) as error:
+        logger.warning("assistant transcription failed (%s)", type(error).__name__)
+        raise HTTPException(status_code=502, detail="La transcription a échoué.") from error
+
+
+@router.post("/speech")
+def speech(payload: SpeechIn, settings: Settings = Depends(get_settings)) -> Response:
+    try:
+        response = httpx.post(GROQ_SPEECH_URL, headers={"Authorization": f"Bearer {_voice_key(settings)}"}, json={"model": settings.groq_tts_model, "voice": settings.groq_tts_voice, "input": payload.text, "response_format": "mp3"}, timeout=45)
+        response.raise_for_status()
+        return Response(content=response.content, media_type="audio/mpeg")
+    except httpx.HTTPError as error:
+        logger.warning("assistant speech failed (%s)", type(error).__name__)
+        raise HTTPException(status_code=502, detail="La synthèse vocale a échoué.") from error

@@ -585,6 +585,12 @@
     transition: background 150ms;
 }
 
+.voice-button, .reply-voice { border: 0; color: var(--assistant-primary); background: transparent; cursor: pointer; }
+.voice-button { display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: 0.6rem; }
+.voice-button:hover, .reply-voice:hover { background: var(--assistant-soft); }
+.voice-button.is-recording { color: var(--p-red-500, #ef4444); animation: typing-bounce 700ms ease-in-out infinite alternate; }
+.reply-voice { margin-inline-start: auto; padding: 0.2rem; border-radius: 0.35rem; }
+
 .send-button:disabled {
     color: #a5b0ab;
     background: #eef1ef;

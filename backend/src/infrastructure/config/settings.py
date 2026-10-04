@@ -90,6 +90,10 @@ class Settings(BaseSettings):
     # Sans clé, les fonctions IA répondent 503 ; le reste de l'API fonctionne normalement.
     groq_api_key: str | None = None
     groq_model: str = "openai/gpt-oss-120b"
+    groq_voice_api_key: str | None = None
+    groq_stt_model: str = "whisper-large-v3-turbo"
+    groq_tts_model: str = "canopylabs/orpheus-v1-english"
+    groq_tts_voice: str = "hannah"
     # Compatibilité temporaire avec la variable mal orthographiée utilisée avant la migration.
     grok_api_key: str | None = None
 

@@ -55,9 +55,12 @@ export class VirtualAssistantWidget implements OnInit {
     readonly isOpen = signal(false);
     readonly messages = signal<ChatMessage[]>([]);
     readonly isSending = signal(false);
+    readonly isRecording = signal(false);
     readonly errorMessage = signal('');
     responsePreference: ResponseFormat = 'auto';
     draft = '';
+    private recorder: MediaRecorder | null = null;
+    private audioChunks: Blob[] = [];
 
     ngOnInit(): void {
         this.restoreConversation();
@@ -125,6 +128,41 @@ export class VirtualAssistantWidget implements OnInit {
     navigate(path: string): void {
         this.router.navigateByUrl(path);
         this.isOpen.set(false);
+    }
+
+    async toggleRecording(): Promise<void> {
+        if (this.isRecording()) {
+            this.recorder?.stop();
+            return;
+        }
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            this.audioChunks = [];
+            this.recorder = new MediaRecorder(stream);
+            this.recorder.ondataavailable = (event) => this.audioChunks.push(event.data);
+            this.recorder.onstop = () => {
+                stream.getTracks().forEach((track) => track.stop());
+                this.isRecording.set(false);
+                const body = new FormData();
+                body.append('audio', new Blob(this.audioChunks, { type: this.recorder?.mimeType || 'audio/webm' }), 'message.webm');
+                this.http.post<{ text: string }>(`${environment.apiUrl}/assistant/transcribe`, body).subscribe({
+                    next: ({ text }) => { this.draft = text; this.sendMessage(); },
+                    error: () => this.errorMessage.set("Impossible de transcrire votre message vocal.")
+                });
+            };
+            this.recorder.start();
+            this.isRecording.set(true);
+        } catch {
+            this.errorMessage.set("L'accès au microphone est nécessaire pour envoyer un message vocal.");
+        }
+    }
+
+    speak(reply: AssistantReply): void {
+        const text = [reply.title, reply.message, ...reply.steps, reply.follow_up].filter(Boolean).join('. ').slice(0, 4000);
+        this.http.post(`${environment.apiUrl}/assistant/speech`, { text }, { responseType: 'blob' }).subscribe({
+            next: (audio) => new Audio(URL.createObjectURL(audio)).play(),
+            error: () => this.errorMessage.set("Impossible de lire la réponse vocale.")
+        });
     }
 
     formatLabel(format: ReplyFormat): string {
