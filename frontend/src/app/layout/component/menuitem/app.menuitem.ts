@@ -14,7 +14,8 @@ type LayoutStatePatch = Partial<ReturnType<LayoutService['layoutState']>>;
     templateUrl: './app.menuitem.html',
     host: {
         '[class.active-menuitem]': 'isActive()',
-        '[class.layout-root-menuitem]': 'root()'
+        '[class.layout-root-menuitem]': 'root()',
+        '[class.institution-menuitem]': 'isDropdownOnly()'
     },
     styleUrl: './app.menuitem.scss'
 })
@@ -37,6 +38,16 @@ export class AppMenuitem {
     hasChildren = computed(() => this.item()?.items && this.item()?.items.length > 0);
 
     hasRouterLink = computed(() => !!this.item()?.routerLink);
+
+    isDropdownOnly = computed(() => !!this.item()?.dropdownOnly);
+
+    shouldRenderChildren = computed(() => {
+        if (!this.hasChildren()) {
+            return false;
+        }
+
+        return this.isDropdownOnly() ? this.isActive() : this.root() || this.isActive();
+    });
 
     fullPath = computed(() => {
         const itemPath = this.item()?.path;
@@ -108,10 +119,21 @@ export class AppMenuitem {
         }
 
         if (this.hasChildren()) {
-            this.toggleSubmenu();
+            if (this.isDropdownOnly()) {
+                this.toggleSubmenu();
+            } else {
+                this.patchLayoutState({ activePath: this.fullPath(), menuHoverActive: true });
+            }
         } else {
             this.closeMenus();
         }
+    }
+
+    /** Les parents institutionnels sont des boutons de divulgation, y compris au clavier. */
+    onParentKeydown(event: KeyboardEvent): void {
+        if (!this.isDropdownOnly() || (event.key !== 'Enter' && event.key !== ' ')) return;
+        event.preventDefault();
+        this.itemClick(event);
     }
 
     private toggleSubmenu() {
