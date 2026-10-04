@@ -68,7 +68,7 @@
             }
             @if (submitAttempted() && formErrors().length) {
                 <div #errorSummary id="login-error-summary" role="alert" tabindex="-1" class="mb-5 rounded-xl border border-red-300 bg-red-50 p-4 text-sm text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-100">
-                    <p class="m-0 font-semibold">{{ formErrors().length > 1 ? 'Le formulaire contient ' + formErrors().length + ' erreurs :' : 'Le formulaire contient une erreur :' }}</p>
+                    <p class="m-0 font-semibold">{{ formErrors().length > 1 ? ('common.error.summaryMany' | t: { count: formErrors().length }) : ('common.error.summaryOne' | t) }}</p>
                     <ul class="mb-0 mt-2 list-disc pl-5">
                         @for (error of formErrors(); track error.field) {
                             <li><a class="underline" [href]="'#' + error.field" (click)="focusField($event, error.field)">{{ error.message }}</a></li>
@@ -139,7 +139,7 @@
                             id="password"
                             [type]="showPassword() ? 'text' : 'password'"
                             autocomplete="current-password"
-                            placeholder="Votre mot de passe"
+                            [attr.placeholder]="'auth.field.passwordPlaceholder' | t"
                             required
                             aria-describedby="password-error"
                             [attr.aria-invalid]="loginForm.controls.password.invalid && loginForm.controls.password.touched"
@@ -160,14 +160,14 @@
                     </span>
                     <small id="password-error" class="field-error block min-h-4 pt-1 text-xs text-red-600 dark:text-red-400">
                         @if (loginForm.controls.password.invalid && loginForm.controls.password.touched) {
-                            Le mot de passe est obligatoire.
+                            {{ 'auth.error.passwordRequired' | t }}
                         }
                     </small>
                 </div>
 
                 <p-button
                     type="submit"
-                    label="Se connecter"
+                    [label]="'auth.login.submit' | t"
                     icon="pi pi-arrow-right"
                     iconPos="right"
                     styleClass="mt-2 w-full rounded-xl border-0 !bg-emerald-600 !text-white py-3 font-bold shadow-[0_10px_22px_rgba(22,163,106,.22)] hover:!bg-emerald-700 dark:!bg-emerald-400 dark:!text-emerald-950 dark:hover:!bg-emerald-500 transition-colors"
@@ -185,6 +185,7 @@
                 <span>Vous n’avez pas de compte ?</span>
                 <a routerLink="/auth/register" class="font-bold text-emerald-600 underline-offset-4 hover:underline dark:text-emerald-400">Créer un compte</a>
             </div>
+            <p class="mb-0 mt-5 rounded-xl bg-emerald-50 p-3 text-sm leading-6 text-emerald-950/80 dark:bg-emerald-900/50 dark:text-emerald-50/80" data-testid="assisted-access"><i class="pi pi-info-circle mr-1" aria-hidden="true"></i>{{ 'auth.assisted' | t }}</p>
         </div>
     </section>
 </main>

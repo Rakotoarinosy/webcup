@@ -86,6 +86,13 @@ describe('AuthService session lifecycle', () => {
         expect(auth.homeUrl()).toBe('/home/account');
         expect(auth.roleLabel()).toBe('Gestionnaire');
     });
+    it('omits the email field when a phone-only account edits its name', () => {
+        auth.updateProfile('New name', undefined, 'Motdepasse123').subscribe();
+        const request = http.expectOne(`${AUTH_URL}/me`);
+        expect(request.request.body).toEqual({ name: 'New name', current_password: 'Motdepasse123' });
+        request.flush({ ...SESSION, user: { ...USER, name: 'New name', email: null, phone: '+261341234567', phone_verified: true } });
+        expect(auth.user()?.email).toBeNull();
+    });
     it('updates the visible profile and cancels a stale profile response', () => {
         auth.login(USER.email!, 'Motdepasse123').subscribe();
         http.expectOne(`${AUTH_URL}/login`).flush(SESSION);

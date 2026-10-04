@@ -5,6 +5,7 @@ import { provideRouter } from '@angular/router';
 import { AuthService } from '../auth.service';
 import { AppFloatingConfigurator } from '../../layout/component/floatingconfigurator/app.floatingconfigurator';
 import { Login } from './login';
+import { GoogleIdentityService } from '../google-identity.service';
 
 describe('Login accessibility', () => {
     let fixture: ComponentFixture<Login>;
@@ -12,7 +13,7 @@ describe('Login accessibility', () => {
 
     beforeEach(async () => {
         auth = jasmine.createSpyObj<AuthService>('AuthService', ['login', 'homeUrl']);
-        await TestBed.configureTestingModule({ imports: [Login], providers: [provideRouter([]), { provide: AuthService, useValue: auth }] })
+        await TestBed.configureTestingModule({ imports: [Login], providers: [provideRouter([]), { provide: AuthService, useValue: auth }, { provide: GoogleIdentityService, useValue: { renderButton: () => Promise.resolve() } }] })
             .overrideComponent(Login, { remove: { imports: [AppFloatingConfigurator] }, add: { schemas: [CUSTOM_ELEMENTS_SCHEMA] } })
             .compileComponents();
         fixture = TestBed.createComponent(Login);
@@ -26,10 +27,14 @@ describe('Login accessibility', () => {
     it('labels every field, marks them required and offers autocomplete', () => {
         for (const id of ['identifier', 'password']) {
             const input = element<HTMLInputElement>('#' + id);
-            expect(element(`label[for="${id}"]`)).withContext(id).not.toBeNull();
+            expect(element(`label[for="${id}"]`))
+                .withContext(id)
+                .not.toBeNull();
             expect(input.required).withContext(id).toBeTrue();
             expect(input.getAttribute('aria-describedby')).withContext(id).toBe(`${id}-error`);
-            expect(element('#' + id + '-error')).withContext(id).not.toBeNull();
+            expect(element('#' + id + '-error'))
+                .withContext(id)
+                .not.toBeNull();
         }
         expect(element('#identifier').getAttribute('autocomplete')).toBe('username');
         expect(element('#password').getAttribute('autocomplete')).toBe('current-password');

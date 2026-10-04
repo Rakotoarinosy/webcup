@@ -5,6 +5,7 @@ import { of } from 'rxjs';
 import { AuthService } from '../auth.service';
 import { AppFloatingConfigurator } from '../../layout/component/floatingconfigurator/app.floatingconfigurator';
 import { Register } from './register';
+import { GoogleIdentityService } from '../google-identity.service';
 
 describe('Registration flow', () => {
     let component: Register;
@@ -63,7 +64,7 @@ describe('Registration form accessibility', () => {
 
     beforeEach(async () => {
         const auth = jasmine.createSpyObj<AuthService>('AuthService', ['register', 'homeUrl']);
-        await TestBed.configureTestingModule({ imports: [Register], providers: [provideRouter([]), { provide: AuthService, useValue: auth }] })
+        await TestBed.configureTestingModule({ imports: [Register], providers: [provideRouter([]), { provide: AuthService, useValue: auth }, { provide: GoogleIdentityService, useValue: { renderButton: () => Promise.resolve() } }] })
             .overrideComponent(Register, { remove: { imports: [AppFloatingConfigurator] }, add: { schemas: [CUSTOM_ELEMENTS_SCHEMA] } })
             .compileComponents();
         fixture = TestBed.createComponent(Register);

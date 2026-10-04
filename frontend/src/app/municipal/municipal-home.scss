@@ -81,3 +81,28 @@
         transition: none;
     }
 }
+
+.orientation-callout {
+    margin-bottom: 2rem;
+    padding: 1.25rem;
+    border: 1px solid var(--surface-border);
+    border-left: 4px solid var(--p-primary-color);
+    border-radius: 0.75rem;
+    background: var(--surface-card);
+
+    h2 {
+        margin: 0;
+        font-size: 1.25rem;
+    }
+    p {
+        margin: 0.5rem 0 0.75rem;
+    }
+    a {
+        font-weight: 700;
+        color: var(--p-primary-color);
+    }
+    a:focus-visible {
+        outline: 2px solid var(--p-primary-color);
+        outline-offset: 3px;
+    }
+}

@@ -7,12 +7,17 @@ import { StyleClassModule } from 'primeng/styleclass';
 
 import { ROLE_LABELS } from '@/app/auth/auth.model';
 import { AuthService } from '@/app/auth/auth.service';
+import { I18nService } from '@/app/i18n/i18n.service';
+import { LanguageSwitcher } from '@/app/i18n/language-switcher';
+import { TranslatePipe } from '@/app/i18n/t.pipe';
 import { LayoutService } from '@/app/layout/service/layout.service';
 import { OverlayCoordinatorService } from '@/app/layout/service/overlay-coordinator.service';
 import { AppConfigurator } from '../configurator/app.configurator';
 import { Notifications } from './widget/notifications/notifications';
 
 type SearchSuggestion = { label: string; detail: string; icon: string; url: string; roles?: readonly string[] };
+
+const normalizeSearch = (value: string): string => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLocaleLowerCase('fr-FR');
 
 const SEARCH_SUGGESTIONS: readonly SearchSuggestion[] = [
     { label: 'Mon espace', detail: 'Votre tableau personnel', icon: 'pi-home', url: '/home/account' },
@@ -21,6 +26,7 @@ const SEARCH_SUGGESTIONS: readonly SearchSuggestion[] = [
     { label: 'Services municipaux', detail: 'Trouver un service de la mairie', icon: 'pi-map-marker', url: '/home/municipal/services' },
     { label: 'Publications', detail: 'Actualités et informations municipales', icon: 'pi-megaphone', url: '/home/municipal/publications' },
     { label: 'Contacter la mairie', detail: 'Envoyer un message aux services', icon: 'pi-envelope', url: '/home/municipal/contact' },
+    { label: 'Par où commencer ?', detail: 'Être orienté vers les bons services', icon: 'pi-compass', url: '/home/orientation' },
     { label: 'Mes demandes', detail: 'Suivre vos demandes', icon: 'pi-list', url: '/home/my-requests', roles: ['citizen'] },
     { label: 'Mes interventions', detail: 'Demandes à traiter', icon: 'pi-inbox', url: '/home/agent', roles: ['agent'] },
     { label: 'Demandes citoyennes', detail: 'Gérer les demandes', icon: 'pi-inbox', url: '/home/requests', roles: ['manager', 'admin'] },
@@ -32,7 +38,7 @@ const SEARCH_SUGGESTIONS: readonly SearchSuggestion[] = [
 
 @Component({
     selector: 'app-topbar',
-    imports: [RouterModule, CommonModule, StyleClassModule, AppConfigurator, MenuModule, Notifications],
+    imports: [RouterModule, CommonModule, StyleClassModule, AppConfigurator, MenuModule, Notifications, LanguageSwitcher, TranslatePipe],
     templateUrl: './app.topbar.html',
     styleUrl: './app.topbar.scss'
 })
@@ -41,6 +47,7 @@ export class AppTopbar {
     private readonly auth = inject(AuthService);
     private readonly router = inject(Router);
     readonly overlays = inject(OverlayCoordinatorService);
+    private readonly i18n = inject(I18nService);
 
     // Référence vers le menu popup PrimeNG pour pouvoir le fermer explicitement
     readonly userMenu = viewChild<Menu>('menu');
@@ -61,11 +68,11 @@ export class AppTopbar {
     });
     readonly roleLabel = this.auth.roleLabel;
     readonly searchSuggestions = computed(() => {
-        const query = this.searchQuery().trim().toLocaleLowerCase('fr-FR');
+        const query = normalizeSearch(this.searchQuery());
         if (!query) return [];
         return SEARCH_SUGGESTIONS.filter((item) => {
             const allowed = !item.roles || this.auth.hasRole(...item.roles as ('admin' | 'manager' | 'agent' | 'citizen')[]);
-            return allowed && `${item.label} ${item.detail}`.toLocaleLowerCase('fr-FR').includes(query);
+            return allowed && normalizeSearch(`${item.label} ${item.detail}`).includes(query);
         }).slice(0, 7);
     });
 
@@ -173,15 +180,17 @@ export class AppTopbar {
     // Menu utilisateur : identité (non cliquable) puis déconnexion.
     readonly items = computed<MenuItem[]>(() => {
         const user = this.user();
+        const t = (key: Parameters<I18nService['t']>[0]) => this.i18n.t(key);
 
         return [
             {
+                label: user?.name ?? t('topbar.account'),
                 items: [
-                    { label: 'Mon profil', icon: 'pi pi-id-card', routerLink: ['/home/profile'] },
-                    { label: 'Mes données', icon: 'pi pi-lock', routerLink: ['/home/my-data'] },
+                    { label: t('topbar.profile'), icon: 'pi pi-id-card', routerLink: ['/home/profile'] },
+                    { label: t('topbar.myData'), icon: 'pi pi-lock', routerLink: ['/home/my-data'] },
                     { separator: true },
                     {
-                        label: 'Déconnexion',
+                        label: t('topbar.logout'),
                         icon: 'pi pi-sign-out',
                         command: () => {
                             // Ferme le menu popup proprement avant de lancer la déconnexion

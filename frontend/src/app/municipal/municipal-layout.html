@@ -1,19 +1,20 @@
-<a class="skip-link" href="#main-content" (click)="skipToContent($event)">Aller au contenu principal</a>
+<a class="skip-link" href="#main-content" (click)="skipToContent($event)">{{ 'municipal.skip' | t }}</a>
 <header>
     <div class="header-row">
-        <a class="brand" routerLink="/" aria-label="Terra Nova, accueil">Terra Nova</a>
-        <nav aria-label="Services municipaux">
-            <a routerLink="/municipal" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" ariaCurrentWhenActive="page">Accueil municipal</a>
-            <a routerLink="/municipal/services" routerLinkActive="active" ariaCurrentWhenActive="page">Services</a>
-            <a routerLink="/municipal/publications" routerLinkActive="active" ariaCurrentWhenActive="page">Publications</a>
-            <a routerLink="/municipal/contact" routerLinkActive="active" ariaCurrentWhenActive="page">Contacter la mairie</a>
+        <a class="brand" routerLink="/" [attr.aria-label]="'topbar.home' | t">Terra Nova</a>
+        <nav [attr.aria-label]="'municipal.nav' | t">
+            <a routerLink="/municipal" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" ariaCurrentWhenActive="page">{{ 'municipal.home' | t }}</a>
+            <a routerLink="/municipal/services" routerLinkActive="active" ariaCurrentWhenActive="page">{{ 'municipal.services' | t }}</a>
+            <a routerLink="/municipal/publications" routerLinkActive="active" ariaCurrentWhenActive="page">{{ 'menu.publications' | t }}</a>
+            <a routerLink="/municipal/contact" routerLinkActive="active" ariaCurrentWhenActive="page">{{ 'menu.contact' | t }}</a>
+            <a routerLink="/municipal/orientation" routerLinkActive="active" ariaCurrentWhenActive="page">{{ 'menu.orientation' | t }}</a>
         </nav>
         @if (auth.user(); as user) {
-            <a class="account" [routerLink]="auth.homeUrl()">{{ user.name }} · Mon espace</a>
+            <a class="account" [routerLink]="auth.homeUrl()">{{ 'municipal.mySpace' | t: { name: user.name } }}</a>
         } @else {
-            <a class="account" routerLink="/auth/login">Se connecter</a>
+            <a class="account" routerLink="/auth/login">{{ 'landing.login' | t }}</a>
         }
     </div>
-    <div class="header-row" style="justify-content: flex-end; margin-top: 0.5rem"><app-font-size /></div>
+    <div class="header-row" style="justify-content: flex-end; margin-top: 0.5rem; gap: 1rem"><app-language-switcher /><app-font-size /></div>
 </header>
 <main id="main-content" tabindex="-1"><router-outlet /></main>

@@ -1,7 +1,9 @@
-<div class="flex gap-4 top-8 right-8" [ngClass]="{ fixed: float() }">
+<div class="flex items-center gap-4 top-8 right-8" [ngClass]="{ fixed: float() }">
+    <!-- D14 : langue choisie dès l'accueil, la connexion et l'inscription -->
+    <app-language-switcher [compact]="true" />
     <!-- Theme configurator -->
     <div #configMenu class="relative">
-        <p-button ariaLabel="Affichage et taille du texte" icon="pi pi-palette" type="button" rounded [ariaExpanded]="visible()" (onClick)="toggle($event)" />
+        <p-button [ariaLabel]="'topbar.display' | t" icon="pi pi-palette" type="button" rounded [ariaExpanded]="visible()" (onClick)="toggle($event)" />
         <app-configurator [visible]="visible()" />
     </div>
 </div>

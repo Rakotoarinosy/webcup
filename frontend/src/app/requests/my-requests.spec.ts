@@ -1,9 +1,11 @@
-import { Component } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router, RouterOutlet, provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 
 import { AuthService } from '@/app/auth/auth.service';
+import { OnboardingService } from '@/app/onboarding/onboarding.service';
+import { LiveDataService } from '@/app/shared/live-data.service';
 import { CitizenRequestService } from './request.service';
 import { MyRequests } from './my-requests';
 
@@ -69,6 +71,8 @@ describe('MyRequests', () => {
                     }
                 ]),
                 { provide: CitizenRequestService, useValue: requestsApi },
+                { provide: OnboardingService, useValue: { progress: signal(null), ensureLoaded: () => {} } },
+                { provide: LiveDataService, useValue: { watch: () => {} } },
                 { provide: AuthService, useValue: { user: () => ({ id: 'citizen-1' }) } }
             ]
         }).compileComponents();
@@ -84,9 +88,7 @@ describe('MyRequests', () => {
         fixture.detectChanges();
 
         expect(fixture.nativeElement.textContent).toContain('Lampadaire en panne');
-        const steps = Array.from(
-            fixture.nativeElement.querySelectorAll('ol[aria-label="Étapes de votre demande, de la plus ancienne à la plus récente"] li')
-        ) as HTMLElement[];
+        const steps = Array.from(fixture.nativeElement.querySelectorAll('ol[aria-label="Étapes de votre demande, de la plus ancienne à la plus récente"] li')) as HTMLElement[];
         expect(steps.length).toBe(2);
         expect(steps[0].textContent).toContain('Demande enregistrée');
         expect(steps[1].textContent).toContain('Prise en charge par Jean Rakoto');

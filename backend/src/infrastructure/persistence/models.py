@@ -20,6 +20,7 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    UniqueConstraint,
     false,
     true,
 )
@@ -130,6 +131,29 @@ class UserPreferenceModel(Base):
     )
     font_family: Mapped[str] = mapped_column(
         String(10), nullable=False, default="system", server_default="system"
+    )
+    # D14 : langue de l'interface ; NULL tant que l'utilisateur n'a rien choisi (français).
+    language: Mapped[str | None] = mapped_column(String(5), nullable=True)
+
+
+# ─── accueil des nouveaux arrivants (D12, F35) ──────────────────────
+
+
+class OnboardingProgressModel(Base):
+    """Progression « Premiers pas » et bulles d'aide déjà vues, par utilisateur."""
+
+    __tablename__ = "onboarding_progress"
+
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    completed_steps: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
+    seen_hints: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
+    dismissed: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=false()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utc_now
     )
 
 
@@ -309,6 +333,28 @@ class MunicipalPublicationModel(Base):
     image_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
     view_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     like_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+
+
+class MunicipalContentTranslationModel(Base):
+    """F27 : traduction d'un service ou d'une publication dans une langue.
+
+    Une ligne par (contenu, langue) : le français reste dans la table du contenu (référence),
+    les champs absents d'une traduction retombent sur le français.
+    """
+
+    __tablename__ = "municipal_content_translations"
+    __table_args__ = (
+        UniqueConstraint("content_type", "content_id", "language", name="uq_municipal_translation"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    content_type: Mapped[str] = mapped_column(String(20), nullable=False)
+    content_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    language: Mapped[str] = mapped_column(String(5), nullable=False)
+    fields: Mapped[dict[str, str]] = mapped_column(JSON, nullable=False, default=dict)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utc_now
+    )
 
 
 class MunicipalPublicationLikeModel(Base):

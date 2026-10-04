@@ -8,6 +8,8 @@ import { MessageModule } from 'primeng/message';
 
 import { NAME_VALIDATORS, PASSWORD_VALIDATORS, normalizePhone, phoneValidator } from '../auth.validators';
 import { AuthService } from '@/app/auth/auth.service';
+import { I18nService } from '@/app/i18n/i18n.service';
+import { TranslatePipe } from '@/app/i18n/t.pipe';
 import { authErrorMessage } from '../auth-errors';
 import { ContactMethod, RegisterContact } from '../auth.model';
 import { GoogleButton } from '../google-button/google-button';
@@ -27,6 +29,7 @@ function passwordMatchValidator(control: AbstractControl): ValidationErrors | nu
     templateUrl: './register.html'
 })
 export class Register implements AfterViewInit {
+    private readonly i18n = inject(I18nService);
     private readonly auth = inject(AuthService);
     private readonly router = inject(Router);
     private readonly fb = inject(FormBuilder);
@@ -107,7 +110,7 @@ export class Register implements AfterViewInit {
                 this.loading.set(false);
                 this.registerForm.enable();
                 this.registerForm.patchValue({ password: '', confirmPassword: '' });
-                this.errorMessage.set(registerErrorMessage(error));
+                this.errorMessage.set(registerErrorMessage(error, this.i18n));
             }
         });
     }
@@ -115,13 +118,13 @@ export class Register implements AfterViewInit {
     contactError(): string {
         const phone = this.method() === 'phone';
         if (this.registerForm.controls.contact.hasError('required')) {
-            return phone ? 'Le numéro de téléphone est obligatoire.' : 'L’email est obligatoire.';
+            return this.i18n.t(phone ? 'auth.error.phoneRequired' : 'auth.error.emailRequired');
         }
-        return phone ? 'Saisissez un numéro valide, par exemple 034 12 345 67 ou +261 34 12 345 67.' : 'Saisissez une adresse email valide.';
+        return this.i18n.t(phone ? 'auth.error.phoneInvalid' : 'auth.error.emailInvalid');
     }
 
     passwordError(): string {
-        return this.registerForm.controls.password.hasError('required') ? 'Le mot de passe est obligatoire.' : 'Le mot de passe doit contenir 10 à 128 caractères, avec majuscule, minuscule et chiffre.';
+        return this.i18n.t(this.registerForm.controls.password.hasError('required') ? 'auth.error.passwordRequired' : 'auth.error.passwordPolicy');
     }
 
     confirmInvalid(): boolean {
@@ -130,14 +133,14 @@ export class Register implements AfterViewInit {
     }
 
     confirmError(): string {
-        return this.registerForm.controls.confirmPassword.hasError('required') ? 'La confirmation est obligatoire.' : 'Les mots de passe ne correspondent pas.';
+        return this.i18n.t(this.registerForm.controls.confirmPassword.hasError('required') ? 'auth.error.confirmRequired' : 'auth.error.mismatch');
     }
 
     /** Erreurs du formulaire, dans l’ordre des champs, pour le récapitulatif. */
     formErrors(): { field: string; message: string }[] {
         const { name, contact, password, confirmPassword } = this.registerForm.controls;
         const errors: { field: string; message: string }[] = [];
-        if (name.invalid) errors.push({ field: 'name', message: 'Saisissez un nom de 1 à 255 caractères.' });
+        if (name.invalid) errors.push({ field: 'name', message: this.i18n.t('auth.error.nameInvalid') });
         if (contact.invalid) errors.push({ field: 'contact', message: this.contactError() });
         if (password.invalid) errors.push({ field: 'password', message: this.passwordError() });
         if (confirmPassword.invalid || this.registerForm.hasError('passwordMismatch')) errors.push({ field: 'confirmPassword', message: this.confirmError() });
@@ -151,18 +154,19 @@ export class Register implements AfterViewInit {
     }
 }
 
-function registerErrorMessage(error: unknown): string {
+function registerErrorMessage(error: unknown, i18n: I18nService): string {
     if (!(error instanceof HttpErrorResponse)) {
-        return 'Erreur inattendue, veuillez réessayer.';
+        return i18n.t('common.error.unexpected');
     }
 
     switch (error.status) {
         case 409:
-            return 'Cet email ou ce numéro est déjà utilisé par un autre compte.';
+            return i18n.t('auth.error.alreadyUsed');
         case 422:
-            return 'Vérifiez les informations saisies.';
+            return i18n.t('auth.error.checkInput');
         default:
             // 429 (un code vient d'être envoyé), 503 (SMTP ou SMS indisponible), etc.
             return authErrorMessage(error);
     }
 }
+

@@ -36,10 +36,10 @@ export type ConcernTopic = (typeof CONCERN_TOPIC_VALUES)[number];
 export const CONCERN_STATUS_VALUES = ['Reçu', "En cours d'examen", 'Répondu'] as const;
 export type ConcernStatus = (typeof CONCERN_STATUS_VALUES)[number];
 
-export const AUDIT_ACTION_VALUES = ['account_created', 'account_updated', 'account_role_changed', 'account_password_reset', 'account_deactivated', 'account_reactivated', 'account_deleted', 'institut_created', 'institut_updated', 'institut_manager_changed', 'agent_created', 'agent_moved', 'agent_activated', 'agent_deactivated', 'agent_status_changed', 'data_concern_reviewed', 'data_concern_answered'] as const;
+export const AUDIT_ACTION_VALUES = ['account_created', 'account_updated', 'account_role_changed', 'account_password_reset', 'account_deactivated', 'account_reactivated', 'account_deleted', 'institut_created', 'institut_updated', 'institut_manager_changed', 'agent_created', 'agent_moved', 'agent_activated', 'agent_deactivated', 'agent_status_changed', 'data_concern_reviewed', 'data_concern_answered', 'content_translation_saved', 'content_translation_deleted'] as const;
 export type AuditAction = (typeof AUDIT_ACTION_VALUES)[number];
 
-export const AUDIT_TARGET_VALUES = ['account', 'institut', 'agent', 'data_concern'] as const;
+export const AUDIT_TARGET_VALUES = ['account', 'institut', 'agent', 'data_concern', 'municipal_service', 'municipal_publication'] as const;
 export type AuditTarget = (typeof AUDIT_TARGET_VALUES)[number];
 
 export const THEME_VALUES = ['light', 'dark', 'system'] as const;
@@ -62,3 +62,27 @@ export type PipelineStatus = (typeof PIPELINE_STATUS_VALUES)[number];
 
 export const TERRA_NOTIFICATION_KIND_VALUES = ['new_request', 'new_wave'] as const;
 export type TerraNotificationKind = (typeof TERRA_NOTIFICATION_KIND_VALUES)[number];
+
+export const LANGUAGE_VALUES = ['fr', 'en', 'mg'] as const;
+export type Language = (typeof LANGUAGE_VALUES)[number];
+
+export const TRANSLATABLE_CONTENT_VALUES = ['service', 'publication'] as const;
+export type TranslatableContent = (typeof TRANSLATABLE_CONTENT_VALUES)[number];
+
+export const ONBOARDING_STEP_VALUES = ['profile', 'language', 'find_service', 'first_request'] as const;
+export type OnboardingStep = (typeof ONBOARDING_STEP_VALUES)[number];
+
+export const ONBOARDING_HINT_VALUES = ['my_requests', 'new_request', 'municipal_services', 'orientation'] as const;
+export type OnboardingHint = (typeof ONBOARDING_HINT_VALUES)[number];
+
+export const ORIENTATION_SITUATION_VALUES = ['new_resident', 'neighbourhood_issue', 'document', 'health', 'information'] as const;
+export type OrientationSituation = (typeof ORIENTATION_SITUATION_VALUES)[number];
+
+export const ORIENTATION_NEED_VALUES = ['papers', 'water', 'roads', 'lighting', 'waste', 'safety', 'green_spaces', 'health', 'news'] as const;
+export type OrientationNeed = (typeof ORIENTATION_NEED_VALUES)[number];
+
+export const ORIENTATION_CHANNEL_VALUES = ['online', 'in_person'] as const;
+export type OrientationChannel = (typeof ORIENTATION_CHANNEL_VALUES)[number];
+
+export const ORIENTATION_ACTION_VALUES = ['set_up_account', 'report_issue', 'contact_service', 'visit_service', 'read_news', 'ask_agent', 'browse_services'] as const;
+export type OrientationAction = (typeof ORIENTATION_ACTION_VALUES)[number];

@@ -8,11 +8,13 @@ export interface MunicipalService {
     icon: string;
     display_order: number;
     is_featured: boolean;
+    language: string;
     usage_count: number;
     /** Accueil physique (F45) : null tant que la mairie ne l'a pas renseigné. */
     address: string | null;
     latitude: number | null;
     longitude: number | null;
+    translation_available: boolean;
 }
 
 export interface ServiceLocationIn {
@@ -57,6 +59,7 @@ export interface MunicipalPublication {
     image_url?: string | null;
     view_count?: number;
     like_count?: number;
+    language: string;
 }
 
 export interface MunicipalPublicationIn {

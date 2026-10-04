@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 
+from src.domain.i18n import Language
 from src.domain.preferences import (
     FontFamily,
     FontSize,
@@ -28,11 +29,16 @@ class SqlAlchemyPreferencesRepository(PreferencesRepository):
             preferences.font_size,
             preferences.font_family,
         )
+        row.language = preferences.language
         self._db.commit()
         return self._entity(row)
 
     @staticmethod
     def _entity(row: UserPreferenceModel) -> UserPreferences:
         return UserPreferences(
-            row.user_id, Theme(row.theme), FontSize(row.font_size), FontFamily(row.font_family)
+            row.user_id,
+            Theme(row.theme),
+            FontSize(row.font_size),
+            FontFamily(row.font_family),
+            Language(row.language) if row.language else None,
         )

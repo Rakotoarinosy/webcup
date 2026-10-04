@@ -8,6 +8,8 @@ import { definePreset } from '@primeuix/themes';
 import { providePrimeNG } from 'primeng/config';
 import { AuthService } from './app/auth/auth.service';
 import { authInterceptor } from './app/auth/auth.interceptor';
+import { I18nService } from './app/i18n/i18n.service';
+import { languageInterceptor } from './app/i18n/language.interceptor';
 import { RealtimeService } from './app/shared/realtime.service';
 import { appRoutes } from './app.routes';
 
@@ -36,12 +38,15 @@ const terraNovaPreset = definePreset(Aura, {
 export const appConfig: ApplicationConfig = {
     providers: [
         { provide: LOCALE_ID, useValue: 'fr-FR' },
+        provideAppInitializer(() => {
+            inject(I18nService); // <html lang> et langue mémorisée dès le premier rendu
+        }),
         provideAppInitializer(() => inject(AuthService).restoreSession()),
         provideAppInitializer(() => {
             inject(RealtimeService);
         }),
         provideRouter(appRoutes, withInMemoryScrolling({ anchorScrolling: 'enabled', scrollPositionRestoration: 'enabled' }), withEnabledBlockingInitialNavigation()),
-        provideHttpClient(withFetch(), withInterceptors([authInterceptor])),
+        provideHttpClient(withFetch(), withInterceptors([authInterceptor, languageInterceptor])),
         provideZonelessChangeDetection(),
         providePrimeNG({ theme: { preset: terraNovaPreset, options: { darkModeSelector: '.app-dark' } } })
     ]

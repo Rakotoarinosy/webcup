@@ -67,7 +67,9 @@ export const AUDIT_LABELS: Record<AuditAction, string> = {
     agent_deactivated: 'Agent désactivé',
     agent_status_changed: 'Disponibilité de l’agent modifiée',
     data_concern_reviewed: 'Signalement sur les données pris en charge',
-    data_concern_answered: 'Réponse à un signalement sur les données'
+    data_concern_answered: 'Réponse à un signalement sur les données',
+    content_translation_saved: 'Traduction de contenu enregistrée',
+    content_translation_deleted: 'Traduction de contenu supprimée'
 };
 
 const FIELD_LABELS: Record<string, string> = {

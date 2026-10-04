@@ -14,9 +14,10 @@ import { ChallengeStore } from '../challenge.store';
 import { safeReturnUrl } from '../return-url';
 import { VerificationService } from '../verification.service';
 
+import { TranslatePipe } from '@/app/i18n/t.pipe';
 @Component({
     selector: 'app-verify-code',
-    imports: [ButtonModule, InputOtpModule, MessageModule, ReactiveFormsModule, RouterModule, AppFloatingConfigurator],
+    imports: [ButtonModule, InputOtpModule, MessageModule, ReactiveFormsModule, RouterModule, AppFloatingConfigurator, TranslatePipe],
     templateUrl: './verify-code.html'
 })
 export class VerifyCode {

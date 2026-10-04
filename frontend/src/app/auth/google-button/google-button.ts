@@ -1,4 +1,4 @@
-import { AfterViewInit, Component, ElementRef, inject, output, signal, viewChild } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, inject, input, output, signal, viewChild } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 
 import { authErrorMessage } from '../auth-errors';
@@ -31,6 +31,8 @@ export class GoogleButton implements AfterViewInit {
     private readonly host = viewChild<ElementRef<HTMLElement>>('host');
 
     readonly failed = output<string>();
+    readonly reauthenticate = input(false);
+    readonly credential = output<string>();
     readonly unavailable = signal(false);
 
     ngAfterViewInit(): void {
@@ -41,6 +43,10 @@ export class GoogleButton implements AfterViewInit {
     }
 
     private signIn(credential: string): void {
+        if (this.reauthenticate()) {
+            this.credential.emit(credential);
+            return;
+        }
         this.verification.loginWithGoogle(credential).subscribe({
             next: (outcome) =>
                 outcome === 'verification-required'

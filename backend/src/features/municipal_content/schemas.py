@@ -2,6 +2,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from src.domain.i18n import Language
+from src.domain.municipal_content import TranslatableContent
 from src.shared.validation import Email
 
 
@@ -21,6 +23,9 @@ class MunicipalServiceOut(BaseModel):
     address: str | None
     latitude: float | None
     longitude: float | None
+    # F27 : langue des textes renvoyés ; False = pas de traduction, textes en français.
+    language: Language
+    translation_available: bool
 
 
 class UpdateMunicipalServiceCatalogIn(BaseModel):
@@ -49,6 +54,8 @@ class MunicipalPublicationOut(BaseModel):
     image_url: str | None
     view_count: int
     like_count: int
+    language: Language
+    translation_available: bool
 
 
 class CreateMunicipalPublicationIn(BaseModel):
@@ -133,3 +140,32 @@ class ContactReceiptOut(BaseModel):
     receipt_number: str
     created_at: datetime
     message: str = "Votre message a bien été envoyé aux services municipaux."
+
+
+class ServiceTranslationIn(BaseModel):
+    """Traduction d'un service : les champs absents ou vides retombent sur le français."""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    name: str | None = Field(default=None, max_length=255)
+    description: str | None = Field(default=None, max_length=5000)
+    opening_hours: str | None = Field(default=None, max_length=255)
+    contact_details: str | None = Field(default=None, max_length=500)
+
+
+class PublicationTranslationIn(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    title: str | None = Field(default=None, max_length=255)
+    summary: str | None = Field(default=None, max_length=500)
+    content: str | None = Field(default=None, max_length=10_000)
+
+
+class ContentTranslationOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    content_type: TranslatableContent
+    content_id: str
+    language: Language
+    fields: dict[str, str]
+    updated_at: datetime | None

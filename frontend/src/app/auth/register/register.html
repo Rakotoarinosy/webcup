@@ -44,7 +44,7 @@
             }
             @if (submitAttempted() && formErrors().length) {
                 <div #errorSummary id="register-error-summary" role="alert" tabindex="-1" class="mb-4 rounded-xl border border-red-300 bg-red-50 p-4 text-sm text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-100">
-                    <p class="m-0 font-semibold">{{ formErrors().length > 1 ? 'Le formulaire contient ' + formErrors().length + ' erreurs :' : 'Le formulaire contient une erreur :' }}</p>
+                    <p class="m-0 font-semibold">{{ formErrors().length > 1 ? ('common.error.summaryMany' | t: { count: formErrors().length }) : ('common.error.summaryOne' | t) }}</p>
                     <ul class="mb-0 mt-2 list-disc pl-5">
                         @for (error of formErrors(); track error.field) {
                             <li><a class="underline" [href]="'#' + error.field" (click)="focusField($event, error.field)">{{ error.message }}</a></li>
@@ -67,7 +67,7 @@
                             id="name"
                             type="text"
                             autocomplete="name"
-                            placeholder="Votre nom"
+                            [attr.placeholder]="'auth.field.namePlaceholder' | t"
                             required
                             maxlength="255"
                             aria-describedby="name-error"
@@ -79,7 +79,7 @@
                     </span>
                     <small id="name-error" class="field-error block min-h-4 pt-1 text-xs text-red-600 dark:text-red-400">
                         @if (registerForm.controls.name.invalid && registerForm.controls.name.touched) {
-                            Saisissez un nom de 1 à 255 caractères.
+                            {{ 'auth.error.nameInvalid' | t }}
                         }
                     </small>
                 </div>
@@ -131,7 +131,7 @@
                             id="password"
                             [type]="showPassword() ? 'text' : 'password'"
                             autocomplete="new-password"
-                            placeholder="10 caractères minimum"
+                            [attr.placeholder]="'auth.field.newPasswordPlaceholder' | t"
                             required
                             aria-describedby="password-help password-error"
                             [attr.aria-invalid]="registerForm.controls.password.invalid && registerForm.controls.password.touched"
@@ -167,7 +167,7 @@
                             id="confirmPassword"
                             [type]="showConfirm() ? 'text' : 'password'"
                             autocomplete="new-password"
-                            placeholder="Répétez votre mot de passe"
+                            [attr.placeholder]="'auth.field.confirmPlaceholder' | t"
                             required
                             aria-describedby="confirmPassword-error"
                             [attr.aria-invalid]="confirmInvalid()"
@@ -196,7 +196,7 @@
                 <!-- BOUTON SUBMIT (Couleurs forcées pour correspondre au design clair du bouton) -->
                 <p-button
                     type="submit"
-                    label="Créer mon compte"
+                    [label]="'auth.register.submit' | t"
                     icon="pi pi-arrow-right"
                     iconPos="right"
                     styleClass="mt-2 w-full rounded-xl border-0 !bg-emerald-600 !text-white py-3 font-bold hover:!bg-emerald-700 dark:!bg-emerald-400 dark:!text-emerald-950 dark:hover:!bg-emerald-500 transition-colors"
