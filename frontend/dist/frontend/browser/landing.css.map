@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/app/pages/landing/landing.scss", "src/app/pages/landing/landing.scss"],
+  "sourcesContent": ["main {\n    overflow-wrap: anywhere;\n}\nmain section > div {\n    min-width: 0;\n}\n", "main {\n  overflow-wrap: anywhere;\n}\n\nmain section > div {\n  min-width: 0;\n}\n/*# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyJmaWxlOi8vL2hvbWUvZmVoaXpvcm8vRG9jdW1lbnRzL2Rldi93ZWJjdXAvZnJvbnRlbmQvc3JjL2FwcC9wYWdlcy9sYW5kaW5nL2xhbmRpbmcuc2NzcyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiQUFBQTtFQUNJOzs7QUFFSjtFQUNJIiwic291cmNlc0NvbnRlbnQiOlsibWFpbiB7XG4gICAgb3ZlcmZsb3ctd3JhcDogYW55d2hlcmU7XG59XG5tYWluIHNlY3Rpb24gPiBkaXYge1xuICAgIG1pbi13aWR0aDogMDtcbn1cbiJdfQ== */"],
+  "mappings": ";AAAA;AACI,iBAAA;ACCJ;ADCA,KAAA,QAAA,EAAA;AACI,aAAA;ACEJ;",
+  "names": []
+}

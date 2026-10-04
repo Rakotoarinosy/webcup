@@ -74,7 +74,7 @@ export class Profile {
             )
             .subscribe({
                 next: (user) => {
-                    this.profileForm.reset({ name: user.name, email: user.email, current_password: '' });
+                    this.profileForm.reset({ name: user.name, email: user.email ?? '', current_password: '' });
                     this.success('Informations enregistrées', 'Utilisez cette adresse email lors de votre prochaine connexion.');
                 },
                 error: (error: unknown) => {

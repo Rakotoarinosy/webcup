@@ -31,7 +31,8 @@ def export_personal_data(
 def _rows(data: PersonalData, generated_at: datetime) -> list[tuple[str, str, str]]:
     rows = [
         ("Informations du compte", "Nom", data.name),
-        ("Informations du compte", "Adresse email", data.email),
+        ("Informations du compte", "Adresse email", data.email or "Non renseignée"),
+        ("Informations du compte", "Téléphone", data.phone or "Non renseigné"),
         ("Informations du compte", "Rôle", data.role),
         ("Informations du compte", "Membre depuis", _date(data.created_at)),
         ("Préférences", "Thème", data.theme),

@@ -19,7 +19,7 @@ describe('Registration flow', () => {
     });
     it('opens code verification after registration', () => {
         const navigate = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
-        component.registerForm.setValue({ name: 'Rina', email: 'r@test.mg', password: 'Motdepasse123', confirmPassword: 'Motdepasse123' });
+        component.registerForm.setValue({ name: 'Rina', contact: 'r@test.mg', password: 'Motdepasse123', confirmPassword: 'Motdepasse123' });
         component.submit();
         expect(auth.register).toHaveBeenCalled();
         expect(auth.logout).not.toHaveBeenCalled();
@@ -29,7 +29,7 @@ describe('Registration flow', () => {
         const navigate = spyOn(TestBed.inject(Router), 'navigateByUrl').and.resolveTo(true);
         const verify = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
         auth.register.and.returnValue(of('verification-required'));
-        component.registerForm.setValue({ name: 'Rina', email: 'r@test.mg', password: 'Motdepasse123', confirmPassword: 'Motdepasse123' });
+        component.registerForm.setValue({ name: 'Rina', contact: 'r@test.mg', password: 'Motdepasse123', confirmPassword: 'Motdepasse123' });
         component.submit();
         expect(component.loading()).toBeTrue();
         expect(component.registerForm.getRawValue().password).toBe('');
@@ -38,12 +38,12 @@ describe('Registration flow', () => {
         expect(verify).toHaveBeenCalledWith(['/auth/verify-code'], { queryParamsHandling: 'preserve' });
     });
     it('rejects passwords that do not meet the API policy', () => {
-        component.registerForm.setValue({ name: 'Rina', email: 'r@test.mg', password: 'short', confirmPassword: 'short' });
+        component.registerForm.setValue({ name: 'Rina', contact: 'r@test.mg', password: 'short', confirmPassword: 'short' });
         component.submit();
         expect(auth.register).not.toHaveBeenCalled();
     });
     it('rejects blank and oversized names', () => {
-        component.registerForm.setValue({ name: '   ', email: 'r@test.mg', password: 'Motdepasse123', confirmPassword: 'Motdepasse123' });
+        component.registerForm.setValue({ name: '   ', contact: 'r@test.mg', password: 'Motdepasse123', confirmPassword: 'Motdepasse123' });
         component.submit();
         component.registerForm.controls.name.setValue('x'.repeat(256));
         component.submit();
@@ -75,7 +75,7 @@ describe('Registration form accessibility', () => {
         expect(host.querySelector('#password')?.getAttribute('aria-describedby')).toBe('password-help password-error');
         expect(host.querySelector('#password-help')?.textContent).toContain('10 à 128 caractères');
 
-        fixture.componentInstance.registerForm.setValue({ name: 'Rina', email: 'r@test.mg', password: 'Motdepasse123', confirmPassword: 'Autre123456' });
+        fixture.componentInstance.registerForm.setValue({ name: 'Rina', contact: 'r@test.mg', password: 'Motdepasse123', confirmPassword: 'Autre123456' });
         (host.querySelector('form') as HTMLFormElement).dispatchEvent(new Event('submit'));
         fixture.detectChanges();
         await fixture.whenStable();

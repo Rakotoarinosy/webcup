@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/app/terra-nova/request-detail/tn-request-detail.scss", "src/app/terra-nova/request-detail/tn-request-detail.scss"],
+  "sourcesContent": [".request-detail-grid {\n    display: grid;\n    grid-template-columns: repeat(auto-fit, minmax(min(100%, 8rem), 1fr));\n    gap: 1rem;\n}\nblockquote {\n    margin: 0;\n    padding: min(1rem, 14px);\n    overflow-wrap: anywhere;\n}\n", ".request-detail-grid {\n  display: grid;\n  grid-template-columns: repeat(auto-fit, minmax(min(100%, 8rem), 1fr));\n  gap: 1rem;\n}\n\nblockquote {\n  margin: 0;\n  padding: min(1rem, 14px);\n  overflow-wrap: anywhere;\n}\n/*# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyJmaWxlOi8vL2hvbWUvZmVoaXpvcm8vRG9jdW1lbnRzL2Rldi93ZWJjdXAvZnJvbnRlbmQvc3JjL2FwcC90ZXJyYS1ub3ZhL3JlcXVlc3QtZGV0YWlsL3RuLXJlcXVlc3QtZGV0YWlsLnNjc3MiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6IkFBQUE7RUFDSTtFQUNBO0VBQ0E7OztBQUVKO0VBQ0k7RUFDQTtFQUNBIiwic291cmNlc0NvbnRlbnQiOlsiLnJlcXVlc3QtZGV0YWlsLWdyaWQge1xuICAgIGRpc3BsYXk6IGdyaWQ7XG4gICAgZ3JpZC10ZW1wbGF0ZS1jb2x1bW5zOiByZXBlYXQoYXV0by1maXQsIG1pbm1heChtaW4oMTAwJSwgOHJlbSksIDFmcikpO1xuICAgIGdhcDogMXJlbTtcbn1cbmJsb2NrcXVvdGUge1xuICAgIG1hcmdpbjogMDtcbiAgICBwYWRkaW5nOiBtaW4oMXJlbSwgMTRweCk7XG4gICAgb3ZlcmZsb3ctd3JhcDogYW55d2hlcmU7XG59XG4iXX0= */"],
+  "mappings": ";AAAA,CAAA;AACI,WAAA;AACA,yBAAA,OAAA,QAAA,EAAA,OAAA,IAAA,IAAA,EAAA,KAAA,EAAA;AACA,OAAA;ACCJ;ADCA;AACI,UAAA;AACA,WAAA,IAAA,IAAA,EAAA;AACA,iBAAA;ACEJ;",
+  "names": []
+}

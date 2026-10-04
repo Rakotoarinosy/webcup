@@ -152,7 +152,9 @@ def toggle_publication_like_endpoint(
     return PublicationLikeOut(like_count=publication.like_count, liked=liked)
 
 
-@router.get("/publications/{publication_id}/comments", response_model=list[MunicipalPublicationCommentOut])
+@router.get(
+    "/publications/{publication_id}/comments", response_model=list[MunicipalPublicationCommentOut]
+)
 def list_publication_comments_endpoint(
     publication_id: str,
     repo: MunicipalContentRepository = Depends(get_municipal_content_repo),
@@ -160,7 +162,11 @@ def list_publication_comments_endpoint(
     return list_publication_comments(publication_id, repo)
 
 
-@router.post("/publications/{publication_id}/comments", response_model=MunicipalPublicationCommentOut, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/publications/{publication_id}/comments",
+    response_model=MunicipalPublicationCommentOut,
+    status_code=status.HTTP_201_CREATED,
+)
 def create_publication_comment_endpoint(
     publication_id: str,
     payload: CreatePublicationCommentIn,

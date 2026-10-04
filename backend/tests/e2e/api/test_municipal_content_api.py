@@ -103,10 +103,14 @@ async def test_citizen_can_toggle_like_and_comment_a_publication(
     _, credentials = await signup(client, "citizen-social@test.mg")
     headers = await signin(client, credentials)
 
-    liked = await client.post("/api/v1/municipal/publications/publication-social/like", headers=headers)
+    liked = await client.post(
+        "/api/v1/municipal/publications/publication-social/like", headers=headers
+    )
     assert liked.status_code == 200
     assert liked.json() == {"like_count": 1, "liked": True}
-    unliked = await client.post("/api/v1/municipal/publications/publication-social/like", headers=headers)
+    unliked = await client.post(
+        "/api/v1/municipal/publications/publication-social/like", headers=headers
+    )
     assert unliked.json() == {"like_count": 0, "liked": False}
 
     created = await client.post(

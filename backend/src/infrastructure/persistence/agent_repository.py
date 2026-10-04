@@ -97,7 +97,7 @@ def _base() -> Select:
 
 
 def _to_entity(
-    model: AgentModel, name: str, email: str, institut_name: str, counts: dict[str, int]
+    model: AgentModel, name: str, email: str | None, institut_name: str, counts: dict[str, int]
 ) -> Agent:
     return Agent(
         id=model.id,
@@ -108,7 +108,7 @@ def _to_entity(
         status=AgentStatus(model.status),
         is_active=model.is_active,
         name=name,
-        email=email,
+        email=email or "",  # compte agent créé par téléphone : pas d'email
         institut_name=institut_name,
         interventions=counts.get(model.id, 0),
     )

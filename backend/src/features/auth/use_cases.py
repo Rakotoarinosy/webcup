@@ -154,9 +154,7 @@ def login(
     now = datetime.now(UTC)
     by_email = is_email_identifier(dto.identifier)
     channel = Channel.EMAIL if by_email else Channel.SMS
-    user = (
-        users.get_by_email(dto.identifier) if by_email else users.get_by_phone(dto.identifier)
-    )
+    user = users.get_by_email(dto.identifier) if by_email else users.get_by_phone(dto.identifier)
 
     if user is None:
         hasher.hash(dto.password)  # égalise le temps de réponse (anti-énumération de comptes)
