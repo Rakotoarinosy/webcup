@@ -1,11 +1,13 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { MenuItem } from 'primeng/api';
 
 import { AuthService } from '@/app/auth/auth.service';
 import { NotificationService } from '@/app/notifications/notification.service';
 import { PublicationReadService } from '@/app/municipal/publication-read.service';
+import { Institut, InstitutService as ManagedService } from '@/app/instituts/institut.model';
+import { InstitutService } from '@/app/instituts/institut.service';
 import { AppMenuitem } from '../menuitem/app.menuitem';
 
 @Component({
@@ -18,6 +20,21 @@ export class AppMenu {
     private readonly auth = inject(AuthService);
     private readonly notifications = inject(NotificationService);
     private readonly publications = inject(PublicationReadService);
+    private readonly institutApi = inject(InstitutService);
+    /** Navigation de pilotage chargée depuis l'API : elle suit les vrais instituts et services. */
+    private readonly instituts = signal<Institut[]>([]);
+    private readonly servicesByInstitut = signal(new Map<string, ManagedService[]>());
+
+    constructor() {
+        effect(() => {
+            if (!this.auth.hasRole('admin')) {
+                this.instituts.set([]);
+                this.servicesByInstitut.set(new Map());
+                return;
+            }
+            this.loadInstitutionMenu();
+        });
+    }
 
     readonly model = computed<MenuItem[]>(() => {
         const items: MenuItem[] = [{ label: 'Mon espace', icon: 'pi pi-fw pi-user', routerLink: ['/home/account'] }];
@@ -49,7 +66,6 @@ export class AppMenu {
                         { label: 'Administrateurs', icon: 'pi pi-fw pi-shield', routerLink: ['/home/accounts/admins'] }
                     ]
                 },
-                { label: 'Instituts', icon: 'pi pi-fw pi-building', routerLink: ['/home/instituts'] },
                 { label: 'Signalements données', icon: 'pi pi-fw pi-shield', routerLink: ['/home/data-concerns'] }
             );
         } else if (this.auth.hasRole('manager')) {
@@ -61,99 +77,13 @@ export class AppMenu {
 
         const groups: MenuItem[] = [{ label: 'Kotrana', items }];
 
-        const mairieGroup: MenuItem = {
-            label: 'La mairie',
-            path: '__institution/mairie',
-            icon: 'pi pi-fw pi-building',
-            dropdownOnly: true,
-            items: [
-                { label: 'Accueil municipal', icon: 'pi pi-fw pi-building', routerLink: ['/home/municipal'], routerLinkActiveOptions: { exact: true } },
-                { label: 'Services municipaux', icon: 'pi pi-fw pi-map-marker', routerLink: ['/home/municipal/services'] },
-                { label: 'Contacter la mairie', icon: 'pi pi-fw pi-envelope', routerLink: ['/home/municipal/contact'] }
-            ]
-        };
-
-        const institutionGroups: MenuItem[] = [
-            {
-                label: 'Accueil & démarches',
-                path: '__institution/accueil',
-                icon: 'pi pi-fw pi-id-card',
-                dropdownOnly: true,
-                items: [
-                    { label: 'État civil et documents administratifs', icon: 'pi pi-fw pi-id-card', routerLink: ['/home/municipal/services'] },
-                    { label: 'Aide sociale et famille', icon: 'pi pi-fw pi-heart', routerLink: ['/home/municipal/services'] },
-                    { label: 'Santé et prévention', icon: 'pi pi-fw pi-heart', routerLink: ['/home/municipal/services'] }
-                ]
-            },
-            {
-                label: 'Voirie',
-                path: '__institution/voirie',
-                icon: 'pi pi-fw pi-directions',
-                dropdownOnly: true,
-                items: [
-                    { label: 'Voirie et circulation', icon: 'pi pi-fw pi-directions', routerLink: ['/home/municipal/services'] },
-                    { label: 'Travaux et signalisation', icon: 'pi pi-fw pi-wrench', routerLink: ['/home/municipal/services'] }
-                ]
-            },
-            {
-                label: 'Eau & assainissement',
-                path: '__institution/eau',
-                icon: 'pi pi-fw pi-cloud',
-                dropdownOnly: true,
-                items: [
-                    { label: 'Eau et réseau', icon: 'pi pi-fw pi-cloud', routerLink: ['/home/municipal/services'] },
-                    { label: 'Assainissement', icon: 'pi pi-fw pi-filter', routerLink: ['/home/municipal/services'] }
-                ]
-            },
-            {
-                label: 'Propreté urbaine',
-                path: '__institution/proprete',
-                icon: 'pi pi-fw pi-trash',
-                dropdownOnly: true,
-                items: [
-                    { label: 'Collecte et tri', icon: 'pi pi-fw pi-trash', routerLink: ['/home/municipal/services'] },
-                    { label: 'Nettoyage et propreté', icon: 'pi pi-fw pi-sparkles', routerLink: ['/home/municipal/services'] }
-                ]
-            },
-            {
-                label: 'Éclairage public',
-                path: '__institution/eclairage',
-                icon: 'pi pi-fw pi-bolt',
-                dropdownOnly: true,
-                items: [
-                    { label: 'Éclairage public', icon: 'pi pi-fw pi-bolt', routerLink: ['/home/municipal/services'] },
-                    { label: 'Signalement d’éclairage', icon: 'pi pi-fw pi-exclamation-circle', routerLink: ['/home/municipal/services'] }
-                ]
-            },
-            {
-                label: 'Espaces verts',
-                path: '__institution/environnement',
-                icon: 'pi pi-fw pi-tree',
-                dropdownOnly: true,
-                items: [
-                    { label: 'Espaces verts', icon: 'pi pi-fw pi-tree', routerLink: ['/home/municipal/services'] },
-                    { label: 'Environnement et arbres', icon: 'pi pi-fw pi-leaf', routerLink: ['/home/municipal/services'] }
-                ]
-            },
-            {
-                label: 'Sécurité civile',
-                path: '__institution/securite',
-                icon: 'pi pi-fw pi-shield',
-                dropdownOnly: true,
-                items: [
-                    { label: 'Tranquillité publique', icon: 'pi pi-fw pi-shield', routerLink: ['/home/municipal/services'] },
-                    { label: 'Prévention et sécurité', icon: 'pi pi-fw pi-check-circle', routerLink: ['/home/municipal/services'] }
-                ]
-            }
-        ];
-
-        // Même niveau que « Utilisateurs » : les institutions sont des parents repliables.
-        // Les publications sont une entrée directe, juste avant « La mairie ».
-        items.push(
-            { label: 'Publications', icon: 'pi pi-fw pi-megaphone', routerLink: ['/home/municipal/publications'], badge: this.publicationBadge() },
-            mairieGroup,
-            ...institutionGroups
-        );
+        items.push({ label: 'Publications', icon: 'pi pi-fw pi-megaphone', routerLink: ['/home/municipal/publications'], badge: this.publicationBadge() });
+        if (this.auth.hasRole('admin')) {
+            items.push({
+                label: 'Instituts', icon: 'pi pi-fw pi-building', path: '__instituts', dropdownOnly: true,
+                items: this.institutMenuItems()
+            });
+        }
 
         if (this.auth.hasRole('agent', 'manager', 'admin')) {
             groups.push({
@@ -177,5 +107,47 @@ export class AppMenu {
     private publicationBadge(): string | undefined {
         const count = this.publications.unreadCount();
         return count ? (count > 99 ? '99+' : String(count)) : undefined;
+    }
+
+    private loadInstitutionMenu(): void {
+        this.institutApi.list().subscribe({
+            next: (instituts) => {
+                this.instituts.set(instituts);
+                instituts.forEach((institut) => this.institutApi.dashboard(institut.id).subscribe({
+                    next: (dashboard) => this.servicesByInstitut.update((current) => new Map(current).set(institut.id, dashboard.services)),
+                    error: () => undefined
+                }));
+            },
+            error: () => undefined
+        });
+    }
+
+    private institutMenuItems(): MenuItem[] {
+        return this.instituts().map((institut) => ({
+            label: institut.name,
+            icon: `pi pi-fw ${this.institutIcon(institut)}`,
+            path: `__institut/${institut.id}`,
+            dropdownOnly: true,
+            items: [
+                { label: 'Principal', icon: 'pi pi-fw pi-info-circle', routerLink: ['/home/instituts', institut.id] },
+                ...(this.servicesByInstitut().get(institut.id) ?? []).map((service) => ({
+                    label: service.name,
+                    icon: `pi pi-fw ${service.icon || 'pi-building'}`,
+                    routerLink: ['/home/instituts', institut.id, 'services', service.id]
+                }))
+            ]
+        }));
+    }
+
+    private institutIcon(institut: Institut): string {
+        const identity = `${institut.name} ${institut.categories.join(' ')}`.toLocaleLowerCase('fr');
+        if (identity.includes('voirie')) return 'pi-directions';
+        if (identity.includes('eau') || identity.includes('assainissement')) return 'pi-cloud';
+        if (identity.includes('déchet') || identity.includes('propreté')) return 'pi-trash';
+        if (identity.includes('éclairage')) return 'pi-bolt';
+        if (identity.includes('vert') || identity.includes('environnement')) return 'pi-tree';
+        if (identity.includes('sécurité')) return 'pi-shield';
+        if (identity.includes('accueil') || identity.includes('démarche')) return 'pi-id-card';
+        return 'pi-building';
     }
 }

@@ -30,7 +30,12 @@ export class BreadcrumbComponent {
         while (route) {
             const segment = route.url.map((part) => part.path).join('/');
             if (segment) url += `/${segment}`;
-            const label = route.data['breadcrumb'] as string | undefined;
+            // `data` est hérité par les routes enfants : on privilégie donc le
+            // libellé déclaré sur la route courante (ex. « Description »), puis
+            // le nom dynamique résolu pour le niveau institut.
+            const configuredLabel = route.routeConfig?.data?.['breadcrumb'] as string | undefined;
+            const resolvedInstitut = route.data['institutBreadcrumb'] as { name?: string } | undefined;
+            const label = configuredLabel ?? resolvedInstitut?.name ?? (route.data['breadcrumb'] as string | undefined);
             const currentUrl = url || '/';
             // Les routes enfant vides héritent des données de leur parent dans Angular.
             // Elles ne doivent pas dupliquer le même niveau dans le fil d'Ariane.

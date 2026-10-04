@@ -19,3 +19,45 @@ export interface CreateInstitutIn {
 }
 
 export type UpdateInstitutIn = Partial<Pick<Institut, 'name' | 'description' | 'categories' | 'is_active'>>;
+
+export interface RequestMetrics {
+    received: number;
+    in_progress: number;
+    resolved: number;
+}
+
+export interface InstitutService {
+    id: string;
+    institut_id: string;
+    name: string;
+    category: string;
+    description: string;
+    contact_details: string;
+    opening_hours: string;
+    icon: string;
+    request_category: RequestCategory | null;
+    responsible_agent_id: string | null;
+    responsible_agent_name: string | null;
+    associated_agents: number;
+    metrics: RequestMetrics;
+}
+
+export interface InstitutDashboard {
+    institut: Institut;
+    manager_name: string | null;
+    associated_agents: number;
+    metrics: RequestMetrics;
+    services: InstitutService[];
+}
+
+export interface CreateInstitutServiceIn {
+    name: string;
+    category: string;
+    description: string;
+    contact_details: string;
+    opening_hours: string;
+    icon: string;
+    request_category: RequestCategory | null;
+    responsible_agent_id: string | null;
+    agent_ids: string[];
+}

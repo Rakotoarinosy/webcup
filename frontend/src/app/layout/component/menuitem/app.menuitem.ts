@@ -33,6 +33,9 @@ export class AppMenuitem {
     // Enables the submenu enter animation only after the first render.
     initialized = signal<boolean>(false);
 
+    /** Rend l'URL courante réactive pour garder les parents ouverts après navigation/rechargement. */
+    private readonly navigationVersion = signal(0);
+
     isVisible = computed(() => this.item()?.visible !== false);
 
     hasChildren = computed(() => this.item()?.items && this.item()?.items.length > 0);
@@ -60,7 +63,11 @@ export class AppMenuitem {
     });
 
     isActive = computed(() => {
+        this.navigationVersion();
         const activePath = this.layoutService.layoutState().activePath;
+        if (this.isDropdownOnly() && this.hasActiveDescendant(this.item())) {
+            return true;
+        }
         if (this.item()?.path) {
             return activePath?.startsWith(this.fullPath() ?? '') ?? false;
         }
@@ -69,6 +76,7 @@ export class AppMenuitem {
 
     constructor() {
         this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {
+            this.navigationVersion.update((version) => version + 1);
             if (this.item()?.routerLink) {
                 this.updateActiveStateFromRoute();
             }
@@ -142,6 +150,20 @@ export class AppMenuitem {
         } else {
             this.patchLayoutState({ activePath: this.fullPath(), menuHoverActive: true });
         }
+    }
+
+    private hasActiveDescendant(item: any): boolean {
+        if (!item?.items?.length) return false;
+        const currentUrl = this.router.url.split('?')[0].split('#')[0];
+        return item.items.some((child: any) => {
+            const link = Array.isArray(child.routerLink)
+                ? child.routerLink.filter((part: unknown) => typeof part === 'string').join('/')
+                : child.routerLink;
+            if (typeof link === 'string' && (currentUrl === link || currentUrl.startsWith(`${link}/`))) {
+                return true;
+            }
+            return this.hasActiveDescendant(child);
+        });
     }
 
     private closeMenus() {

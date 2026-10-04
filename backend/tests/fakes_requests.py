@@ -106,3 +106,20 @@ class FakeInstitutRepository(InstitutRepository):
     def update(self, institut):
         self.items[institut.id] = institut
         return institut
+
+    # Les tableaux de pilotage sont testés avec le repository SQLAlchemy ; ces
+    # stubs préservent les anciens tests de règles métier en mémoire.
+    def get_dashboard(self, institut_id):
+        return None
+
+    def get_service(self, institut_id, service_id):
+        return None
+
+    def add_service(self, service, agent_ids):
+        return service
+
+    def set_service_responsible(self, institut_id, service_id, agent_id):
+        return None
+
+    def set_service_agents(self, institut_id, service_id, agent_ids):
+        return None

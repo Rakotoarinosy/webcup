@@ -17,6 +17,9 @@ class FakeUserRepository(UserRepository):
     def get_by_email(self, email: str) -> User | None:
         return next((user for user in self.users.values() if user.email == email), None)
 
+    def get_by_phone(self, phone: str) -> User | None:
+        return next((user for user in self.users.values() if user.phone == phone), None)
+
     def get_by_google_id(self, google_id: str) -> User | None:
         return next((user for user in self.users.values() if user.google_id == google_id), None)
 

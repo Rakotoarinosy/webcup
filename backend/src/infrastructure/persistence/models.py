@@ -252,6 +252,30 @@ class MunicipalServiceModel(Base):
     address: Mapped[str | None] = mapped_column(String(255), nullable=True)
     latitude: Mapped[float | None] = mapped_column(Float, nullable=True)
     longitude: Mapped[float | None] = mapped_column(Float, nullable=True)
+    # Pilotage interne : le catalogue citoyen reste public, mais chaque service peut
+    # être confié à un institut et une équipe opérationnelle.
+    institut_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("instituts.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    responsible_agent_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("agents.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    # Catégorie de demandes utilisée pour les indicateurs du service. Les services
+    # purement informatifs peuvent ne pas en avoir.
+    request_category: Mapped[str | None] = mapped_column(String(50), nullable=True, index=True)
+
+
+class MunicipalServiceAgentModel(Base):
+    """Association entre un service municipal et les agents qui l'opèrent."""
+
+    __tablename__ = "municipal_service_agents"
+
+    service_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("municipal_services.id", ondelete="CASCADE"), primary_key=True
+    )
+    agent_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("agents.id", ondelete="CASCADE"), primary_key=True
+    )
 
 
 class MunicipalPublicationModel(Base):
