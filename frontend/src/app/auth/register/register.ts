@@ -5,7 +5,6 @@ import { Router, RouterModule } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
-import { AppFloatingConfigurator } from '../../layout/component/floatingconfigurator/app.floatingconfigurator';
 
 import { NAME_VALIDATORS, PASSWORD_VALIDATORS, normalizePhone, phoneValidator } from '../auth.validators';
 import { AuthService } from '@/app/auth/auth.service';
@@ -24,7 +23,7 @@ function passwordMatchValidator(control: AbstractControl): ValidationErrors | nu
 
 @Component({
     selector: 'app-register',
-    imports: [ButtonModule, InputTextModule, MessageModule, ReactiveFormsModule, RouterModule, AppFloatingConfigurator, GoogleButton],
+    imports: [ButtonModule, InputTextModule, MessageModule, ReactiveFormsModule, RouterModule, GoogleButton],
     templateUrl: './register.html'
 })
 export class Register implements AfterViewInit {

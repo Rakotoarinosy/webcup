@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/app/shared/live-data.service.ts"],
-  "sourcesContent": ["import { DestroyRef, Injectable, inject } from '@angular/core';\nimport { takeUntilDestroyed } from '@angular/core/rxjs-interop';\nimport { Subject, debounceTime } from 'rxjs';\nimport { RealtimeService } from './realtime.service';\n\n@Injectable({ providedIn: 'root' })\nexport class LiveDataService {\n    private readonly changes = new Subject<void>();\n    private readonly realtime = inject(RealtimeService, { optional: true });\n\n    constructor() {\n        this.realtime?.changes$.subscribe(() => this.notifyChange());\n    }\n\n    watch(destroyRef: DestroyRef, refresh: () => void, ready: () => boolean = () => true): void {\n        this.changes\n            .pipe(debounceTime(50), takeUntilDestroyed(destroyRef))\n            .subscribe(() => {\n                if (ready()) refresh();\n            });\n    }\n\n    notifyChange(): void {\n        this.changes.next();\n    }\n}\n"],
-  "mappings": ";;;;;;;;;;;;;;;;AAMM,IAAO,kBAAP,MAAO,iBAAe;EACP,UAAU,IAAI,QAAO;EACrB,WAAW,OAAO,iBAAiB,EAAE,UAAU,KAAI,CAAE;EAEtE,cAAA;AACI,SAAK,UAAU,SAAS,UAAU,MAAM,KAAK,aAAY,CAAE;EAC/D;EAEA,MAAM,YAAwB,SAAqB,QAAuB,MAAM,MAAI;AAChF,SAAK,QACA,KAAK,aAAa,EAAE,GAAG,mBAAmB,UAAU,CAAC,EACrD,UAAU,MAAK;AACZ,UAAI,MAAK;AAAI,gBAAO;IACxB,CAAC;EACT;EAEA,eAAY;AACR,SAAK,QAAQ,KAAI;EACrB;;qCAlBS,kBAAe;EAAA;4EAAf,kBAAe,SAAf,iBAAe,WAAA,YADF,OAAM,CAAA;;;sEACnB,iBAAe,CAAA;UAD3B;WAAW,EAAE,YAAY,OAAM,CAAE;;;",
-  "names": []
-}
