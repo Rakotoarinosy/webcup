@@ -25,7 +25,7 @@ function passwordMatchValidator(control: AbstractControl): ValidationErrors | nu
 
 @Component({
     selector: 'app-register',
-    imports: [ButtonModule, InputTextModule, MessageModule, ReactiveFormsModule, RouterModule, GoogleButton],
+    imports: [ButtonModule, InputTextModule, MessageModule, ReactiveFormsModule, RouterModule, GoogleButton, TranslatePipe],
     templateUrl: './register.html'
 })
 export class Register implements AfterViewInit {
@@ -169,4 +169,3 @@ function registerErrorMessage(error: unknown, i18n: I18nService): string {
             return authErrorMessage(error);
     }
 }
-

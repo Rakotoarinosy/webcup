@@ -32,7 +32,7 @@ export class AppMenu {
 
     constructor() {
         effect(() => {
-            if (!this.auth.hasRole('admin', 'citizen')) {
+            if (!this.auth.hasRole('manager', 'admin', 'citizen')) {
                 this.instituts.set([]);
                 this.servicesByInstitut.set(new Map());
                 return;
@@ -112,15 +112,6 @@ export class AppMenu {
         }
         return groups;
     });
-
-    // AJOUT 2 : chargement des instituts selon le rôle
-    constructor() {
-        effect(() => {
-            if (this.auth.hasRole('manager', 'admin')) {
-                this.loadInstitutionMenu();
-            }
-        });
-    }
 
     private notificationBadge(): string | undefined {
         const count = this.notifications.unreadCount();

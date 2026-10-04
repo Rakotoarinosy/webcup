@@ -7,7 +7,6 @@ import { InputOtpModule } from 'primeng/inputotp';
 import { MessageModule } from 'primeng/message';
 import { filter, finalize, interval } from 'rxjs';
 
-import { AppFloatingConfigurator } from '../../layout/component/floatingconfigurator/app.floatingconfigurator';
 import { authErrorMessage } from '../auth-errors';
 import { AuthService } from '../auth.service';
 import { ChallengeStore } from '../challenge.store';
@@ -17,7 +16,7 @@ import { VerificationService } from '../verification.service';
 import { TranslatePipe } from '@/app/i18n/t.pipe';
 @Component({
     selector: 'app-verify-code',
-    imports: [ButtonModule, InputOtpModule, MessageModule, ReactiveFormsModule, RouterModule, AppFloatingConfigurator, TranslatePipe],
+    imports: [ButtonModule, InputOtpModule, MessageModule, ReactiveFormsModule, RouterModule, TranslatePipe],
     templateUrl: './verify-code.html'
 })
 export class VerifyCode {

@@ -1,3 +1,4 @@
+import { DatePipe } from '@angular/common';
 import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterModule } from '@angular/router';
@@ -10,7 +11,7 @@ import { I18N_PIPES } from '@/app/i18n/t.pipe';
 import { I18nService } from '@/app/i18n/i18n.service';
 import { TopbarWidget } from './components/topbarwidget/topbarwidget.component';
 
-@Component({ selector: 'app-landing', imports: [RouterModule, TopbarWidget, I18N_PIPES], templateUrl: './landing.html', styleUrl: './landing.scss' })
+@Component({ selector: 'app-landing', imports: [DatePipe, RouterModule, TopbarWidget, I18N_PIPES], templateUrl: './landing.html', styleUrl: './landing.scss' })
 export class Landing implements OnInit {
     readonly auth = inject(AuthService);
     private readonly content = inject(MunicipalContentService);
