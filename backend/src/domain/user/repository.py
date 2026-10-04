@@ -52,6 +52,11 @@ class RefreshTokenRepository(ABC):
     def get_by_hash(self, token_hash: str) -> RefreshToken | None: ...
 
     @abstractmethod
+    def has_active_device(
+        self, user_id: str, device_fingerprint: str, now: datetime
+    ) -> bool: ...
+
+    @abstractmethod
     def revoke(self, token_id: str, now: datetime) -> bool:
         """Révoque un token. Retourne False s'il était déjà révoqué (course / réutilisation)."""
 

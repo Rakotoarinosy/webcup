@@ -114,8 +114,25 @@
         </div>
 
         <aside class="profile-panel card mb-0 h-fit min-w-0 flex-[1_1_18rem]" aria-labelledby="account-info-heading">
-            <span class="inline-flex items-center gap-2 rounded-full bg-emphasis px-3 py-2 text-sm"><span class="h-2 w-2 rounded-full bg-emerald-500" aria-hidden="true"></span> Session connectée</span>
-            <h2 id="account-info-heading" class="mb-5 mt-5 text-lg font-semibold">Mon compte</h2>
+            <div class="profile-avatar-card">
+                <div class="profile-avatar" aria-hidden="true">
+                    @if (auth.user()?.avatar_url) {
+                        <img [src]="auth.user()?.avatar_url" [alt]="'Photo de ' + auth.user()?.name" />
+                    } @else {
+                        <span>{{ initials() }}</span>
+                    }
+                </div>
+                <div class="min-w-0">
+                    <p class="m-0 text-sm text-muted-color">Photo de profil</p>
+                    <h2 id="account-info-heading" class="m-0 mt-1 truncate text-lg font-semibold">{{ auth.user()?.name }}</h2>
+                </div>
+            </div>
+            <input #avatarFileInput class="sr-only" type="file" accept="image/jpeg,image/png,image/webp" (change)="uploadAvatar($event)" />
+            <button type="button" class="profile-button secondary avatar-button" [disabled]="!!busy()" (click)="chooseAvatar()">
+                <i [class]="busy() === 'avatar' ? 'pi pi-spin pi-spinner' : 'pi pi-camera'" aria-hidden="true"></i>{{ busy() === 'avatar' ? 'Upload...' : 'Changer la photo' }}
+            </button>
+            <small class="profile-avatar-help">JPG, PNG ou WebP, 5 Mo maximum.</small>
+            <span class="mt-5 inline-flex items-center gap-2 rounded-full bg-emphasis px-3 py-2 text-sm"><span class="h-2 w-2 rounded-full bg-emerald-500" aria-hidden="true"></span> Session connectee</span>
             <dl class="grid gap-5">
                 <div>
                     <dt class="text-sm text-muted-color">Nom et prénom</dt>

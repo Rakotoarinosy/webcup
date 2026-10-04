@@ -82,6 +82,7 @@ class RefreshTokenModel(Base):
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    device_fingerprint: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
 
 
 # ─── institut ───────────────────────────────────────────────────────

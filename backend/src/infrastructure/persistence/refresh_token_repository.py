@@ -28,6 +28,7 @@ class SqlAlchemyRefreshTokenRepository(RefreshTokenRepository):
                 expires_at=token.expires_at,
                 created_at=token.created_at,
                 revoked_at=token.revoked_at,
+                device_fingerprint=token.device_fingerprint,
             )
         )
         self.db.commit()
@@ -49,6 +50,22 @@ class SqlAlchemyRefreshTokenRepository(RefreshTokenRepository):
             expires_at=_aware(model.expires_at),
             created_at=_aware(model.created_at),
             revoked_at=_aware(model.revoked_at) if model.revoked_at else None,
+            device_fingerprint=model.device_fingerprint,
+        )
+
+    def has_active_device(self, user_id: str, device_fingerprint: str, now: datetime) -> bool:
+        return (
+            self.db.scalar(
+                select(RefreshTokenModel.id)
+                .where(
+                    RefreshTokenModel.user_id == user_id,
+                    RefreshTokenModel.device_fingerprint == device_fingerprint,
+                    RefreshTokenModel.revoked_at.is_(None),
+                    RefreshTokenModel.expires_at > now,
+                )
+                .limit(1)
+            )
+            is not None
         )
 
     def revoke(self, token_id: str, now: datetime) -> bool:

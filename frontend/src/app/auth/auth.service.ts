@@ -102,10 +102,17 @@ export class AuthService {
         return this.http.post<VerificationChallenge>(`${AUTH_URL}/resend-code`, { challenge_id }, { withCredentials: true }).pipe(takeUntil(this.sessionEnded));
     }
 
-    requestGoogleLogin(credential: string): Observable<VerificationChallenge> {
-        return this.http.post<VerificationChallenge>(`${AUTH_URL}/google`, { credential }, { withCredentials: true }).pipe(
+    requestGoogleLogin(credential: string): Observable<LoginOutcome> {
+        return this.http.post<TokenResponse | VerificationChallenge>(`${AUTH_URL}/google`, { credential }, { withCredentials: true }).pipe(
             takeUntil(this.sessionEnded),
-            tap((challenge) => this.challenges.set(challenge))
+            map((body): LoginOutcome => {
+                if (isChallenge(body)) {
+                    this.challenges.set(body);
+                    return 'verification-required';
+                }
+                this.acceptSession(body);
+                return 'authenticated';
+            })
         );
     }
 
@@ -170,6 +177,15 @@ export class AuthService {
                 }
                 return of(null);
             })
+        );
+    }
+
+    uploadAvatar(file: File): Observable<AuthUser> {
+        const body = new FormData();
+        body.append('file', file);
+        return this.http.post<AuthUser>(`${AUTH_URL}/me/avatar`, body).pipe(
+            takeUntil(this.sessionEnded),
+            tap((user) => this.user.set(user))
         );
     }
 

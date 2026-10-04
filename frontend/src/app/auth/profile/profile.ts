@@ -28,9 +28,10 @@ export class Profile {
     private readonly injector = inject(Injector);
     private readonly profileExport = inject(ProfileExportService);
     private readonly messages = inject(MessageService);
+    readonly avatarFileInput = viewChild<ElementRef<HTMLInputElement>>('avatarFileInput');
     readonly deleteFeedback = viewChild<ElementRef<HTMLElement>>('deleteFeedback');
     readonly deleteDialog = viewChild<ElementRef<HTMLDialogElement>>('deleteDialog');
-    readonly busy = signal<'profile' | 'password' | 'delete' | 'export' | null>(null);
+    readonly busy = signal<'avatar' | 'profile' | 'password' | 'delete' | 'export' | null>(null);
     readonly deleteError = signal<string | null>(null);
     readonly exportFormat = signal<UserExportFormat>('pdf');
     readonly initials = computed(() =>
@@ -59,6 +60,40 @@ export class Profile {
         current_password: ['', [Validators.required, Validators.maxLength(128)]],
         confirmed: [false, Validators.requiredTrue]
     });
+
+    chooseAvatar(): void {
+        if (this.busy()) return;
+        this.avatarFileInput()?.nativeElement.click();
+    }
+
+    uploadAvatar(event: Event): void {
+        const input = event.target as HTMLInputElement;
+        const file = input.files?.[0];
+        input.value = '';
+        if (!file || this.busy()) return;
+
+        const accepted = ['image/jpeg', 'image/png', 'image/webp'];
+        if (!accepted.includes(file.type)) {
+            this.messages.add({ severity: 'warn', summary: 'Image refusee', detail: 'Utilisez une image JPG, PNG ou WebP.', life: 5000 });
+            return;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            this.messages.add({ severity: 'warn', summary: 'Image trop lourde', detail: 'La photo ne doit pas depasser 5 Mo.', life: 5000 });
+            return;
+        }
+
+        this.start('avatar');
+        this.auth
+            .uploadAvatar(file)
+            .pipe(
+                takeUntilDestroyed(this.destroyRef),
+                finalize(() => this.busy.set(null))
+            )
+            .subscribe({
+                next: () => this.success('Photo mise a jour', 'Votre photo de profil est maintenant enregistree.'),
+                error: (error: unknown) => this.failure('Upload impossible', error)
+            });
+    }
 
     saveProfile(): void {
         if (this.busy()) return;
@@ -175,7 +210,7 @@ export class Profile {
             });
     }
 
-    private start(action: 'profile' | 'password' | 'delete' | 'export'): void {
+    private start(action: 'avatar' | 'profile' | 'password' | 'delete' | 'export'): void {
         this.busy.set(action);
     }
 
