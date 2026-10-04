@@ -59,6 +59,7 @@ class AuthSession:
     user: User
     access_token: AccessToken
     refresh_token: str  # valeur brute : à poser dans le cookie, jamais stockée en clair
+    family_id: str = ""  # session (famille de refresh tokens), rattachée à un appareil
 
 
 def _hash_token(raw: str) -> str:
@@ -85,7 +86,9 @@ def _issue_session(
         )
     )
 
-    return AuthSession(user=user, access_token=tokens.create(user.id), refresh_token=raw)
+    return AuthSession(
+        user=user, access_token=tokens.create(user.id), refresh_token=raw, family_id=family_id
+    )
 
 
 def register(

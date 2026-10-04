@@ -4,8 +4,9 @@ Le refresh token voyage dans un cookie HttpOnly (illisible par JavaScript → r�
 limité au chemin /api/v1/auth. L'access token est renvoyé dans le JSON et gardé en mémoire côté front.
 """
 
-from fastapi import APIRouter, Cookie, Depends, Response, status
+from fastapi import APIRouter, BackgroundTasks, Cookie, Depends, Request, Response, status
 
+from src.domain.account_security import KnownDeviceRepository, SecurityAlertSender
 from src.domain.user import (
     AccessTokenService,
     AuthPolicy,
@@ -15,7 +16,12 @@ from src.domain.user import (
     UserRepository,
 )
 from src.domain.user.entities import Channel
-from src.domain.user.ports import GoogleIdentityVerifier
+from src.domain.user.ports import CodeHasher, GoogleIdentityVerifier
+from src.features.account_security.use_cases import (
+    link_current_device,
+    notify_new_device,
+    record_login,
+)
 from src.features.auth.schemas import (
     ChallengeOut,
     ChangePasswordIn,
@@ -55,7 +61,18 @@ from src.infrastructure.security.deps import (
     get_token_service,
     get_user_repo,
 )
-from src.infrastructure.security.email_verification import get_email_verifier, get_google_verifier
+from src.infrastructure.security.device_tracking import (
+    DEVICE_COOKIE,
+    get_device_repo,
+    get_security_alerts,
+    login_context,
+    set_device_cookie,
+)
+from src.infrastructure.security.email_verification import (
+    get_code_hasher,
+    get_email_verifier,
+    get_google_verifier,
+)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -125,6 +142,23 @@ def _respond(
     )
 
 
+def _track_device(
+    session: AuthSession,
+    request: Request,
+    response: Response,
+    background: BackgroundTasks,
+    devices: KnownDeviceRepository,
+    hasher: CodeHasher,
+    alerts: SecurityAlertSender,
+    settings: Settings,
+) -> None:
+    """Reconnaît l'appareil de cette connexion ; s'il est nouveau, alerte après la réponse."""
+    login = record_login(session.user, session.family_id, login_context(request), devices, hasher)
+    set_device_cookie(response, login.device_token, settings)
+    if login.is_new:
+        background.add_task(notify_new_device, session.user, login.device, alerts)
+
+
 def _challenge_out(challenge: VerificationChallenge, response: Response) -> ChallengeOut:
     response.headers["Cache-Control"] = "no-store"
 
@@ -169,7 +203,9 @@ def register_endpoint(
 )
 def login_endpoint(
     payload: LoginIn,
+    request: Request,
     response: Response,
+    background: BackgroundTasks,
     users: UserRepository = Depends(get_user_repo),
     refresh_repo: RefreshTokenRepository = Depends(get_refresh_token_repo),
     hasher: PasswordHasher = Depends(get_password_hasher),
@@ -178,6 +214,9 @@ def login_endpoint(
     verifier: EmailVerifier = Depends(get_email_verifier),
     settings: Settings = Depends(get_settings),
     resolve: ActorResolver = Depends(get_actor_resolver),
+    devices: KnownDeviceRepository = Depends(get_device_repo),
+    code_hasher: CodeHasher = Depends(get_code_hasher),
+    alerts: SecurityAlertSender = Depends(get_security_alerts),
 ) -> TokenOut | ChallengeOut:
     result = login(payload, users, refresh_repo, hasher, tokens, policy, verifier)
     if isinstance(result, VerificationChallenge):
@@ -185,6 +224,7 @@ def login_endpoint(
 
         return _challenge_out(result, response)
 
+    _track_device(result, request, response, background, devices, code_hasher, alerts, settings)
     return _respond(result, response, settings, resolve)
 
 
@@ -203,7 +243,9 @@ def google_login_endpoint(
 @router.post("/verify-code", response_model=TokenOut)
 def verify_code_endpoint(
     payload: VerifyCodeIn,
+    request: Request,
     response: Response,
+    background: BackgroundTasks,
     users: UserRepository = Depends(get_user_repo),
     refresh_repo: RefreshTokenRepository = Depends(get_refresh_token_repo),
     verifier: EmailVerifier = Depends(get_email_verifier),
@@ -211,9 +253,13 @@ def verify_code_endpoint(
     policy: AuthPolicy = Depends(get_auth_policy),
     settings: Settings = Depends(get_settings),
     resolve: ActorResolver = Depends(get_actor_resolver),
+    devices: KnownDeviceRepository = Depends(get_device_repo),
+    code_hasher: CodeHasher = Depends(get_code_hasher),
+    alerts: SecurityAlertSender = Depends(get_security_alerts),
 ) -> TokenOut:
     """Valide le code reçu par email (inscription, email non confirmé ou Google) et ouvre la session."""
     session = verify_code(payload, users, refresh_repo, verifier, tokens, policy)
+    _track_device(session, request, response, background, devices, code_hasher, alerts, settings)
 
     return _respond(session, response, settings, resolve)
 
@@ -289,8 +335,11 @@ def change_password_endpoint(
     policy: AuthPolicy = Depends(get_auth_policy),
     settings: Settings = Depends(get_settings),
     resolve: ActorResolver = Depends(get_actor_resolver),
+    devices: KnownDeviceRepository = Depends(get_device_repo),
+    device_token: str | None = Cookie(default=None, alias=DEVICE_COOKIE),
 ) -> TokenOut:
     session = change_password(user, payload, users, refresh_repo, hasher, tokens, policy)
+    link_current_device(session.user, session.family_id, device_token, devices)
 
     return _respond(session, response, settings, resolve)
 
@@ -307,8 +356,11 @@ def update_profile_endpoint(
     policy: AuthPolicy = Depends(get_auth_policy),
     settings: Settings = Depends(get_settings),
     resolve: ActorResolver = Depends(get_actor_resolver),
+    devices: KnownDeviceRepository = Depends(get_device_repo),
+    device_token: str | None = Cookie(default=None, alias=DEVICE_COOKIE),
 ) -> TokenOut:
     session = update_profile(user, payload, users, refresh_repo, hasher, tokens, policy)
+    link_current_device(session.user, session.family_id, device_token, devices)
     return _respond(session, response, settings, resolve)
 
 

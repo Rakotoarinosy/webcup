@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from src.infrastructure.persistence import models  # noqa: F401  (enregistre les tables)
+from src.infrastructure.security.http_guards import GuardConfig
 from src.infrastructure.persistence.database import Base, get_db
 from src.infrastructure.security.email_verification import get_email_verifier
 from src.main import app
@@ -30,6 +31,27 @@ def db_session(engine: Engine) -> Iterator[Session]:
     session = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)()
     yield session
     session.close()
+
+
+@pytest.fixture(autouse=True)
+def relaxed_guards() -> Iterator[GuardConfig]:
+    """Les tests enchaînent connexions et envois identiques depuis une même « IP » : limites
+    de débit, anti-robots, anti-doublon et cache public sont coupés par défaut. Les tests de
+    tests/integration/test_http_guards.py les réactivent explicitement (fixture `guards`).
+    """
+    original = app.state.guard_config
+    relaxed = GuardConfig(
+        rate_limit_enabled=False,
+        form_guard_enforced=False,
+        duplicate_window_seconds=0,
+        public_cache_seconds=0,
+        max_concurrent_requests=0,
+        signer=original.signer,
+        decode_user=original.decode_user,
+    )
+    app.state.guard_config = relaxed
+    yield relaxed
+    app.state.guard_config = original
 
 
 @pytest.fixture

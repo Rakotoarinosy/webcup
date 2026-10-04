@@ -5,10 +5,13 @@ from contextlib import asynccontextmanager
 
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from scalar_fastapi import get_scalar_api_reference
 from starlette.responses import HTMLResponse
 
 from src.bootstrap import ensure_bootstrap_admin, start_terra_sync
+from src.features.account_security.router import form_router as security_form_router
+from src.features.account_security.router import router as account_security_router
 from src.features.agent.router import router as agent_router
 from src.features.audit.router import router as audit_router
 from src.features.auth.router import router as auth_router
@@ -26,11 +29,16 @@ from src.features.terra_request.router import router as terra_request_router
 from src.features.user.router import router as user_router
 from src.features.user_export.router import router as user_export_router
 from src.infrastructure.config import configure_logging, get_settings
+from src.infrastructure.security.deps import get_token_service
+from src.infrastructure.security.http_guards import GuardConfig, HttpGuardMiddleware
+from src.infrastructure.security.overload import register_overload_handlers
 from src.shared.errors import register_exception_handlers
 
 API_PREFIX = "/api/v1"
 
 FEATURE_ROUTERS: list[APIRouter] = [
+    account_security_router,  # avant auth_router : préfixe /auth/security
+    security_form_router,
     auth_router,
     user_router,
     institut_router,
@@ -73,14 +81,32 @@ def create_app() -> FastAPI:
         openapi_url="/openapi.json" if show_docs else None,
     )
 
+    # Garde-fous (débit, taille, anti-robots, double envoi, cache public, en-têtes de sécurité).
+    # La configuration est relue à chaque requête dans app.state : les tests peuvent l'ajuster.
+    app.state.guard_config = GuardConfig.from_settings(
+        settings, decode_user=lambda token: get_token_service().decode(token)
+    )
+    app.add_middleware(HttpGuardMiddleware)
+    # Compression des réponses JSON (listes, tableaux de bord) : -70 à -85 % sur le réseau.
+    app.add_middleware(GZipMiddleware, minimum_size=1024, compresslevel=6)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,  # jamais "*" : les cookies (credentials) sont activés
         allow_credentials=True,
         allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
-        allow_headers=["Authorization", "Content-Type"],
+        allow_headers=[
+            "Authorization",
+            "Content-Type",
+            "Idempotency-Key",
+            "X-Form-Token",
+            "X-Form-Trap",
+            "If-None-Match",
+        ],
+        expose_headers=["Retry-After", "Idempotent-Replayed", "ETag"],
+        max_age=600,
     )
     register_exception_handlers(app)
+    register_overload_handlers(app)
 
     @app.middleware("http")
     async def broadcast_successful_mutations(request, call_next):  # type: ignore[no-untyped-def]

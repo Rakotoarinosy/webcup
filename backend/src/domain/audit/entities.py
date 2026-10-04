@@ -31,6 +31,8 @@ class AuditAction(StrEnum):
     AGENT_STATUS_CHANGED = "agent_status_changed"
     DATA_CONCERN_REVIEWED = "data_concern_reviewed"
     DATA_CONCERN_ANSWERED = "data_concern_answered"
+    ACCOUNT_DEVICE_REVOKED = "account_device_revoked"
+    ACCOUNT_SUSPICIOUS_LOGIN_REPORTED = "account_suspicious_login_reported"
 
 
 class AuditTarget(StrEnum):

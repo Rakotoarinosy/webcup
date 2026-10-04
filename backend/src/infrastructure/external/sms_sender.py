@@ -13,7 +13,7 @@ from src.domain.user.ports import SmsSender
 
 logger = logging.getLogger(__name__)
 
-APP_NAME = "Kotrana"
+APP_NAME = "Terra Nova"
 
 
 def _text(code: str, ttl_minutes: int) -> str:
@@ -29,11 +29,14 @@ class HttpSmsSender(SmsSender):
         self._timeout = timeout
 
     def send_verification_code(self, to: str, code: str, ttl_minutes: int) -> None:
+        self.send_text(to, _text(code, ttl_minutes))
+
+    def send_text(self, to: str, text: str) -> None:
         try:
             response = httpx.post(
                 self._url,
                 headers={"x-api-key": self._api_key},
-                json={"content": _text(code, ttl_minutes), "from": self._from, "to": to},
+                json={"content": text, "from": self._from, "to": to},
                 timeout=self._timeout,
             )
             response.raise_for_status()
@@ -56,3 +59,8 @@ class ConsoleSmsSender(SmsSender):
             )
             raise SmsDeliveryUnavailableError()
         logger.warning("DEV ONLY - verification code for %s: %s", to, code)
+
+    def send_text(self, to: str, text: str) -> None:
+        if not self._allow:
+            raise SmsDeliveryUnavailableError()
+        logger.warning("DEV ONLY - sms to %s: %s", to, text)

@@ -101,6 +101,41 @@ class Settings(BaseSettings):
     # Boucle de synchronisation en tâche de fond (désactivable, ex. plusieurs workers).
     terra_nova_background_sync: bool = True
 
+    # ─── Sécurité HTTP et protection des formulaires ───
+    # Adresse du frontend, utilisée dans les alertes de connexion (lien « Sécurité du compte »).
+    # Vide : première origine de CORS_ORIGINS.
+    frontend_url: str | None = None
+    # Limitation de débit en mémoire (par processus) : login, inscription, codes, formulaires publics.
+    rate_limit_enabled: bool = True
+    # Plafond global de requêtes par minute et par client (IP ou compte connecté).
+    rate_limit_global_per_minute: int = 600
+    # Ne lire X-Forwarded-For que si un proxy de confiance le pose (sinon falsifiable).
+    trust_forwarded_for: bool = False
+    # Taille maximale d'un corps de requête (octets) ; 64 Ko pour /auth.
+    max_request_body_bytes: int = 10 * 1024 * 1024
+    # Anti-robots : jeton de formulaire signé exigé (inscription, contact) et délai minimal.
+    form_guard_enforced: bool = True
+    form_min_fill_seconds: float = 2.0
+    form_token_max_age_seconds: int = 24 * 3600
+    # Double soumission : un même contenu renvoyé par le même auteur dans ce délai est refusé (0 = off).
+    duplicate_submission_window_seconds: int = 180
+    # Réponses rejouées pour une même clé Idempotency-Key pendant ce délai.
+    idempotency_ttl_seconds: int = 24 * 3600
+
+    # ─── Sobriété et résistance à la charge ───
+    # Cache mémoire des contenus publics (services, publications) ; 0 = désactivé.
+    public_cache_seconds: int = 30
+    # Requêtes traitées simultanément par processus avant de répondre 503 (0 = illimité).
+    max_concurrent_requests: int = 64
+    # Pool de connexions PostgreSQL (ignoré en SQLite).
+    db_pool_size: int = 5
+    db_max_overflow: int = 5
+    db_pool_timeout_seconds: float = 10.0
+    db_pool_recycle_seconds: int = 300
+    # Délai maximal d'une requête SQL (ms, PostgreSQL). 0 = aucun : à laisser à 0 derrière un
+    # pooler qui refuse les options de démarrage (ex. Neon « -pooler »).
+    db_statement_timeout_ms: int = 0
+
     @field_validator("database_url", mode="before")
     @classmethod
     def use_installed_postgres_driver(cls, value: str) -> str:
@@ -137,6 +172,11 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.environment is Environment.PRODUCTION
+
+    @property
+    def public_frontend_url(self) -> str:
+        url = self.frontend_url or (self.cors_origins[0] if self.cors_origins else "")
+        return url.rstrip("/")
 
     @property
     def cookie_secure(self) -> bool:

@@ -15,6 +15,7 @@ from pathlib import Path
 BACKEND = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND))
 
+from src.domain.account_security import DeviceKind  # noqa: E402
 from src.domain.agent import AgentStatus  # noqa: E402
 from src.domain.audit import AuditAction, AuditTarget  # noqa: E402
 from src.domain.citizen_request import (  # noqa: E402
@@ -57,6 +58,7 @@ ENUMS: tuple[type[StrEnum], ...] = (
     SearchKind,
     PipelineStatus,
     TerraNotificationKind,
+    DeviceKind,
 )
 
 HEADER = """\

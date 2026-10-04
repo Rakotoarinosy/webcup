@@ -67,7 +67,9 @@ export const AUDIT_LABELS: Record<AuditAction, string> = {
     agent_deactivated: 'Agent désactivé',
     agent_status_changed: 'Disponibilité de l’agent modifiée',
     data_concern_reviewed: 'Signalement sur les données pris en charge',
-    data_concern_answered: 'Réponse à un signalement sur les données'
+    data_concern_answered: 'Réponse à un signalement sur les données',
+    account_device_revoked: 'Appareil déconnecté par le titulaire du compte',
+    account_suspicious_login_reported: 'Connexion suspecte signalée (« Ce n’était pas moi »)'
 };
 
 const FIELD_LABELS: Record<string, string> = {

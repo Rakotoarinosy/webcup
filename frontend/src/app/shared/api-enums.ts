@@ -36,7 +36,7 @@ export type ConcernTopic = (typeof CONCERN_TOPIC_VALUES)[number];
 export const CONCERN_STATUS_VALUES = ['Reçu', "En cours d'examen", 'Répondu'] as const;
 export type ConcernStatus = (typeof CONCERN_STATUS_VALUES)[number];
 
-export const AUDIT_ACTION_VALUES = ['account_created', 'account_updated', 'account_role_changed', 'account_password_reset', 'account_deactivated', 'account_reactivated', 'account_deleted', 'institut_created', 'institut_updated', 'institut_manager_changed', 'agent_created', 'agent_moved', 'agent_activated', 'agent_deactivated', 'agent_status_changed', 'data_concern_reviewed', 'data_concern_answered'] as const;
+export const AUDIT_ACTION_VALUES = ['account_created', 'account_updated', 'account_role_changed', 'account_password_reset', 'account_deactivated', 'account_reactivated', 'account_deleted', 'institut_created', 'institut_updated', 'institut_manager_changed', 'agent_created', 'agent_moved', 'agent_activated', 'agent_deactivated', 'agent_status_changed', 'data_concern_reviewed', 'data_concern_answered', 'account_device_revoked', 'account_suspicious_login_reported'] as const;
 export type AuditAction = (typeof AUDIT_ACTION_VALUES)[number];
 
 export const AUDIT_TARGET_VALUES = ['account', 'institut', 'agent', 'data_concern'] as const;
@@ -62,3 +62,6 @@ export type PipelineStatus = (typeof PIPELINE_STATUS_VALUES)[number];
 
 export const TERRA_NOTIFICATION_KIND_VALUES = ['new_request', 'new_wave'] as const;
 export type TerraNotificationKind = (typeof TERRA_NOTIFICATION_KIND_VALUES)[number];
+
+export const DEVICE_KIND_VALUES = ['desktop', 'mobile', 'tablet', 'unknown'] as const;
+export type DeviceKind = (typeof DEVICE_KIND_VALUES)[number];

@@ -63,7 +63,18 @@ class SmtpEmailSender(EmailSender):
         message["To"] = to
         message.set_content(text)
         message.add_alternative(html, subtype="html")
+        self._send(message)
 
+    def send_notice(self, to: str, subject: str, text: str, html: str) -> None:
+        message = EmailMessage()
+        message["Subject"] = subject
+        message["From"] = self._sender
+        message["To"] = to
+        message.set_content(text)
+        message.add_alternative(html, subtype="html")
+        self._send(message)
+
+    def _send(self, message: EmailMessage) -> None:
         context = ssl.create_default_context()
         try:
             if self._use_ssl:  # port 465 : TLS dès la connexion
@@ -96,3 +107,8 @@ class ConsoleEmailSender(EmailSender):
             logger.error("SMTP_HOST is not configured: verification emails cannot be sent")
             raise EmailDeliveryUnavailableError()
         logger.warning("DEV ONLY - verification code for %s: %s", to, code)
+
+    def send_notice(self, to: str, subject: str, text: str, html: str) -> None:
+        if not self._allow:
+            raise EmailDeliveryUnavailableError()
+        logger.warning("DEV ONLY - email to %s: %s\n%s", to, subject, text)

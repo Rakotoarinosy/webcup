@@ -13,10 +13,28 @@ class Base(DeclarativeBase):
 
 
 def create_db_engine(database_url: str) -> Engine:
-    # SQLite interdit par défaut l'usage d'une connexion depuis un autre thread (FastAPI en utilise).
-    connect_args = {"check_same_thread": False} if database_url.startswith("sqlite") else {}
-
-    engine = create_engine(database_url, connect_args=connect_args, pool_pre_ping=True)
+    if database_url.startswith("sqlite"):
+        # SQLite interdit par défaut l'usage d'une connexion depuis un autre thread (FastAPI en utilise).
+        engine = create_engine(
+            database_url, connect_args={"check_same_thread": False}, pool_pre_ping=True
+        )
+    else:
+        # Pool borné et délais courts : sous forte charge, mieux vaut un 503 rapide qu'une
+        # requête bloquée (voir http_guards / handlers de surcharge). pool_recycle : les
+        # bases serverless (Neon) ferment les connexions inactives.
+        settings = get_settings()
+        connect_args: dict[str, object] = {"connect_timeout": 10}
+        if settings.db_statement_timeout_ms > 0:
+            connect_args["options"] = f"-c statement_timeout={settings.db_statement_timeout_ms}"
+        engine = create_engine(
+            database_url,
+            connect_args=connect_args,
+            pool_pre_ping=True,
+            pool_size=settings.db_pool_size,
+            max_overflow=settings.db_max_overflow,
+            pool_timeout=settings.db_pool_timeout_seconds,
+            pool_recycle=settings.db_pool_recycle_seconds,
+        )
 
     if database_url.startswith("sqlite"):
         # SQLite n'applique pas les clés étrangères (ni ON DELETE) sans ce PRAGMA, contrairement à PostgreSQL.

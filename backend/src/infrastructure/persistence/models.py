@@ -433,3 +433,56 @@ class TerraRequestReadModel(Base):
     )
     key: Mapped[str] = mapped_column(String(80), primary_key=True)
     read_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+# ─── sécurité du compte et des formulaires ──────────────────────────
+
+
+class KnownDeviceModel(Base):
+    """Appareil reconnu d'un compte : jamais d'adresse IP complète, seulement un réseau tronqué."""
+
+    __tablename__ = "known_devices"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    token_hash: Mapped[str] = mapped_column(String(64), index=True)
+    fingerprint: Mapped[str] = mapped_column(String(64), index=True)
+    label: Mapped[str] = mapped_column(String(120))
+    kind: Mapped[str] = mapped_column(String(20), default="unknown")
+    network: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    location: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    first_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    acknowledged: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true())
+
+
+class DeviceSessionModel(Base):
+    """Session (famille de refresh tokens) → appareil qui l'a ouverte."""
+
+    __tablename__ = "device_sessions"
+
+    family_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    device_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("known_devices.id", ondelete="CASCADE"), index=True
+    )
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class SubmissionRecordModel(Base):
+    """Clés d'idempotence et empreintes anti-doublon des formulaires (expirent seules)."""
+
+    __tablename__ = "submission_records"
+
+    key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    kind: Mapped[str] = mapped_column(String(10))  # idem | dup
+    fingerprint: Mapped[str] = mapped_column(String(64), default="")
+    status_code: Mapped[int | None] = mapped_column(Integer, nullable=True)  # None = en cours
+    content_type: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    body: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)

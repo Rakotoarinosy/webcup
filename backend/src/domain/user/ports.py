@@ -59,11 +59,22 @@ class EmailSender(ABC):
     def send_verification_code(self, to: str, name: str, code: str, ttl_minutes: int) -> None:
         """Envoie le code. Lève EmailDeliveryUnavailableError en cas d'échec."""
 
+    def send_notice(self, to: str, subject: str, text: str, html: str) -> None:
+        """Message d'information (ex. alerte de connexion). Lève en cas d'échec.
+
+        Implémentation par défaut : non pris en charge (les adaptateurs réels la redéfinissent).
+        """
+        raise NotImplementedError
+
 
 class SmsSender(ABC):
     @abstractmethod
     def send_verification_code(self, to: str, code: str, ttl_minutes: int) -> None:
         """Envoie le code au numéro `to` (E.164). Lève SmsDeliveryUnavailableError en cas d'échec."""
+
+    def send_text(self, to: str, text: str) -> None:
+        """SMS d'information (ex. alerte de connexion). Lève en cas d'échec."""
+        raise NotImplementedError
 
 
 # ─── Google ─────────────────────────────────────────────────────────
