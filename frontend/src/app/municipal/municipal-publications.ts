@@ -1,7 +1,8 @@
 import { ActivatedRoute } from '@angular/router';
 import { LiveDataService } from '@/app/shared/live-data.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { finalize } from 'rxjs';
+import { HttpErrorResponse } from '@angular/common/http';
+import { finalize, map, of, switchMap } from 'rxjs';
 import { DatePipe } from '@angular/common';
 import { Component, DestroyRef, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -9,30 +10,18 @@ import { ButtonModule } from 'primeng/button';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DialogModule } from 'primeng/dialog';
-import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
 import { TextareaModule } from 'primeng/textarea';
 import { ToastModule } from 'primeng/toast';
 import { AuthService } from '@/app/auth/auth.service';
-import { MunicipalPublication, MunicipalPublicationComment, MunicipalPublicationIn } from './municipal-content.model';
+import { MunicipalPublication, MunicipalPublicationComment } from './municipal-content.model';
 import { MunicipalContentService } from './municipal-content.service';
+import { PublicationEditor, PublicationDraft } from './publication-editor/publication-editor';
 import { PublicationReadService } from './publication-read.service';
-
-type PublicationEditor = MunicipalPublicationIn;
-
-const emptyEditor = (): PublicationEditor => ({
-    title: '',
-    summary: '',
-    content: '',
-    category: '',
-    published_at: new Date().toISOString().slice(0, 16),
-    is_published: true,
-    image_url: null
-});
 
 @Component({
     selector: 'app-municipal-publications',
-    imports: [DatePipe, FormsModule, ButtonModule, ConfirmDialogModule, DialogModule, InputTextModule, SelectModule, TextareaModule, ToastModule],
+    imports: [DatePipe, FormsModule, ButtonModule, ConfirmDialogModule, DialogModule, PublicationEditor, SelectModule, TextareaModule, ToastModule],
     providers: [ConfirmationService, MessageService],
     templateUrl: './municipal-publications.html',
     styleUrl: './municipal-publications.scss'
@@ -59,12 +48,13 @@ export class MunicipalPublications implements OnInit {
     readonly selectedCategory = signal<string | null>(null);
     readonly editorVisible = signal(false);
     readonly editingId = signal<string | null>(null);
+    readonly editorInitial = signal<Partial<PublicationDraft>>({});
+    readonly saveError = signal<string | null>(null);
     readonly canManage = computed(() => this.auth.hasRole('admin', 'agent', 'manager'));
     readonly isCitizen = computed(() => this.auth.hasRole('citizen'));
     readonly categories = computed(() => [...new Set(this.publications().map((item) => item.category))].map((label) => ({ label, value: label })));
 
     readonly visiblePublications = computed(() => this.publications().filter((item) => !this.selectedCategory() || item.category === this.selectedCategory()));
-    editor: PublicationEditor = emptyEditor();
 
     ngOnInit(): void {
         this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => this.expandedPublication.set(params.get('publication')));
@@ -116,51 +106,60 @@ export class MunicipalPublications implements OnInit {
 
     openCreate(): void {
         this.editingId.set(null);
-        this.editor = emptyEditor();
+        this.editorInitial.set({});
+        this.saveError.set(null);
         this.editorVisible.set(true);
     }
 
     openEdit(publication: MunicipalPublication, event: Event): void {
         event.stopPropagation();
         this.editingId.set(publication.id);
-        this.editor = {
+        this.editorInitial.set({
             title: publication.title,
+            category: publication.category,
             summary: publication.summary,
             content: publication.content,
-            category: publication.category,
-            published_at: this.toLocalDateTime(publication.published_at),
-            is_published: publication.is_published ?? true,
-            image_url: publication.image_url ?? null
-        };
+            coverUrl: publication.image_url ?? '',
+            publishedAt: new Date(publication.published_at),
+            publishImmediately: false
+        });
+        this.saveError.set(null);
         this.editorVisible.set(true);
     }
 
-    save(): void {
-        const payload: PublicationEditor = {
-            ...this.editor,
-            title: this.editor.title.trim(),
-            summary: this.editor.summary.trim(),
-            content: this.editor.content.trim(),
-            category: this.editor.category.trim(),
-            published_at: new Date(this.editor.published_at).toISOString(),
-            image_url: this.editor.image_url?.trim() || null
-        };
-        if (!payload.title || !payload.summary || !payload.content || !payload.category || Number.isNaN(Date.parse(payload.published_at))) {
-            this.messages.add({ severity: 'warn', summary: 'Informations incomplètes', detail: 'Renseignez tous les champs de la publication.' });
-            return;
-        }
-
+    save(draft: PublicationDraft): void {
         this.saving.set(true);
+        this.saveError.set(null);
         const publicationId = this.editingId();
-        const request = publicationId ? this.content.updatePublication(publicationId, payload) : this.content.createPublication(payload);
-        request.pipe(finalize(() => this.saving.set(false))).subscribe({
-            next: (publication) => {
-                this.publications.update((items) => (publicationId ? items.map((item) => (item.id === publication.id ? publication : item)) : [publication, ...items]));
-                this.editorVisible.set(false);
-                this.messages.add({ severity: 'success', summary: publicationId ? 'Publication modifiée' : 'Publication créée', detail: 'Les informations ont été enregistrées.' });
-            },
-            error: () => this.messages.add({ severity: 'error', summary: 'Enregistrement impossible', detail: 'Veuillez réessayer.' })
-        });
+        // Image locale : envoyée d'abord au serveur, la publication ne garde que l'URL renvoyée.
+        const imageUrl$ = draft.coverFile ? this.content.uploadPublicationImage(draft.coverFile).pipe(map((result) => result.url)) : of(draft.coverUrl.trim() || null);
+        imageUrl$
+            .pipe(
+                switchMap((imageUrl) => {
+                    const payload = {
+                        title: draft.title,
+                        summary: draft.summary,
+                        content: draft.content,
+                        category: draft.category,
+                        published_at: draft.publishedAt.toISOString(),
+                        is_published: true,
+                        image_url: imageUrl
+                    };
+                    return publicationId ? this.content.updatePublication(publicationId, payload) : this.content.createPublication(payload);
+                }),
+                finalize(() => this.saving.set(false))
+            )
+            .subscribe({
+                next: (publication) => {
+                    this.publications.update((items) => (publicationId ? items.map((item) => (item.id === publication.id ? publication : item)) : [publication, ...items]));
+                    this.editorVisible.set(false);
+                    this.messages.add({ severity: 'success', summary: publicationId ? 'Publication modifiée' : 'Publication créée', detail: 'Les informations ont été enregistrées.' });
+                },
+                error: (error: unknown) => {
+                    const detail = error instanceof HttpErrorResponse && typeof error.error?.detail === 'string' ? error.error.detail : null;
+                    this.saveError.set(detail ?? 'Enregistrement impossible. Veuillez réessayer.');
+                }
+            });
     }
 
     confirmDelete(publication: MunicipalPublication, event: Event): void {

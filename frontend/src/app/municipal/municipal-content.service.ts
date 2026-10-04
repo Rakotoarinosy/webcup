@@ -51,6 +51,13 @@ export class MunicipalContentService {
         return this.http.post<MunicipalPublication>(`${this.baseUrl}/publications`, payload);
     }
 
+    /** Envoie l'image de couverture ; renvoie l'URL à mettre dans `image_url`. */
+    uploadPublicationImage(file: File): Observable<{ url: string }> {
+        const body = new FormData();
+        body.append('file', file);
+        return this.http.post<{ url: string }>(`${this.baseUrl}/publications/images`, body);
+    }
+
     updatePublication(id: string, payload: Partial<MunicipalPublicationIn>): Observable<MunicipalPublication> {
         return this.http.patch<MunicipalPublication>(`${this.baseUrl}/publications/${encodeURIComponent(id)}`, payload);
     }

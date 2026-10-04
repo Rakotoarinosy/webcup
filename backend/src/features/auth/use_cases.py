@@ -72,6 +72,7 @@ def _issue_session(
     tokens: AccessTokenService,
     policy: AuthPolicy,
     now: datetime,
+    device_fingerprint: str | None = None,
 ) -> AuthSession:
     raw = secrets.token_urlsafe(48)
     refresh_repo.add(
@@ -82,6 +83,7 @@ def _issue_session(
             token_hash=_hash_token(raw),
             expires_at=now + timedelta(days=policy.refresh_ttl_days),
             created_at=now,
+            device_fingerprint=device_fingerprint,
         )
     )
 
@@ -150,6 +152,8 @@ def login(
     tokens: AccessTokenService,
     policy: AuthPolicy,
     verifier: EmailVerifier | None = None,
+    trusted_device_user_id: str | None = None,
+    device_fingerprint: str | None = None,
 ) -> AuthSession | VerificationChallenge:
     now = datetime.now(UTC)
     by_email = is_email_identifier(dto.identifier)
@@ -192,8 +196,7 @@ def login(
             )
         )
 
-    if verifier is not None:
-        # Chaque connexion exige un code, même si le contact est déjà confirmé.
+    if verifier is not None and trusted_device_user_id != user.id:
         return verifier.start(user, channel)
 
     if not user.has_verified_contact:
@@ -201,7 +204,7 @@ def login(
 
     refresh_repo.delete_expired(now)
 
-    return _issue_session(user, str(uuid.uuid4()), refresh_repo, tokens, policy, now)
+    return _issue_session(user, str(uuid.uuid4()), refresh_repo, tokens, policy, now, device_fingerprint)
 
 
 def start_google_login(
@@ -209,7 +212,12 @@ def start_google_login(
     users: UserRepository,
     google: GoogleIdentityVerifier,
     verifier: EmailVerifier,
-) -> VerificationChallenge:
+    refresh_repo: RefreshTokenRepository,
+    tokens: AccessTokenService,
+    policy: AuthPolicy,
+    trusted_device_user_id: str | None = None,
+    device_fingerprint: str | None = None,
+) -> AuthSession | VerificationChallenge:
     """Valide l'ID token Google, crée/retrouve/lie le compte, puis envoie le code par email.
 
     Le code est demandé à CHAQUE connexion Google (double authentification).
@@ -229,9 +237,33 @@ def start_google_login(
         user = users.update(replace(user, avatar_url=profile.picture))
 
     if not user.is_active:
-        raise InvalidCredentialsError()  # même réponse qu'un mauvais mot de passe
+        raise InvalidCredentialsError()  # meme reponse qu'un mauvais mot de passe
+
+    now = datetime.now(UTC)
+    if trusted_device_user_id == user.id:
+        refresh_repo.delete_expired(now)
+        return _issue_session(user, str(uuid.uuid4()), refresh_repo, tokens, policy, now, device_fingerprint)
 
     return verifier.start(user, Channel.EMAIL)
+
+
+def _is_known_device(
+    user_id: str,
+    raw_token: str | None,
+    device_fingerprint: str | None,
+    refresh_repo: RefreshTokenRepository,
+    now: datetime,
+) -> bool:
+    if not raw_token or not device_fingerprint:
+        return False
+    stored = refresh_repo.get_by_hash(_hash_token(raw_token))
+    return (
+        stored is not None
+        and stored.user_id == user_id
+        and stored.revoked_at is None
+        and stored.expires_at > now
+        and (stored.device_fingerprint is None or stored.device_fingerprint == device_fingerprint)
+    )
 
 
 def _create_google_user(profile: GoogleProfile, users: UserRepository) -> User:
@@ -280,6 +312,7 @@ def verify_code(
     verifier: EmailVerifier,
     tokens: AccessTokenService,
     policy: AuthPolicy,
+    device_fingerprint: str | None = None,
 ) -> AuthSession:
     """Valide le code (inscription, connexion Google, email ou SMS) et ouvre la session."""
     checked = verifier.check(dto.challenge_id, dto.code)
@@ -299,7 +332,7 @@ def verify_code(
 
     refresh_repo.delete_expired(now)
 
-    return _issue_session(user, str(uuid.uuid4()), refresh_repo, tokens, policy, now)
+    return _issue_session(user, str(uuid.uuid4()), refresh_repo, tokens, policy, now, device_fingerprint)
 
 
 def resend_code(
@@ -345,7 +378,7 @@ def refresh(
         refresh_repo.revoke_family(stored.family_id, now)
         raise InvalidTokenError()
 
-    return _issue_session(user, stored.family_id, refresh_repo, tokens, policy, now)
+    return _issue_session(user, stored.family_id, refresh_repo, tokens, policy, now, stored.device_fingerprint)
 
 
 def logout(raw_token: str | None, refresh_repo: RefreshTokenRepository) -> None:

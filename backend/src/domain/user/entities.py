@@ -90,6 +90,7 @@ class RefreshToken:
     expires_at: datetime
     created_at: datetime
     revoked_at: datetime | None = None
+    device_fingerprint: str | None = None
 
 
 @dataclass

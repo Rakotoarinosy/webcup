@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { Component, OnDestroy, computed, effect, input, output, signal } from '@angular/core';
+import { Component, OnDestroy, computed, effect, input, output, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { CheckboxModule } from 'primeng/checkbox';
@@ -8,6 +8,9 @@ import { EditorModule } from 'primeng/editor';
 import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
 import { TextareaModule } from 'primeng/textarea';
+
+// URL http(s) externe, ou image téléversée sur le serveur (servie sous /api/v1/media).
+const IMAGE_URL = /^(https?:\/\/|\/api\/v1\/media\/)/i;
 
 export interface PublicationDraft {
     title: string;
@@ -49,17 +52,25 @@ export class PublicationEditor implements OnDestroy {
     private readonly localCover = signal('');
     private selectionVersion = 0;
     readonly imageFailed = signal(false);
-    readonly previewImage = computed(() => this.localCover() || (/^https?:\/\//i.test(this.coverUrl().trim()) ? this.coverUrl().trim() : ''));
+    readonly previewImage = computed(() => this.localCover() || (IMAGE_URL.test(this.coverUrl().trim()) ? this.coverUrl().trim() : ''));
     readonly valid = computed(() => this.title().trim().length > 0 && this.category().trim().length > 0 && this.summary().trim().length > 0 && this.content().replace(/<[^>]*>/g, '').replace(/&nbsp;/g, '').trim().length > 0 && (this.publishImmediately() || (this.publishedAt() !== null && Number.isFinite(this.publishedAt()!.getTime()))));
 
     constructor() {
         effect(() => {
             const value = this.initial();
-            this.title.set(value.title ?? ''); this.category.set(value.category ?? 'Information');
-            this.summary.set(value.summary ?? ''); this.content.set(value.content ?? '');
-            this.coverUrl.set(value.coverUrl ?? ''); this.publishedAt.set(value.publishedAt ?? new Date());
-            this.publishImmediately.set(value.publishImmediately ?? true);
-            this.removeFile(); this.attempted.set(false);
+            // untracked : sinon l'effet suit aussi localCover (lu par removeFile) et se relance
+            // à chaque image choisie, ce qui vide le formulaire et l'image aussitôt.
+            untracked(() => {
+                this.title.set(value.title ?? '');
+                this.category.set(value.category ?? 'Information');
+                this.summary.set(value.summary ?? '');
+                this.content.set(value.content ?? '');
+                this.coverUrl.set(value.coverUrl ?? '');
+                this.publishedAt.set(value.publishedAt ?? new Date());
+                this.publishImmediately.set(value.publishImmediately ?? true);
+                this.removeFile();
+                this.attempted.set(false);
+            });
         });
         effect(() => { this.previewImage(); this.imageFailed.set(false); });
     }
@@ -103,7 +114,7 @@ export class PublicationEditor implements OnDestroy {
     submit(): void {
         this.attempted.set(true);
         if (!this.valid() || this.saving() || this.imageLoading()) return;
-        if (!this.coverFile() && this.coverUrl().trim() && !/^https?:\/\//i.test(this.coverUrl().trim())) {
+        if (!this.coverFile() && this.coverUrl().trim() && !IMAGE_URL.test(this.coverUrl().trim())) {
             this.imageError.set('L’adresse de l’image doit commencer par https:// ou http://.'); return;
         }
         this.saved.emit({ title: this.title().trim(), category: this.category().trim(), summary: this.summary().trim(), content: this.content(), coverUrl: this.coverFile() ? '' : this.coverUrl().trim(), coverFile: this.coverFile(), publishedAt: this.publishImmediately() ? new Date() : this.publishedAt()!, publishImmediately: this.publishImmediately() });

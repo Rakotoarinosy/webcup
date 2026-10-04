@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable, tap, throwError } from 'rxjs';
-import { AuthUser, VerificationChallenge } from './auth.model';
+import { AuthUser, LoginOutcome, VerificationChallenge } from './auth.model';
 import { AuthService } from './auth.service';
 import { ChallengeStore } from './challenge.store';
 
@@ -18,7 +18,7 @@ export class VerificationService {
         if (!challenge) return throwError(() => new Error('NO_CHALLENGE'));
         return this.auth.resendCode(challenge.challenge_id).pipe(tap((next) => this.store.set(next)));
     }
-    loginWithGoogle(credential: string): Observable<VerificationChallenge> {
+    loginWithGoogle(credential: string): Observable<LoginOutcome> {
         return this.auth.requestGoogleLogin(credential);
     }
 }
