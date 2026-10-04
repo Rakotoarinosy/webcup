@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/app/municipal/municipal-navigation.service.ts"],
+  "sourcesContent": ["import { Injectable, inject } from '@angular/core';\nimport { Router } from '@angular/router';\n\n@Injectable({ providedIn: 'root' })\nexport class MunicipalNavigation {\n    private readonly router = inject(Router);\n    path(section = ''): string {\n        const base = this.router.url.startsWith('/home/') ? '/home/municipal' : '/municipal';\n        return section ? `${base}/${section}` : base;\n    }\n}\n"],
+  "mappings": ";;;;;;;;;;;AAIM,IAAO,sBAAP,MAAO,qBAAmB;EACX,SAAS,OAAO,MAAM;EACvC,KAAK,UAAU,IAAE;AACb,UAAM,OAAO,KAAK,OAAO,IAAI,WAAW,QAAQ,IAAI,oBAAoB;AACxE,WAAO,UAAU,GAAG,IAAI,IAAI,OAAO,KAAK;EAC5C;;qCALS,sBAAmB;EAAA;4EAAnB,sBAAmB,SAAnB,qBAAmB,WAAA,YADN,OAAM,CAAA;;;sEACnB,qBAAmB,CAAA;UAD/B;WAAW,EAAE,YAAY,OAAM,CAAE;;;",
+  "names": []
+}

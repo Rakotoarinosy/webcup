@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from src.domain.preferences import FontFamily, FontSize, Theme
 
@@ -11,6 +11,6 @@ class PreferencesOut(BaseModel):
 
 class PreferencesIn(PreferencesOut):
     model_config = {"extra": "forbid"}
-    theme: Theme = Field(default="system")
-    font_size: FontSize = Field(default="medium")
-    font_family: FontFamily = Field(default="system")
+    theme: Theme = Theme.SYSTEM
+    font_size: FontSize = FontSize.MEDIUM
+    font_family: FontFamily = FontFamily.SYSTEM

@@ -75,7 +75,7 @@ export class AppMenu {
             items.push({ label: 'Journal', icon: 'pi pi-fw pi-history', routerLink: ['/home/journal'] });
         }
 
-        const groups: MenuItem[] = [{ label: 'Kotrana', items }];
+        const groups: MenuItem[] = [{ label: 'Terra Nova', items }];
 
         items.push({ label: 'Publications', icon: 'pi pi-fw pi-megaphone', routerLink: ['/home/municipal/publications'], badge: this.publicationBadge() });
         if (this.auth.hasRole('admin')) {
@@ -87,7 +87,7 @@ export class AppMenu {
 
         if (this.auth.hasRole('agent', 'manager', 'admin')) {
             groups.push({
-                label: 'Terra Nova',
+                label: 'API Terra Nova',
                 items: [
                     { label: 'Tableau de bord', icon: 'pi pi-fw pi-chart-line', routerLink: ['/home/terra-nova'], routerLinkActiveOptions: { exact: true } },
                     { label: 'Demandes API', icon: 'pi pi-fw pi-list', routerLink: ['/home/terra-nova/demandes'] },

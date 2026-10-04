@@ -4,11 +4,11 @@
         <div>
             <h1 class="m-0 max-w-xl !text-5xl font-bold leading-[.98] tracking-[-.06em] text-emerald-950 dark:!text-white md:!text-7xl">Chaque demande mérite une réponse.</h1>
             <p class="mt-7 max-w-xl text-lg leading-8 text-emerald-950/65 dark:text-emerald-50/70">
-                Kotrana aide les collectivités à centraliser, traiter et suivre les demandes des citoyens, pour des services publics plus réactifs et plus proches du terrain.
+                Terra Nova aide les collectivités à centraliser, traiter et suivre les demandes des citoyens, pour des services publics plus réactifs et plus proches du terrain.
             </p>
             <div class="mt-9 flex flex-wrap gap-5">
                 <a [routerLink]="auth.isAuthenticated() ? auth.homeUrl() : '/auth/login'" class="rounded-xl bg-emerald-600 px-6 py-3.5 font-bold text-white shadow-xl shadow-emerald-600/20"
-                    >{{ auth.isAuthenticated() ? 'Retrouver mon espace' : 'Accéder à Kotrana' }} <i class="pi pi-arrow-right ml-2"></i></a
+                    >{{ auth.isAuthenticated() ? 'Retrouver mon espace' : 'Accéder à Terra Nova' }} <i class="pi pi-arrow-right ml-2"></i></a
                 ><a href="#process" class="py-3.5 font-semibold text-emerald-700 dark:text-emerald-300">Découvrir le fonctionnement</a>
             </div>
         </div>
@@ -114,7 +114,7 @@
     </section>
     <footer class="border-t border-emerald-100 px-6 py-8 dark:border-emerald-900">
         <div class="mx-auto flex max-w-7xl flex-col justify-between gap-4 text-sm text-emerald-950/55 dark:text-emerald-50/55 sm:flex-row">
-            <b class="text-emerald-950 dark:text-white">Kotrana</b><span>© {{ year }} Kotrana · Une gestion publique plus proche.</span><a routerLink="/municipal/contact">Contacter la mairie</a>
+            <b class="text-emerald-950 dark:text-white">Terra Nova</b><span>© {{ year }} Terra Nova · Une gestion publique plus proche.</span><a routerLink="/municipal/contact">Contacter la mairie</a>
         </div>
     </footer>
 </main>

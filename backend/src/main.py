@@ -26,6 +26,7 @@ from src.features.search.router import router as search_router
 from src.features.terra_request.router import router as terra_request_router
 from src.features.user.router import router as user_router
 from src.features.user_export.router import router as user_export_router
+from src.features.virtual_assistant.router import router as virtual_assistant_router
 from src.infrastructure.config import configure_logging, get_settings
 from src.infrastructure.storage import MEDIA_URL_PREFIX, UPLOAD_ROOT
 from src.shared.errors import register_exception_handlers
@@ -47,6 +48,7 @@ FEATURE_ROUTERS: list[APIRouter] = [
     data_concern_router,
     audit_router,
     terra_request_router,
+    virtual_assistant_router,
     realtime_router,
 ]
 

@@ -1,16 +1,34 @@
 """Préférences d'affichage indépendantes des frameworks."""
 
 from dataclasses import dataclass
-from typing import Literal
+from enum import StrEnum
 
-Theme = Literal["light", "dark", "system"]
-FontSize = Literal["small", "medium", "large"]
-FontFamily = Literal["system", "inter", "poppins", "manrope", "source", "serif", "mono"]
+
+class Theme(StrEnum):
+    LIGHT = "light"
+    DARK = "dark"
+    SYSTEM = "system"
+
+
+class FontSize(StrEnum):
+    SMALL = "small"
+    MEDIUM = "medium"
+    LARGE = "large"
+
+
+class FontFamily(StrEnum):
+    SYSTEM = "system"
+    INTER = "inter"
+    POPPINS = "poppins"
+    MANROPE = "manrope"
+    SOURCE = "source"
+    SERIF = "serif"
+    MONO = "mono"
 
 
 @dataclass(frozen=True, slots=True)
 class UserPreferences:
     user_id: str
-    theme: Theme = "system"
-    font_size: FontSize = "medium"
-    font_family: FontFamily = "system"
+    theme: Theme = Theme.SYSTEM
+    font_size: FontSize = FontSize.MEDIUM
+    font_family: FontFamily = FontFamily.SYSTEM

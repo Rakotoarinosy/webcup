@@ -1,6 +1,7 @@
-export const AGENT_STATUSES = ['available', 'in_intervention', 'unavailable', 'offline'] as const;
+import { AGENT_STATUS_VALUES, AgentStatus } from '@/app/shared/api-enums';
 
-export type AgentStatus = (typeof AGENT_STATUSES)[number];
+export const AGENT_STATUSES = AGENT_STATUS_VALUES;
+export type { AgentStatus };
 
 /** Libellés affichés : l'API renvoie les statuts en anglais. */
 export const AGENT_STATUS_LABELS: Record<AgentStatus, string> = {

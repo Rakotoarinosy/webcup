@@ -3,12 +3,13 @@ import { computed, effect, inject, Injectable, signal } from '@angular/core';
 import { EMPTY, catchError, exhaustMap, startWith, switchMap } from 'rxjs';
 
 import { AuthService } from '@/app/auth/auth.service';
+import { NotificationKind } from '@/app/shared/api-enums';
 import { environment } from '@/environments/environment';
 import { RealtimeService } from '../shared/realtime.service';
 
 export interface PlatformNotification {
     key: string;
-    kind: string;
+    kind: NotificationKind;
     title: string;
     message: string;
     request_id: string;

@@ -1,0 +1,137 @@
+@if (isOpen()) {
+    <section class="assistant-panel" role="dialog" aria-labelledby="assistant-title" aria-modal="false">
+        <header class="assistant-header">
+            <span class="assistant-avatar" aria-hidden="true"><i class="pi pi-sparkles"></i></span>
+            <div class="assistant-identity">
+                <h2 id="assistant-title">Terra Nova</h2>
+                <p><span class="online-dot"></span>Votre assistante virtuelle</p>
+            </div>
+            <button class="icon-button" type="button" aria-label="Nouvelle conversation" title="Nouvelle conversation" (click)="clearConversation()">
+                <i class="pi pi-refresh" aria-hidden="true"></i>
+            </button>
+            <button class="icon-button" type="button" aria-label="Fermer l’assistante" title="Fermer" (click)="toggle()">
+                <i class="pi pi-times" aria-hidden="true"></i>
+            </button>
+        </header>
+
+        <div #messageLog class="assistant-messages" role="log" aria-live="polite" aria-relevant="additions text" aria-label="Conversation avec l’assistante">
+            @if (messages().length === 0) {
+                <div class="welcome-message">
+                    <span class="welcome-sparkle" aria-hidden="true">✳</span>
+                    <h3>Bonjour ! Comment puis-je vous aider ?</h3>
+                    <p>Je vous accompagne pour découvrir les services et les démarches sur Terra Nova.</p>
+                    <div class="suggestions" aria-label="Suggestions">
+                        <button type="button" (click)="startSuggestedMessage('Comment signaler un problème dans mon quartier ?')">Signaler un problème <i class="pi pi-arrow-up-right" aria-hidden="true"></i></button>
+                        <button type="button" (click)="startSuggestedMessage('Comment trouver les services de ma mairie ?')">Trouver un service municipal <i class="pi pi-arrow-up-right" aria-hidden="true"></i></button>
+                        <button type="button" (click)="startSuggestedMessage('Comment suivre mes demandes ?')">Suivre une demande <i class="pi pi-arrow-up-right" aria-hidden="true"></i></button>
+                    </div>
+                </div>
+            }
+
+            @for (message of messages(); track $index) {
+                <div class="message-row" [class.from-user]="message.role === 'user'">
+                    @if (message.role === 'assistant') {
+                        <span class="message-avatar" aria-hidden="true"><i class="pi pi-sparkles"></i></span>
+                        <article class="reply-card">
+                            <div class="reply-heading">
+                                <strong>{{ message.content.title }}</strong>
+                                <span class="reply-format">{{ formatLabel(message.content.format) }}</span>
+                            </div>
+                            <p class="message-bubble">{{ message.content.message }}</p>
+                            @if (message.content.steps.length) {
+                                <ol class="reply-steps" [class.as-checklist]="message.content.format === 'checklist'">
+                                    @for (step of message.content.steps; track $index) {
+                                        <li>{{ step }}</li>
+                                    }
+                                </ol>
+                            }
+                            @if (message.content.notes.length) {
+                                <ul class="reply-notes">
+                                    @for (note of message.content.notes; track $index) { <li>{{ note }}</li> }
+                                </ul>
+                            }
+                            @if (message.content.recommended_services.length) {
+                                <div class="service-recommendations">
+                                    <span class="service-recommendations-title">Services municipaux pertinents</span>
+                                    @for (service of message.content.recommended_services; track service.id) {
+                                        <article class="service-recommendation">
+                                            <span class="service-category">{{ service.category }}</span>
+                                            <strong>{{ service.name }}</strong>
+                                            <p>{{ service.description }}</p>
+                                            @if (service.address) {
+                                                <span class="service-detail"><i class="pi pi-map-marker" aria-hidden="true"></i>{{ service.address }}</span>
+                                            }
+                                            <span class="service-detail"><i class="pi pi-clock" aria-hidden="true"></i>{{ service.opening_hours }}</span>
+                                            <span class="service-detail"><i class="pi pi-phone" aria-hidden="true"></i>{{ service.contact_details }}</span>
+                                            <a class="service-link" [routerLink]="['/municipal/services']" [queryParams]="{ search: service.name }">
+                                                Voir ce service <i class="pi pi-arrow-up-right" aria-hidden="true"></i>
+                                            </a>
+                                        </article>
+                                    }
+                                </div>
+                            }
+                            @if (message.content.follow_up) {
+                                <p class="reply-follow-up">{{ message.content.follow_up }}</p>
+                            }
+                        </article>
+                    } @else {
+                        <p class="message-bubble">{{ message.content }}</p>
+                    }
+                </div>
+            }
+
+            @if (isSending()) {
+                <div class="message-row" aria-label="L’assistante rédige sa réponse">
+                    <span class="message-avatar" aria-hidden="true"><i class="pi pi-sparkles"></i></span>
+                    <div class="typing-indicator" aria-hidden="true"><span></span><span></span><span></span></div>
+                </div>
+            }
+
+            @if (errorMessage()) {
+                <p class="error-message" role="alert">{{ errorMessage() }}</p>
+            }
+        </div>
+
+        <form (ngSubmit)="sendMessage()">
+            <label class="format-picker">
+                <span>Format de réponse</span>
+                <select name="responsePreference" [(ngModel)]="responsePreference" [disabled]="isSending()">
+                    <option value="auto">Automatique</option>
+                    <option value="concise">Réponse concise</option>
+                    <option value="steps">Étapes</option>
+                    <option value="checklist">Checklist</option>
+                </select>
+            </label>
+            <div class="composer">
+                <label class="sr-only" for="assistant-input">Votre message</label>
+                <textarea
+                    id="assistant-input"
+                    name="message"
+                    [(ngModel)]="draft"
+                    (keydown.enter)="onEnter($event)"
+                    placeholder="Posez votre question…"
+                    rows="1"
+                    maxlength="1200"
+                    [disabled]="isSending()"
+                    aria-describedby="assistant-disclaimer"
+                ></textarea>
+                <button class="send-button" type="submit" aria-label="Envoyer le message" [disabled]="!draft.trim() || isSending() || draft.length > 1200">
+                    <i class="pi pi-arrow-up" aria-hidden="true"></i>
+                </button>
+            </div>
+        </form>
+        <p id="assistant-disclaimer" class="disclaimer">Assistant IA · Ne partagez aucun mot de passe ni code confidentiel.</p>
+    </section>
+}
+
+<button
+    class="assistant-launcher"
+    type="button"
+    [class.is-open]="isOpen()"
+    [attr.aria-expanded]="isOpen()"
+    [attr.aria-label]="isOpen() ? 'Fermer l’assistante Terra Nova' : 'Parler à l’assistante Terra Nova'"
+    (click)="toggle()"
+>
+    <i [class]="isOpen() ? 'pi pi-times' : 'pi pi-comments'" aria-hidden="true"></i>
+    @if (!isOpen()) { <span class="launcher-label">Besoin d’aide ?</span> }
+</button>

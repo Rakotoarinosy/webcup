@@ -3,6 +3,7 @@ from src.domain.terra_request.entities import (
     PipelineStatus,
     SyncReport,
     TerraNotification,
+    TerraNotificationKind,
     TerraRequest,
     TerraSession,
 )
@@ -19,6 +20,7 @@ __all__ = [
     "TerraFeed",
     "TerraFeedUnavailableError",
     "TerraNotification",
+    "TerraNotificationKind",
     "TerraRequest",
     "TerraRequestNotFoundError",
     "TerraRequestRepository",

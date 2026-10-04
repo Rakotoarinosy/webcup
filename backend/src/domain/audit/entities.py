@@ -10,6 +10,8 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Any
 
+from src.domain.user.entities import Role
+
 
 class AuditAction(StrEnum):
     ACCOUNT_CREATED = "account_created"
@@ -49,7 +51,7 @@ class AuditEntry:
     target_label: str
     actor_id: str | None
     actor_name: str
-    actor_role: str
+    actor_role: Role
     # Institut concerné : permet au manager de consulter les opérations de son institut.
     institut_id: str | None = None
     # Avant / après des champs modifiés. Sérialisable en JSON, jamais de mot de passe.

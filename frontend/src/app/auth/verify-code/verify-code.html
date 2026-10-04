@@ -1,8 +1,8 @@
 <app-floating-configurator [float]="false" class="auth-display-settings" />
 <main class="grid min-h-dvh place-items-center bg-white px-5 py-8 font-sans text-emerald-950 dark:bg-emerald-950 dark:text-emerald-50">
     <section class="w-full max-w-[27.5rem]" aria-labelledby="verify-title">
-        <a class="mb-8 inline-flex w-fit items-center gap-3 text-[1.4rem] font-bold tracking-[-.04em]" routerLink="/" aria-label="Kotrana, accueil"
-            ><span class="grid size-8 place-items-center rounded-[.62rem] bg-emerald-500 text-xl font-black leading-none text-white -skew-y-6">K</span><span>Kotrana</span></a
+        <a class="mb-8 inline-flex w-fit items-center gap-3 text-[1.4rem] font-bold tracking-[-.04em]" routerLink="/" aria-label="Terra Nova, accueil"
+            ><span class="grid size-8 place-items-center rounded-[.62rem] bg-emerald-500 text-sm font-black leading-none text-white -skew-y-6" aria-hidden="true">TN</span><span>Terra Nova</span></a
         >
         <header class="mb-6">
             <h1 id="verify-title" class="mb-2 text-[2rem] font-bold leading-tight tracking-[-.045em]">{{ challenge()?.channel === 'sms' ? 'Vérifiez votre téléphone' : 'Vérifiez votre email' }}</h1>

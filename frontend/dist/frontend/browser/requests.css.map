@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/app/requests/requests.scss", "src/app/requests/requests.scss"],
+  "sourcesContent": [":host {\n    display: block;\n}\n", ":host {\n  display: block;\n}\n/*# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyJmaWxlOi8vL2hvbWUvZmVoaXpvcm8vRG9jdW1lbnRzL2Rldi93ZWJjdXAvZnJvbnRlbmQvc3JjL2FwcC9yZXF1ZXN0cy9yZXF1ZXN0cy5zY3NzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiJBQUFBO0VBQ0kiLCJzb3VyY2VzQ29udGVudCI6WyI6aG9zdCB7XG4gICAgZGlzcGxheTogYmxvY2s7XG59XG4iXX0= */"],
+  "mappings": ";AAAA;AACI,WAAA;ACCJ;",
+  "names": []
+}

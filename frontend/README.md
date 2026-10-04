@@ -1,4 +1,4 @@
-# Kotrana — Frontend Angular
+# Terra Nova — Frontend Angular
 
 Depuis `frontend/` :
 

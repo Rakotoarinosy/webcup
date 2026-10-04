@@ -82,8 +82,8 @@ html:is([data-font-scale='1.5'], [data-font-scale='2']) {
         app-register main {
             grid-template-columns: minmax(0, 1fr);
         }
-        app-login section[aria-label='Kotrana'],
-        app-register section[aria-label='Kotrana'] {
+        app-login section[aria-label='Terra Nova'],
+        app-register section[aria-label='Terra Nova'] {
             display: none !important;
         }
     }

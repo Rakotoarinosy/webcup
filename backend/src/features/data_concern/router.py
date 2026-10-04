@@ -93,5 +93,5 @@ def _admin_out(concern: DataConcern, users: UserRepository) -> DataConcernAdminO
         **DataConcernOut.model_validate(concern).model_dump(),
         user_id=concern.user_id,
         user_name=author.name if author else "Compte supprimé",
-        user_email=author.email if author else "",
+        user_email=(author.email or author.phone or "") if author else "",
     )

@@ -14,6 +14,11 @@ from typing import Any
 ETA_TOLERANCE = timedelta(seconds=90)
 
 
+class TerraNotificationKind(StrEnum):
+    NEW_REQUEST = "new_request"
+    NEW_WAVE = "new_wave"
+
+
 class PipelineStatus(StrEnum):
     TODO = "todo"
     IN_PROGRESS = "in_progress"
@@ -143,7 +148,7 @@ class TerraNotification:
     """Notification dérivée des demandes : une par nouvelle demande, une par vague diffusée."""
 
     key: str
-    kind: str  # new_request | new_wave
+    kind: TerraNotificationKind
     title: str
     message: str
     request_code: str | None

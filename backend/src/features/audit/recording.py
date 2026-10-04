@@ -39,7 +39,7 @@ class AuditTrail:
                 target_label=target_label,
                 actor_id=self.author.id,
                 actor_name=self.author.name,
-                actor_role=self.author.role.value,
+                actor_role=self.author.role,
                 institut_id=institut_id,
                 details=details or {},
             )

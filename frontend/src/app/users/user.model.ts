@@ -1,4 +1,6 @@
-export type Role = 'citizen' | 'agent' | 'manager' | 'admin';
+import { Role } from '@/app/shared/api-enums';
+
+export type { Role };
 
 /** Miroir du schéma UserOut du backend. */
 export interface User {

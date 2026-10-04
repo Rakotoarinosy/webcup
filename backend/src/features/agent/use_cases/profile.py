@@ -48,7 +48,7 @@ def create_agent_profile(
     if user is None or user.role is not Role.AGENT or not user.is_active:
         raise InvalidAgentAccountError(dto.user_id)
     if repo.search(AgentQuery(user_id=user.id)):
-        raise AgentAlreadyExistsError(user.email)
+        raise AgentAlreadyExistsError(user.email or user.phone or user.id)
 
     agent = repo.add(
         Agent(

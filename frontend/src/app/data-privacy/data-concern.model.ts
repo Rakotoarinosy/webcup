@@ -1,10 +1,12 @@
 /** Miroir de backend/src/features/data_concern/schemas.py. */
 
-export const CONCERN_TOPICS = ['Collecte', 'Utilisation', 'Partage', 'Conservation', 'Accès, rectification ou suppression', 'Autre'] as const;
-export type ConcernTopic = (typeof CONCERN_TOPICS)[number];
+import { CONCERN_STATUS_VALUES, CONCERN_TOPIC_VALUES, ConcernStatus, ConcernTopic } from '@/app/shared/api-enums';
 
-export const CONCERN_STATUSES = ['Reçu', "En cours d'examen", 'Répondu'] as const;
-export type ConcernStatus = (typeof CONCERN_STATUSES)[number];
+export const CONCERN_TOPICS = CONCERN_TOPIC_VALUES;
+export type { ConcernTopic };
+
+export const CONCERN_STATUSES = CONCERN_STATUS_VALUES;
+export type { ConcernStatus };
 
 export interface DataConcern {
     id: string;

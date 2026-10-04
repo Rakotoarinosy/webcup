@@ -62,7 +62,7 @@ export const appRoutes: Routes = [
             { path: 'municipal/services', data: { breadcrumb: 'Services municipaux' }, loadComponent: () => import('./app/municipal/municipal-services').then((m) => m.MunicipalServices) },
             { path: 'municipal/publications', data: { breadcrumb: 'Publications' }, loadComponent: () => import('./app/municipal/municipal-publications').then((m) => m.MunicipalPublications) },
             { path: 'municipal/contact', data: { breadcrumb: 'Contacter la mairie' }, loadComponent: () => import('./app/municipal/municipal-contact').then((m) => m.MunicipalContact) },
-            { path: 'terra-nova', data: { breadcrumb: 'Terra Nova', roles: ['agent', 'manager', 'admin'] }, loadChildren: () => import('./app/terra-nova/terra-nova.routes') }
+            { path: 'terra-nova', data: { breadcrumb: 'API Terra Nova', roles: ['agent', 'manager', 'admin'] }, loadChildren: () => import('./app/terra-nova/terra-nova.routes') }
         ]
     },
     {

@@ -5,7 +5,7 @@ import { finalize } from 'rxjs';
 import { Component, DestroyRef, ElementRef, computed, inject, OnInit, signal, viewChild } from '@angular/core';
 import { CardModule } from 'primeng/card';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../auth/auth.service';
 import { LocatedService, MunicipalService, directionsUrl, distanceKm, formatDistance, isLocated } from './municipal-content.model';
 import { MunicipalContentService } from './municipal-content.service';
@@ -28,6 +28,7 @@ export class MunicipalServices implements OnInit {
     private readonly destroyRef = inject(DestroyRef);
     private readonly content = inject(MunicipalContentService);
     private readonly router = inject(Router);
+    private readonly route = inject(ActivatedRoute);
     protected readonly auth = inject(AuthService);
     readonly navigation = inject(MunicipalNavigation);
     readonly openingService = signal<string | null>(null);
@@ -66,6 +67,10 @@ export class MunicipalServices implements OnInit {
     });
 
     ngOnInit(): void {
+        this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+            const search = params.get('search');
+            if (search !== null) this.search.set(search);
+        });
         this.load();
         this.live.watch(
             this.destroyRef,

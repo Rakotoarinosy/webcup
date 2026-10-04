@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 
 from src.domain.citizen_request import Actor, RequestEventType, RequestStatus, scope_for
 from src.domain.citizen_request.priority import NEW_MAX_AGE, WAITING_MAX_AGE, late_since
-from src.domain.notification import Notification
+from src.domain.notification import Notification, NotificationKind
 from src.domain.user import Role
 from src.infrastructure.persistence.citizen_request_repository import as_utc, scope_conditions
 from src.infrastructure.persistence.models import (
@@ -130,7 +130,7 @@ class SqlAlchemyNotificationRepository:
         return [
             Notification(
                 key=str(event_id),
-                kind=event_type,
+                kind=NotificationKind(event_type),
                 title=_TITLES[RequestEventType(event_type)].format(ref=_ref(request_id)),
                 message=title,
                 request_id=request_id,
@@ -174,7 +174,7 @@ class SqlAlchemyNotificationRepository:
             notifications.append(
                 Notification(
                     key=f"late:{row.id}",
-                    kind="late",
+                    kind=NotificationKind.LATE,
                     title=_LATE_TITLE.format(ref=_ref(row.id)),
                     message=row.title,
                     request_id=row.id,

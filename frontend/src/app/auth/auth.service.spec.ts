@@ -7,7 +7,7 @@ import { Router, provideRouter } from '@angular/router';
 import { AUTH_URL, AuthService } from './auth.service';
 import { AuthUser, TokenResponse } from './auth.model';
 
-const USER: AuthUser = { id: 'id', name: 'Rina', email: 'rina@test.mg', role: 'citizen', agent_id: null, institut_id: null, created_at: '', email_verified: true, avatar_url: null };
+const USER: AuthUser = { id: 'id', name: 'Rina', email: 'rina@test.mg', role: 'citizen', agent_id: null, institut_id: null, created_at: '', email_verified: true, phone: null, phone_verified: false, avatar_url: null };
 const SESSION: TokenResponse = { access_token: 'access-token', token_type: 'bearer', expires_in: 900, user: USER };
 
 describe('AuthService session lifecycle', () => {
@@ -21,24 +21,24 @@ describe('AuthService session lifecycle', () => {
     afterEach(() => http.verify());
     it('rejects a registration response without a verification challenge', () => {
         const failed = jasmine.createSpy('failed');
-        auth.register('Rina', USER.email, 'Motdepasse123').subscribe({ error: failed });
+        auth.register('Rina', { email: USER.email! }, 'Motdepasse123').subscribe({ error: failed });
         http.expectOne(AUTH_URL + '/register').flush(USER);
         expect(failed).toHaveBeenCalled();
         expect(auth.isAuthenticated()).toBeFalse();
         http.expectNone(AUTH_URL + '/login');
     });
     it('keeps a registration challenge outside the session and does not login prematurely', () => {
-        const pending = { challenge_id: 'pending-code', email: USER.email, expires_in: 600, resend_after: 60 };
+        const pending = { challenge_id: 'pending-code', channel: 'email' as const, destination: USER.email!, email: USER.email, expires_in: 600, resend_after: 60 };
         const result = jasmine.createSpy('result');
-        auth.register('Rina', USER.email, 'Motdepasse123').subscribe(result);
+        auth.register('Rina', { email: USER.email! }, 'Motdepasse123').subscribe(result);
         http.expectOne(`${AUTH_URL}/register`).flush(pending);
         expect(result).toHaveBeenCalledWith('verification-required');
         expect(auth.isAuthenticated()).toBeFalse();
         http.expectNone(`${AUTH_URL}/login`);
     });
     it('accepts a 202 challenge then creates the session only after code verification', () => {
-        const pending = { challenge_id: 'pending-code', email: USER.email, expires_in: 600, resend_after: 60 };
-        auth.login(USER.email, 'Motdepasse123').subscribe();
+        const pending = { challenge_id: 'pending-code', channel: 'email' as const, destination: USER.email!, email: USER.email, expires_in: 600, resend_after: 60 };
+        auth.login(USER.email!, 'Motdepasse123').subscribe();
         http.expectOne(`${AUTH_URL}/login`).flush(pending, { status: 202, statusText: 'Accepted' });
         expect(auth.user()).toBeNull();
         expect(auth.accessToken()).toBeNull();
@@ -79,7 +79,7 @@ describe('AuthService session lifecycle', () => {
         expect(auth.accessToken()).toBeNull();
     });
     it('rechecks the current role before navigation', () => {
-        auth.login(USER.email, 'Motdepasse123').subscribe();
+        auth.login(USER.email!, 'Motdepasse123').subscribe();
         http.expectOne(`${AUTH_URL}/login`).flush(SESSION);
         auth.validateSession().subscribe();
         http.expectOne(`${AUTH_URL}/me`).flush({ ...USER, role: 'manager' });
@@ -87,7 +87,7 @@ describe('AuthService session lifecycle', () => {
         expect(auth.roleLabel()).toBe('Gestionnaire');
     });
     it('updates the visible profile and cancels a stale profile response', () => {
-        auth.login(USER.email, 'Motdepasse123').subscribe();
+        auth.login(USER.email!, 'Motdepasse123').subscribe();
         http.expectOne(`${AUTH_URL}/login`).flush(SESSION);
         auth.me().subscribe();
         const oldProfile = http.expectOne(`${AUTH_URL}/me`);
@@ -124,7 +124,7 @@ describe('AuthService session lifecycle', () => {
         http.expectNone(`${AUTH_URL}/refresh`);
     });
     it('preserves the session if account deletion fails', () => {
-        auth.login(USER.email, 'Motdepasse123').subscribe();
+        auth.login(USER.email!, 'Motdepasse123').subscribe();
         http.expectOne(`${AUTH_URL}/login`).flush(SESSION);
         auth.deleteAccount('wrong').subscribe({ error: () => {} });
         http.expectOne(`${AUTH_URL}/me`).flush({}, { status: 400, statusText: 'Bad Request' });

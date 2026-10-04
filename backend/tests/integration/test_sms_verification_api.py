@@ -1,8 +1,9 @@
+from unittest.mock import Mock
+
 import httpx
 import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from unittest.mock import Mock
 
 from src.domain.user.exceptions import SmsDeliveryUnavailableError
 from src.domain.user.ports import SmsSender
@@ -62,7 +63,9 @@ async def test_phone_registration_then_login_by_phone(
     assert (await client.post(f"{AUTH}/verify-code", json=again)).status_code == 200
 
 
-async def test_register_needs_exactly_one_contact(client: httpx.AsyncClient, sms: CapturingSms) -> None:
+async def test_register_needs_exactly_one_contact(
+    client: httpx.AsyncClient, sms: CapturingSms
+) -> None:
     base = {"name": "Rina", "password": "Motdepasse123"}
     assert (await client.post(f"{AUTH}/register", json=base)).status_code == 422
     both = {**base, "phone": PHONE, "email": "a@test.mg"}
@@ -90,7 +93,9 @@ async def test_resend_uses_the_sms_channel(
     assert stored is not None and stored.channel == "sms"
     stored.created_at = datetime.now(UTC) - timedelta(seconds=120)
     db_session.commit()
-    resent = await client.post(f"{AUTH}/resend-code", json={"challenge_id": pending["challenge_id"]})
+    resent = await client.post(
+        f"{AUTH}/resend-code", json={"challenge_id": pending["challenge_id"]}
+    )
     assert resent.status_code == 200 and resent.json()["channel"] == "sms"
     assert len(sms.sent) == 2
 

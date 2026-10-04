@@ -28,12 +28,15 @@ def create_user(
     hasher: PasswordHasher,
     audit: AuditTrail | None = None,
 ) -> User:
-    if repo.get_by_email(dto.email):
+    if dto.email and repo.get_by_email(dto.email):
         raise UserAlreadyExistsError(dto.email)
+    if dto.phone and repo.get_by_phone(dto.phone):
+        raise UserAlreadyExistsError(dto.phone)
 
     user = User(
         id=str(uuid.uuid4()),
         email=dto.email,
+        phone=dto.phone,
         name=dto.name,
         created_at=datetime.now(UTC),
         password_hash=hasher.hash(dto.password),
@@ -73,7 +76,12 @@ def list_accounts(
         user
         for user in repo.list()
         if (role is None or user.role is role)
-        and (not needle or needle in user.name.casefold() or needle in user.email.casefold())
+        and (
+            not needle
+            or needle in user.name.casefold()
+            or needle in (user.email or "").casefold()
+            or needle in (user.phone or "")
+        )
     ]
 
 
@@ -145,9 +153,12 @@ def update_citizen_account(
     new_email = changes.get("email")
     if new_email and new_email != user.email and repo.get_by_email(new_email):
         raise UserAlreadyExistsError(new_email)
+    new_phone = changes.get("phone")
+    if new_phone and new_phone != user.phone and repo.get_by_phone(new_phone):
+        raise UserAlreadyExistsError(new_phone)
 
     updated = repo.update(replace(user, **changes))
-    if {"email", "is_active"} & changes.keys():
+    if {"email", "phone", "is_active"} & changes.keys():
         refresh_repo.revoke_all_for_user(user.id, datetime.now(UTC))
     if audit is not None:
         record_account_changes(audit, user, updated, password_reset=False, institut_id=None)
@@ -165,13 +176,16 @@ def update_user(
     changes = dto.model_dump(exclude_unset=True)
 
     # null signifie « ne pas toucher ».
-    for field in ("email", "name", "role", "is_active", "password"):
+    for field in ("email", "phone", "name", "role", "is_active", "password"):
         if changes.get(field) is None:
             changes.pop(field, None)
 
     new_email = changes.get("email")
     if new_email and new_email != user.email and repo.get_by_email(new_email):
         raise UserAlreadyExistsError(new_email)
+    new_phone = changes.get("phone")
+    if new_phone and new_phone != user.phone and repo.get_by_phone(new_phone):
+        raise UserAlreadyExistsError(new_phone)
 
     new_role = changes.get("role", user.role)
     new_active = changes.get("is_active", user.is_active)
@@ -182,7 +196,7 @@ def update_user(
         changes["password_hash"] = hasher.hash(password)
 
     # Toute modification sensible force une reconnexion sur tous les appareils.
-    sensitive = {"role", "is_active", "password_hash", "email"} & changes.keys()
+    sensitive = {"role", "is_active", "password_hash", "email", "phone"} & changes.keys()
     updated = repo.update(replace(user, **changes))
     if sensitive:
         refresh_repo.revoke_all_for_user(user.id, datetime.now(UTC))
@@ -226,7 +240,7 @@ def record_account_changes(
         audit.record(
             AuditAction.ACCOUNT_PASSWORD_RESET, AuditTarget.ACCOUNT, after.id, label, **extra
         )
-    diff = field_changes(before, after, ("name", "email"))
+    diff = field_changes(before, after, ("name", "email", "phone"))
     if diff:
         audit.record(
             AuditAction.ACCOUNT_UPDATED, AuditTarget.ACCOUNT, after.id, label, details=diff, **extra
@@ -234,7 +248,7 @@ def record_account_changes(
 
 
 def _label(user: User) -> str:
-    return f"{user.name} ({user.email})"
+    return f"{user.name} ({user.email or user.phone})"
 
 
 def _ensure_admin_remains(
@@ -251,11 +265,17 @@ def _ensure_admin_remains(
 
 
 def update_own_profile(user: User, dto: UpdateProfileIn, repo: UserRepository) -> User:
-    """The authenticated identity is the only target; role and agent link stay server-owned."""
-    other = repo.get_by_email(dto.email)
-    if other is not None and other.id != user.id:
-        raise UserAlreadyExistsError(dto.email)
-    return repo.update(replace(user, name=dto.name, email=dto.email))
+    """The authenticated identity is the only target; role and agent link stay server-owned.
+
+    Un compte créé par téléphone peut ajouter un email ; un email absent laisse l'actuel inchangé.
+    """
+    changes: dict[str, str] = {"name": dto.name}
+    if dto.email is not None:
+        other = repo.get_by_email(dto.email)
+        if other is not None and other.id != user.id:
+            raise UserAlreadyExistsError(dto.email)
+        changes["email"] = dto.email
+    return repo.update(replace(user, **changes))
 
 
 def delete_own_account(user: User, repo: UserRepository) -> None:

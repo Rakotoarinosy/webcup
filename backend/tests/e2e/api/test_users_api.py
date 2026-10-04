@@ -46,7 +46,7 @@ async def test_user_crud_flow(admin_client: httpx.AsyncClient) -> None:
     assert response.status_code == 201
     user = response.json()
     assert user["email"] == "ada@example.com"
-    assert set(user) == {"id", "email", "name", "created_at", "role", "is_active"}
+    assert set(user) == {"id", "email", "phone", "name", "created_at", "role", "is_active"}
 
     response = await admin_client.get(f"{USERS}/{user['id']}")
     assert response.status_code == 200

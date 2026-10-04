@@ -28,7 +28,7 @@ describe('Menu follows the authenticated role', () => {
             // Les comptes agents sont gérés dans Utilisateurs ▸ Agents (admin) : plus d'entrée « Agents » au premier niveau.
             expect(labels).not.toContain('Agents');
             expect(labels).not.toContain('Transaction');
-            expect(menu.model().some((group) => group.label === 'Terra Nova')).toBe(value !== 'citizen');
+            expect(menu.model().some((group) => group.label === 'API Terra Nova')).toBe(value !== 'citizen');
             const municipal = menu.model().find((group) => group.label === 'La mairie')!;
             expect(municipal.items!.map((item) => item.label)).toEqual([
                 'Accueil municipal',

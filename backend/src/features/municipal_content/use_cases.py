@@ -146,7 +146,11 @@ def list_publication_comments(
 
 
 def create_publication_comment(
-    publication_id: str, user_id: str, author_name: str, content: str, repo: MunicipalContentRepository
+    publication_id: str,
+    user_id: str,
+    author_name: str,
+    content: str,
+    repo: MunicipalContentRepository,
 ) -> MunicipalPublicationComment:
     comment = MunicipalPublicationComment(
         id=str(uuid.uuid4()),

@@ -1,8 +1,9 @@
 """Configuration de l'application, chargée depuis les variables d'environnement et `.env`."""
 
+from enum import StrEnum
 from functools import lru_cache
 from pathlib import Path
-from typing import Annotated, Literal
+from typing import Annotated
 
 from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
@@ -13,14 +14,34 @@ DEFAULT_SECRET = "change-me-in-production"
 DEFAULT_DATABASE_URL = "sqlite:///./app.db"
 
 
+class Environment(StrEnum):
+    DEVELOPMENT = "development"
+    PRODUCTION = "production"
+    TEST = "test"
+
+
+class LogLevel(StrEnum):
+    DEBUG = "DEBUG"
+    INFO = "INFO"
+    WARNING = "WARNING"
+    ERROR = "ERROR"
+    CRITICAL = "CRITICAL"
+
+
+class CookieSameSite(StrEnum):
+    LAX = "lax"
+    STRICT = "strict"
+    NONE = "none"
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=ENV_FILE, env_file_encoding="utf-8", extra="ignore")
 
-    environment: Literal["development", "production", "test"] = "development"
+    environment: Environment = Environment.DEVELOPMENT
     database_url: str = DEFAULT_DATABASE_URL
     # NoDecode : la valeur est une liste séparée par des virgules, pas du JSON.
     cors_origins: Annotated[list[str], NoDecode] = ["http://localhost:4200"]
-    log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
+    log_level: LogLevel = LogLevel.INFO
     secret_key: str = DEFAULT_SECRET
     # Fuseau de la municipalité : définit ce qu'est « aujourd'hui » dans le dashboard.
     app_timezone: str = "Indian/Antananarivo"
@@ -31,7 +52,7 @@ class Settings(BaseSettings):
     max_failed_login_attempts: int = 5
     lockout_minutes: int = 15
     # Cookie du refresh token. "none" uniquement si front et API sont sur des sites différents.
-    cookie_samesite: Literal["lax", "strict", "none"] = "lax"
+    cookie_samesite: CookieSameSite = CookieSameSite.LAX
 
     # ─── Confirmation par email (code à 6 chiffres) ───
     email_verification_required: bool = True
@@ -39,7 +60,7 @@ class Settings(BaseSettings):
     verification_max_attempts: int = 5
     verification_resend_cooldown_seconds: int = 60
 
-    # SMTP obligatoire : sans SMTP_HOST, l’envoi échoue (503).
+    # SMTP obligatoire : sans SMTP_HOST, l'envoi échoue (503).
     # Port 587 = STARTTLS ; port 465 = SMTP_USE_SSL=true.
     smtp_host: str | None = None
     smtp_port: int = 587
@@ -103,23 +124,23 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def reject_weak_secret_in_production(self) -> "Settings":
-        if self.environment == "production" and (
+        if self.environment is Environment.PRODUCTION and (
             self.secret_key == DEFAULT_SECRET or len(self.secret_key) < 32
         ):
             raise ValueError(
                 "SECRET_KEY must be a random string of at least 32 characters in production"
             )
-        if self.environment == "production" and "*" in self.cors_origins:
+        if self.environment is Environment.PRODUCTION and "*" in self.cors_origins:
             raise ValueError("CORS_ORIGINS must not contain '*' (credentials are enabled)")
         return self
 
     @property
     def is_production(self) -> bool:
-        return self.environment == "production"
+        return self.environment is Environment.PRODUCTION
 
     @property
     def cookie_secure(self) -> bool:
-        return self.is_production or self.cookie_samesite == "none"
+        return self.is_production or self.cookie_samesite is CookieSameSite.NONE
 
 
 @lru_cache

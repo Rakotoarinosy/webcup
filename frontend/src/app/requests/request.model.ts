@@ -1,22 +1,20 @@
-export const REQUEST_CATEGORIES = [
-    'Éclairage public',
-    'Voirie',
-    'Eau',
-    'Déchets',
-    'Sécurité',
-    'Espaces verts',
-    'Autre'
-] as const;
+import {
+    REQUEST_CATEGORY_VALUES,
+    REQUEST_PRIORITY_VALUES,
+    REQUEST_STATUS_VALUES,
+    RequestCategory,
+    RequestEventType,
+    RequestPriority,
+    RequestSortBy,
+    RequestStatus,
+    SortOrder
+} from '@/app/shared/api-enums';
 
-export type RequestCategory = (typeof REQUEST_CATEGORIES)[number];
-
-export const REQUEST_PRIORITIES = ['Basse', 'Normale', 'Haute', 'Urgente'] as const;
-
-export type RequestPriority = (typeof REQUEST_PRIORITIES)[number];
-
-export const REQUEST_STATUSES = ['Nouveau', 'En cours', 'En attente', 'Résolu', 'Rejeté'] as const;
-
-export type RequestStatus = (typeof REQUEST_STATUSES)[number];
+// Valeurs générées depuis les Enum du backend (shared/api-enums.ts).
+export const REQUEST_CATEGORIES = REQUEST_CATEGORY_VALUES;
+export const REQUEST_PRIORITIES = REQUEST_PRIORITY_VALUES;
+export const REQUEST_STATUSES = REQUEST_STATUS_VALUES;
+export type { RequestCategory, RequestEventType, RequestPriority, RequestSortBy, RequestStatus, SortOrder };
 
 /**
  * Miroir des transitions du domaine (backend : CitizenRequest.change_status).
@@ -62,8 +60,6 @@ export function requestPrioritySeverity(priority: RequestPriority): 'warn' | 'da
     }
 }
 
-export type RequestSortBy = 'created_at' | 'title' | 'category' | 'priority' | 'status';
-
 /** Miroir de CitizenRequestOut. */
 export interface CitizenRequest {
     id: string;
@@ -108,17 +104,6 @@ export interface AssignRequestIn {
     agent_id: string;
     scheduled_at?: string | null;
 }
-
-export type RequestEventType =
-    | 'created'
-    | 'updated'
-    | 'priority_changed'
-    | 'status_changed'
-    | 'assigned'
-    | 'resolved'
-    | 'rejected'
-    | 'intervention_started'
-    | 'intervention_finished';
 
 /** Une entrée du journal de la demande (GET /requests/{id}/events). */
 export interface RequestEvent {
@@ -173,7 +158,7 @@ export interface CitizenRequestQuery {
     priority?: RequestPriority;
     status?: RequestStatus;
     sort_by: RequestSortBy;
-    sort_order: 'asc' | 'desc';
+    sort_order: SortOrder;
 }
 
 /** Point de la carte (GET /requests/map). */

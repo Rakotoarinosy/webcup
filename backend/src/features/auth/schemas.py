@@ -16,6 +16,7 @@ from pydantic import (
     model_validator,
 )
 
+from src.domain.user import Role
 from src.domain.user.rules import normalize_identifier
 from src.shared.validation import Email, Name, OptionalEmail, OptionalPhone, Password
 
@@ -111,7 +112,7 @@ class ProfileOut(BaseModel):
     email: str | None = None
     phone: str | None = None
     name: str
-    role: str
+    role: Role
     agent_id: str | None = None
     institut_id: str | None = None
     created_at: datetime
