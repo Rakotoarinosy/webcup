@@ -176,7 +176,6 @@ export class AppTopbar {
 
         return [
             {
-                label: user?.name ?? 'Utilisateur',
                 items: [
                     { label: 'Mon profil', icon: 'pi pi-id-card', routerLink: ['/home/profile'] },
                     { label: 'Mes données', icon: 'pi pi-lock', routerLink: ['/home/my-data'] },

@@ -1,9 +1,10 @@
 :host {
-    --assistant-primary: #087f74;
-    --assistant-ink: #17332e;
-    --assistant-muted: #71817c;
-    --assistant-line: #e8eeeb;
-    --assistant-paper: #ffffff;
+    --assistant-primary: var(--p-primary-color, var(--primary-color));
+    --assistant-ink: var(--p-text-color, var(--text-color));
+    --assistant-muted: var(--p-text-muted-color, var(--text-color-secondary));
+    --assistant-line: var(--surface-border, var(--p-content-border-color));
+    --assistant-paper: var(--surface-card, var(--p-content-background));
+    --assistant-soft: var(--p-content-hover-background, var(--surface-hover));
     font-family: var(--font-family, inherit);
 }
 
@@ -22,8 +23,8 @@
     border: 0;
     border-radius: 999px;
     color: #fff;
-    background: linear-gradient(135deg, #0a9282, #08756b);
-    box-shadow: 0 5px 14px #103a3040, 0 1px 3px #103a301a;
+    background: var(--assistant-primary);
+    box-shadow: var(--p-overlay-popover-shadow, 0 5px 14px #0003);
     cursor: pointer;
     transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease;
 }
@@ -60,11 +61,11 @@
     height: min(560px, calc(100dvh - 8rem));
     min-height: 350px;
     overflow: hidden;
-    border: 1px solid #e6ece8;
+    border: 1px solid var(--assistant-line);
     border-radius: 1.1rem;
     color: var(--assistant-ink);
     background: var(--assistant-paper);
-    box-shadow: 0 16px 60px #183d3026, 0 3px 12px #183d3015;
+    box-shadow: var(--p-overlay-popover-shadow, 0 16px 60px #0004);
     animation: assistant-appear 180ms ease-out;
 }
 
@@ -75,7 +76,7 @@
     min-height: 72px;
     padding: 0.8rem 0.9rem;
     border-bottom: 1px solid var(--assistant-line);
-    background: linear-gradient(115deg, #f1faf7, #f8fbf7);
+    background: var(--assistant-soft);
 }
 
 .assistant-avatar,
@@ -87,7 +88,7 @@
     height: 2.45rem;
     border-radius: 50%;
     color: var(--assistant-primary);
-    background: #e2f3eb;
+    background: color-mix(in srgb, var(--assistant-primary) 14%, transparent);
 }
 
 .assistant-avatar i {
@@ -137,6 +138,60 @@
     color: var(--assistant-primary);
     background: #eaf3ef;
 }
+
+.assistant-navigation {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin-top: 0.7rem;
+    padding: 0.5rem 0.7rem;
+    border: 1px solid #9fd3c1;
+    border-radius: 0.55rem;
+    color: var(--assistant-primary);
+    background: #f4fbf7;
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 650;
+    cursor: pointer;
+}
+
+.assistant-navigation:hover { background: #e6f5ed; }
+
+/* Les variables Sakai/PrimeNG suivent immédiatement le thème et la palette choisis. */
+.assistant-navigation,
+.service-link,
+.reply-format {
+    border-color: color-mix(in srgb, var(--assistant-primary) 45%, var(--assistant-line));
+    background: color-mix(in srgb, var(--assistant-primary) 12%, var(--assistant-paper));
+}
+
+.icon-button,
+.format-picker,
+.reply-notes,
+.service-detail,
+.disclaimer { color: var(--assistant-muted); }
+
+.icon-button:hover,
+.assistant-navigation:hover,
+.service-link:hover,
+.suggestions button:hover { background: var(--assistant-soft); }
+
+.suggestions button,
+.composer,
+.format-picker select,
+.service-recommendation { border-color: var(--assistant-line); color: var(--assistant-ink); background: var(--assistant-paper); }
+
+.message-bubble,
+.typing-indicator { color: var(--assistant-ink); background: var(--assistant-soft); }
+
+.reply-heading,
+.reply-steps,
+.service-recommendations-title,
+.service-recommendation > strong,
+.service-recommendation > p,
+.composer textarea { color: var(--assistant-ink); }
+
+.composer:focus-within { border-color: var(--assistant-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--assistant-primary) 20%, transparent); }
 
 .assistant-messages {
     display: flex;

@@ -137,8 +137,9 @@ async def test_missing_api_key_returns_503(
 ) -> None:
     from src.infrastructure.config import get_settings
 
-    monkeypatch.setattr(get_settings(), "gemini_api_key", None)
+    monkeypatch.setattr(get_settings(), "groq_api_key", None)
+    monkeypatch.setattr(get_settings(), "grok_api_key", None)
     response = await platform.client.post(f"{REQUESTS}/x/analyze", headers=platform.admin)
 
     assert response.status_code == 503
-    assert "GEMINI_API_KEY" in response.json()["detail"]
+    assert "GROQ_API_KEY" in response.json()["detail"]

@@ -1,9 +1,10 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
-import { Component, ElementRef, HostListener, inject, signal, viewChild } from '@angular/core';
+import { Component, ElementRef, HostListener, OnInit, inject, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { environment } from '@/environments/environment';
+import { AuthService } from '@/app/auth/auth.service';
 
 type ResponseFormat = 'auto' | 'concise' | 'steps' | 'checklist';
 type ReplyFormat = Exclude<ResponseFormat, 'auto'>;
@@ -16,6 +17,7 @@ interface AssistantReply {
     notes: string[];
     follow_up: string;
     recommended_services: RecommendedService[];
+    navigation: { label: string; path: string } | null;
 }
 
 interface RecommendedService {
@@ -43,8 +45,11 @@ interface ChatResponse {
     templateUrl: './virtual-assistant-widget.html',
     styleUrl: './virtual-assistant-widget.scss'
 })
-export class VirtualAssistantWidget {
+export class VirtualAssistantWidget implements OnInit {
     private readonly http = inject(HttpClient);
+    private readonly host = inject(ElementRef<HTMLElement>);
+    private readonly auth = inject(AuthService);
+    private readonly router = inject(Router);
     private readonly messagesElement = viewChild<ElementRef<HTMLElement>>('messageLog');
 
     readonly isOpen = signal(false);
@@ -53,6 +58,10 @@ export class VirtualAssistantWidget {
     readonly errorMessage = signal('');
     responsePreference: ResponseFormat = 'auto';
     draft = '';
+
+    ngOnInit(): void {
+        this.restoreConversation();
+    }
 
     toggle(): void {
         this.isOpen.update((open) => !open);
@@ -87,6 +96,7 @@ export class VirtualAssistantWidget {
             .subscribe({
                 next: ({ response }) => {
                     this.messages.update((messages) => [...messages, { role: 'assistant', content: response }]);
+                    this.persistGuestConversation();
                     this.isSending.set(false);
                     this.scrollToBottom();
                 },
@@ -105,6 +115,16 @@ export class VirtualAssistantWidget {
     clearConversation(): void {
         this.messages.set([]);
         this.errorMessage.set('');
+        if (this.auth.isAuthenticated()) {
+            this.http.delete(`${environment.apiUrl}/assistant/history`).subscribe({ error: () => undefined });
+        } else {
+            localStorage.removeItem('terra-nova-assistant-history');
+        }
+    }
+
+    navigate(path: string): void {
+        this.router.navigateByUrl(path);
+        this.isOpen.set(false);
     }
 
     formatLabel(format: ReplyFormat): string {
@@ -138,10 +158,39 @@ export class VirtualAssistantWidget {
         this.isOpen.set(false);
     }
 
+    @HostListener('document:click', ['$event'])
+    closeOnOutsideClick(event: MouseEvent): void {
+        if (this.isOpen() && event.target instanceof Node && !this.host.nativeElement.contains(event.target)) {
+            this.isOpen.set(false);
+        }
+    }
+
     private scrollToBottom(): void {
         requestAnimationFrame(() => {
             const element = this.messagesElement()?.nativeElement;
             if (element) element.scrollTop = element.scrollHeight;
         });
+    }
+
+    private restoreConversation(): void {
+        if (this.auth.isAuthenticated()) {
+            this.http.get<ChatMessage[]>(`${environment.apiUrl}/assistant/history`).subscribe({
+                next: (messages) => this.messages.set(messages),
+                error: () => this.messages.set([])
+            });
+            return;
+        }
+        try {
+            const saved = localStorage.getItem('terra-nova-assistant-history');
+            if (saved) this.messages.set(JSON.parse(saved) as ChatMessage[]);
+        } catch {
+            localStorage.removeItem('terra-nova-assistant-history');
+        }
+    }
+
+    private persistGuestConversation(): void {
+        if (!this.auth.isAuthenticated()) {
+            localStorage.setItem('terra-nova-assistant-history', JSON.stringify(this.messages().slice(-40)));
+        }
     }
 }
