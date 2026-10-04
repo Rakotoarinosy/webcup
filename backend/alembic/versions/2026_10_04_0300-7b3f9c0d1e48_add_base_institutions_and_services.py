@@ -23,6 +23,17 @@ depends_on: Union[str, Sequence[str], None] = None
 NOW = datetime(2026, 10, 4, 3, 0, tzinfo=UTC)
 
 
+def _insert_missing(table: sa.TableClause, rows: list[dict]) -> None:
+    """Insère seulement les lignes absentes (même id ou même nom) : la base peut déjà les contenir via le seed."""
+    bind = op.get_bind()
+    existing = bind.execute(sa.select(table.c.id, table.c.name)).all()
+    ids = {row.id for row in existing}
+    names = {row.name for row in existing}
+    missing = [row for row in rows if row["id"] not in ids and row["name"] not in names]
+    if missing:
+        op.bulk_insert(table, missing)
+
+
 def upgrade() -> None:
     institutions = sa.table(
         "instituts",
@@ -34,7 +45,7 @@ def upgrade() -> None:
         sa.column("is_active", sa.Boolean()),
         sa.column("created_at", sa.DateTime(timezone=True)),
     )
-    op.bulk_insert(
+    _insert_missing(
         institutions,
         [
             {
@@ -120,7 +131,7 @@ def upgrade() -> None:
         sa.column("latitude", sa.Float()),
         sa.column("longitude", sa.Float()),
     )
-    op.bulk_insert(
+    _insert_missing(
         services,
         [
             {

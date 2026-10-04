@@ -18,10 +18,11 @@ import { MunicipalPublication, MunicipalPublicationComment } from './municipal-c
 import { MunicipalContentService } from './municipal-content.service';
 import { PublicationEditor, PublicationDraft } from './publication-editor/publication-editor';
 import { PublicationReadService } from './publication-read.service';
+import { ExplainSimply } from '../shared/plain-language/explain-simply';
 
 @Component({
     selector: 'app-municipal-publications',
-    imports: [DatePipe, FormsModule, ButtonModule, ConfirmDialogModule, DialogModule, PublicationEditor, SelectModule, TextareaModule, ToastModule],
+    imports: [DatePipe, FormsModule, ButtonModule, ConfirmDialogModule, DialogModule, ExplainSimply, PublicationEditor, SelectModule, TextareaModule, ToastModule],
     providers: [ConfirmationService, MessageService],
     templateUrl: './municipal-publications.html',
     styleUrl: './municipal-publications.scss'

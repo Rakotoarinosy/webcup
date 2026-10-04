@@ -9,6 +9,7 @@ from src.domain.virtual_assistant import (
     AssistantReplyFormat,
     AssistantResponsePreference,
     AssistantServiceRecommendation,
+    PlainExplanation,
 )
 
 
@@ -72,3 +73,29 @@ class AssistantReplyOut(BaseModel):
 
 class ChatOut(BaseModel):
     response: AssistantReplyOut
+
+
+class SimplifyIn(BaseModel):
+    text: str = Field(min_length=20, max_length=5000)
+
+
+class GlossaryTermOut(BaseModel):
+    term: str
+    definition: str
+
+
+class PlainExplanationOut(BaseModel):
+    summary: str
+    key_points: list[str]
+    terms: list[GlossaryTermOut]
+
+    @classmethod
+    def from_domain(cls, explanation: PlainExplanation) -> "PlainExplanationOut":
+        return cls(
+            summary=explanation.summary,
+            key_points=list(explanation.key_points),
+            terms=[
+                GlossaryTermOut(term=term.term, definition=term.definition)
+                for term in explanation.terms
+            ],
+        )

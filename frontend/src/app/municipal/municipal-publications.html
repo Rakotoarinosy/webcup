@@ -68,6 +68,7 @@
                 <h2 class="mb-2 mt-2 text-2xl font-bold text-surface-900 dark:text-surface-0">{{ publication.title }}</h2>
                 <p class="mb-5 text-sm text-surface-500">Publication municipale · {{ publication.published_at | date: 'd MMM y, HH:mm' }} · {{ publication.view_count ?? 0 }} vue{{ (publication.view_count ?? 0) > 1 ? 's' : '' }} · {{ publication.like_count ?? 0 }} j’aime</p>
                 <div class="m-0 whitespace-pre-line leading-relaxed text-surface-700 dark:text-surface-200 [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_a]:text-primary [&_a]:underline" [innerHTML]="publication.content"></div>
+                <app-explain-simply class="mt-4 block" [text]="publication.content" [subject]="publication.title" />
                 @if (isCitizen()) {
                     <div class="mt-6 border-t border-surface-200 pt-4 dark:border-surface-700"><button type="button" class="publication-like" [class.publication-liked]="likedPublicationIds().has(publication.id)" (click)="likePublication(publication, $event)" [attr.aria-pressed]="likedPublicationIds().has(publication.id)"><i class="pi" [class.pi-heart]="!likedPublicationIds().has(publication.id)" [class.pi-heart-fill]="likedPublicationIds().has(publication.id)" aria-hidden="true"></i> J’aime ({{ publication.like_count ?? 0 }})</button></div>
                     <section class="mt-5 border-t border-surface-200 pt-5 dark:border-surface-700" aria-labelledby="comments-heading">

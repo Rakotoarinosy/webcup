@@ -12,11 +12,21 @@ from src.domain.virtual_assistant import (
     AssistantServiceCatalog,
     AssistantTurn,
     AssistantTurnRole,
+    TextSimplifier,
 )
-from src.features.virtual_assistant.schemas import AssistantReplyOut, ChatIn, ChatOut
-from src.features.virtual_assistant.use_cases import answer_user
+from src.features.virtual_assistant.schemas import (
+    AssistantReplyOut,
+    ChatIn,
+    ChatOut,
+    PlainExplanationOut,
+    SimplifyIn,
+)
+from src.features.virtual_assistant.use_cases import answer_user, explain_simply
 from src.infrastructure.config.settings import Settings, get_settings
-from src.infrastructure.external.gemini_assistant import GeminiAssistantResponder
+from src.infrastructure.external.gemini_assistant import (
+    GeminiAssistantResponder,
+    GeminiTextSimplifier,
+)
 from src.infrastructure.persistence.database import get_db
 from src.infrastructure.persistence.municipal_content_repository import (
     SqlAlchemyMunicipalContentRepository,
@@ -33,6 +43,15 @@ def get_assistant_responder(settings: Settings = Depends(get_settings)) -> Assis
             detail="L'assistante est temporairement indisponible. Réessayez plus tard.",
         )
     return GeminiAssistantResponder(settings.gemini_api_key, settings.gemini_model)
+
+
+def get_text_simplifier(settings: Settings = Depends(get_settings)) -> TextSimplifier:
+    if not settings.gemini_api_key:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="L'explication simplifiée est temporairement indisponible.",
+        )
+    return GeminiTextSimplifier(settings.gemini_api_key, settings.gemini_model)
 
 
 def get_assistant_service_catalog(db: Session = Depends(get_db)) -> AssistantServiceCatalog:
@@ -62,4 +81,20 @@ def chat(
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="L'assistante est temporairement indisponible. Réessayez dans un instant.",
+        ) from error
+
+
+@router.post("/simplify", response_model=PlainExplanationOut)
+def simplify(
+    payload: SimplifyIn,
+    simplifier: TextSimplifier = Depends(get_text_simplifier),
+) -> PlainExplanationOut:
+    """Explique un passage administratif en langage clair, à la demande de l'habitant (F90)."""
+    try:
+        return PlainExplanationOut.from_domain(explain_simply(payload.text, simplifier))
+    except Exception as error:
+        logger.warning("Terra Nova simplification failed (%s)", type(error).__name__)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="L'explication simplifiée est indisponible pour le moment. Réessayez dans un instant.",
         ) from error
