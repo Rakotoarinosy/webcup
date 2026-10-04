@@ -17,21 +17,56 @@ APP_NAME = "Terra Nova"
 def _render(name: str, code: str, ttl_minutes: int) -> tuple[str, str]:
     text = (
         f"Bonjour {name},\n\n"
-        f"Votre code de vérification {APP_NAME} est : {code}\n\n"
-        f"Il expire dans {ttl_minutes} minutes. Ne le communiquez à personne.\n"
-        "Si vous n'êtes pas à l'origine de cette demande, ignorez ce message.\n"
+        f"Votre code de vérification pour {APP_NAME} est : {code}\n\n"
+        f"Il expire dans {ttl_minutes} minutes. Ne le communiquez à personne.\n\n"
+        "Si vous n'êtes pas à l'origine de cette demande, veuillez ignorer ce message.\n"
     )
+
     html = f"""\
-<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;padding:24px;color:#1f2937">
-  <h2 style="margin:0 0 16px">{APP_NAME}</h2>
-  <p>Bonjour {escape(name)},</p>
-  <p>Votre code de vérification est :</p>
-  <p style="font-size:32px;letter-spacing:8px;font-weight:bold;margin:24px 0">{code}</p>
-  <p>Il expire dans {ttl_minutes} minutes. Ne le communiquez à personne.</p>
-  <p style="color:#6b7280;font-size:13px">
-    Si vous n'êtes pas à l'origine de cette demande, ignorez ce message.
-  </p>
-</div>"""
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+</head>
+<body style="margin: 0; padding: 0; background-color: #f3f4f6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <div style="max-width: 500px; margin: 40px auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); border: 1px solid #e5e7eb;">
+    
+    <!-- En-tête -->
+    <div style="background-color: #111827; padding: 24px; text-align: center;">
+      <h2 style="margin: 0; color: #ffffff; font-size: 22px; font-weight: 600; letter-spacing: 1px;">
+        {APP_NAME}
+      </h2>
+    </div>
+
+    <!-- Corps de l'email -->
+    <div style="padding: 32px 24px; color: #374151; line-height: 1.6; font-size: 16px;">
+      <p style="margin-top: 0;">Bonjour <strong>{escape(name)}</strong>,</p>
+      <p>Vous avez demandé à vous connecter ou à vérifier votre compte. Voici votre code de sécurité :</p>
+      
+      <!-- Bloc du code -->
+      <div style="margin: 32px 0; padding: 20px; background-color: #f9fafb; border: 1px dashed #d1d5db; border-radius: 6px; text-align: center;">
+        <p style="margin: 0; font-size: 36px; font-weight: 700; letter-spacing: 8px; color: #111827;">
+          {code}
+        </p>
+      </div>
+
+      <p style="margin: 0;">Ce code expirera dans <strong>{ttl_minutes} minutes</strong>.</p>
+      <p style="margin-top: 8px; color: #ef4444; font-size: 14px; font-weight: 500;">
+        ⚠️ Ne partagez ce code avec personne.
+      </p>
+    </div>
+
+    <!-- Pied de page -->
+    <div style="background-color: #f9fafb; padding: 24px; text-align: center; border-top: 1px solid #e5e7eb;">
+      <p style="margin: 0; color: #6b7280; font-size: 13px; line-height: 1.5;">
+        Si vous n'avez pas demandé ce code, vous pouvez ignorer cet e-mail en toute sécurité.<br>
+        Quelqu'un a peut-être saisi votre adresse par erreur.
+      </p>
+    </div>
+
+  </div>
+</body>
+</html>"""
 
     return text, html
 

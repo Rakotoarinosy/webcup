@@ -63,8 +63,8 @@ export class Login implements AfterViewInit {
     tabClass(method: ContactMethod): string {
         const base = 'rounded-lg px-3 py-2 text-sm font-semibold transition-colors';
         return this.method() === method
-            ? `${base} bg-white text-emerald-700 shadow-sm dark:bg-emerald-700 dark:text-white`
-            : `${base} text-emerald-950/60 hover:text-emerald-950 dark:text-emerald-50/65 dark:hover:text-emerald-50`;
+            ? `${base} bg-white text-emerald-700 shadow-sm`
+            : `${base} text-emerald-950/60 hover:text-emerald-950`;
     }
 
     submit(): void {
