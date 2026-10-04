@@ -3,7 +3,11 @@
 from typing import Protocol
 
 from src.domain.municipal_content.entities import MunicipalService
-from src.domain.virtual_assistant.entities import AssistantQuery, AssistantReply
+from src.domain.virtual_assistant.entities import (
+    AssistantQuery,
+    AssistantReply,
+    PlainExplanation,
+)
 
 
 class AssistantServiceCatalog(Protocol):
@@ -12,3 +16,7 @@ class AssistantServiceCatalog(Protocol):
 
 class AssistantResponder(Protocol):
     def respond(self, query: AssistantQuery) -> AssistantReply: ...
+
+
+class TextSimplifier(Protocol):
+    def simplify(self, passage: str) -> PlainExplanation: ...

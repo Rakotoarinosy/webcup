@@ -1,5 +1,6 @@
 """Cas d'usage de réponse aux questions des utilisateurs Terra Nova."""
 
+import re
 from dataclasses import replace
 
 from src.domain.virtual_assistant import (
@@ -10,7 +11,13 @@ from src.domain.virtual_assistant import (
     AssistantResponsePreference,
     AssistantServiceCatalog,
     AssistantServiceRecommendation,
+    GlossaryTerm,
+    PlainExplanation,
+    TextSimplifier,
 )
+
+MAX_KEY_POINTS = 5
+MAX_TERMS = 6
 
 
 def answer_user(
@@ -44,3 +51,32 @@ def answer_user(
         if (service := services_by_id.get(service_id)) is not None
     )[:3]
     return replace(reply, recommended_services=recommendations)
+
+
+def explain_simply(passage: str, simplifier: TextSimplifier) -> PlainExplanation:
+    """Explique un passage en langage simple ; le texte officiel reste la référence.
+
+    Le glossaire ne garde que les mots présents dans le passage : l'IA ne doit pas en ajouter.
+    """
+    normalized = re.sub(r"\s+", " ", passage).strip()
+    explanation = simplifier.simplify(normalized)
+    if not explanation.summary.strip():
+        raise ValueError("explication vide")
+    haystack = normalized.casefold()
+
+    seen: set[str] = set()
+    terms: list[GlossaryTerm] = []
+    for term in explanation.terms:
+        word, definition = term.term.strip(), term.definition.strip()
+        key = word.casefold()
+        if word and definition and key in haystack and key not in seen:
+            seen.add(key)
+            terms.append(GlossaryTerm(term=word, definition=definition))
+
+    return PlainExplanation(
+        summary=explanation.summary.strip(),
+        key_points=tuple(point.strip() for point in explanation.key_points if point.strip())[
+            :MAX_KEY_POINTS
+        ],
+        terms=tuple(terms[:MAX_TERMS]),
+    )

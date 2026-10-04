@@ -18,6 +18,17 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
+def _insert_missing(table: sa.TableClause, rows: list[dict]) -> None:
+    """Insère seulement les lignes absentes (même id ou même nom) : la base peut déjà les contenir via le seed."""
+    bind = op.get_bind()
+    existing = bind.execute(sa.select(table.c.id, table.c.name)).all()
+    ids = {row.id for row in existing}
+    names = {row.name for row in existing}
+    missing = [row for row in rows if row["id"] not in ids and row["name"] not in names]
+    if missing:
+        op.bulk_insert(table, missing)
+
+
 def upgrade() -> None:
     """Ajoute les pôles municipaux visibles dès la première visite."""
     services = sa.table(
@@ -34,7 +45,7 @@ def upgrade() -> None:
         sa.column("usage_count", sa.Integer()),
         sa.column("is_active", sa.Boolean()),
     )
-    op.bulk_insert(
+    _insert_missing(
         services,
         [
             {
