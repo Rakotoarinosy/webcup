@@ -5,6 +5,8 @@
     --assistant-line: var(--surface-border, var(--p-content-border-color));
     --assistant-paper: var(--surface-card, var(--p-content-background));
     --assistant-soft: var(--p-content-hover-background, var(--surface-hover));
+    --assistant-input: var(--p-inputtext-background, var(--assistant-paper));
+    --assistant-disabled: var(--p-content-border-color, var(--surface-200));
     font-family: var(--font-family, inherit);
 }
 
@@ -179,7 +181,7 @@
 .suggestions button,
 .composer,
 .format-picker select,
-.service-recommendation { border-color: var(--assistant-line); color: var(--assistant-ink); background: var(--assistant-paper); }
+.service-recommendation { border-color: var(--assistant-line); color: var(--assistant-ink); background: var(--assistant-input); }
 
 .message-bubble,
 .typing-indicator { color: var(--assistant-ink); background: var(--assistant-soft); }
@@ -192,6 +194,11 @@
 .composer textarea { color: var(--assistant-ink); }
 
 .composer:focus-within { border-color: var(--assistant-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--assistant-primary) 20%, transparent); }
+
+.assistant-panel .send-button { background: var(--assistant-primary); color: var(--p-primary-contrast-color, #fff); }
+.assistant-panel .send-button:disabled { color: var(--assistant-muted); background: var(--assistant-disabled); }
+.assistant-panel .error-message { color: var(--p-red-500, #ef4444); border-color: color-mix(in srgb, var(--p-red-500, #ef4444) 45%, var(--assistant-line)); background: color-mix(in srgb, var(--p-red-500, #ef4444) 10%, var(--assistant-paper)); }
+.assistant-panel textarea::placeholder { color: var(--assistant-muted); opacity: .8; }
 
 .assistant-messages {
     display: flex;
@@ -584,6 +591,12 @@
     cursor: pointer;
     transition: background 150ms;
 }
+
+.voice-button, .reply-voice { border: 0; color: var(--assistant-primary); background: transparent; cursor: pointer; }
+.voice-button { display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: 0.6rem; }
+.voice-button:hover, .reply-voice:hover { background: var(--assistant-soft); }
+.voice-button.is-recording { color: var(--p-red-500, #ef4444); animation: typing-bounce 700ms ease-in-out infinite alternate; }
+.reply-voice { margin-inline-start: auto; padding: 0.2rem; border-radius: 0.35rem; }
 
 .send-button:disabled {
     color: #a5b0ab;

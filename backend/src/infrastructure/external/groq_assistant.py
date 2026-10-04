@@ -103,12 +103,15 @@ def _messages_for(query: AssistantQuery) -> tuple[str, list[dict[str, str]]]:
         "steps": "Utilise format=steps et détaille les étapes utiles dans steps.",
         "checklist": "Utilise format=checklist et présente les contrôles dans steps.",
     }[query.response_preference.value]
+    navigation_instruction = ", ".join(query.navigation_keys) or "aucune"
     output_instruction = (
         "Réponds exclusivement avec un objet JSON dont les clés sont exactement : format, title, "
         "message, steps, notes, follow_up, service_ids, navigation_key. Les champs steps, notes et service_ids "
         "sont toujours des tableaux ; follow_up est toujours une chaîne ; navigation_key est une chaîne ou null. "
-        "Pour proposer une navigation, choisis seulement services, publications, contact, my_requests, "
-        "new_request, account, requests ou journal ; sinon utilise null."
+        f"Pour proposer une navigation, choisis seulement parmi : {navigation_instruction} ; sinon utilise null."
+        " N'écris jamais d'URL, de chemin, de route, de lien, ni d'instruction de clic dans un menu."
+        " N'invente jamais une page, un rôle ou un menu tel que « Manager » ou « Gestionnaire »."
+        " Si navigation_key n'est pas null, écris seulement que l'accès direct est disponible via le bouton affiché sous votre réponse."
     )
     service_context = [
         {
